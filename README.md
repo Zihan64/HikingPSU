@@ -1,4 +1,4 @@
-# HikingPSU 🥾
+# HikingPSU 
 
 **An AI hiking guide for Penn State and State College, built around difficulty ratings you can trust.**
 
