@@ -57,6 +57,8 @@ class Difficulty(BaseModel):
 class TrailWithDifficulty(Trail):
     difficulty: Difficulty
     car_free: bool
+    park_id: str = 'other-nearby-trails'
+    park_name: str = 'Other nearby trails'
 
 
 MAX_USER_MESSAGE_CHARS = 500  # every user turn; assistant turns are our own (signed) replies

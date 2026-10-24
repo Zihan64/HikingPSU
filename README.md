@@ -52,6 +52,24 @@ Layout uses CSS media queries and `matchMedia`, rather than browser-name or
 user-agent checks. Hidden map panels retain their map instance and refresh its
 size with `ResizeObserver` when shown again.
 
+## Trail catalog
+
+The **Trails** tab opens a searchable catalog of every record from `/trails`.
+Choose a managed area on the right (horizontal chips on phones), then search by
+trail name, park, town or feature. Sort by name, difficulty or trail length.
+Trail details reuse the existing reviews/login flow and show the backend's
+distance, gain, estimated time and difficulty reasons. The map supports mouse
+wheel, trackpad and touch zoom. Returning from details restores list filters and
+scroll position.
+
+`/parks` supplies evidence-based area assignments; unverified assignments remain
+under **Other nearby trails**. `/trails/{id}/geometry` serves a separate, bounded
+OSM snapshot without making the trail list response heavy. Missing lines show
+the trailhead only. Missing elevation profiles are omitted. Public PDFs and
+manager documents still stay at their original publishers.
+
+See [catalog data, regeneration commands and review table](docs/trails-catalog.md).
+
 ## Device location
 
 The Logo and Explore button return to the planner from the library, profile,

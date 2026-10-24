@@ -131,3 +131,14 @@ test('the shared header retains main theme trees and hiker inside the 20px decor
   assert.ok(trees.every(node => node.props.style.height > 0 && node.props.style.height <= 20))
   assert.ok(trail.findByProps({className:'hp-trail-walker'}).children.length > 0)
 })
+
+test('catalog navigation has exactly one pressed header tab and preserves its callback', async () => {
+  let opened = 0
+  await act(async () => { tree = create(React.createElement(Auth0Context.Provider, {value:session()},
+    React.createElement(views[true], {catalogOpen:true, onCatalog:() => opened++, onHome:() => {}, onLibrary:() => {}}))) })
+  const nav = tree.root.findByProps({'aria-label':'Workspace'})
+  assert.deepEqual(nav.findAllByType('button').map(b => b.children.join('')), ['Explore','Trails','Official library'])
+  assert.deepEqual(nav.findAllByType('button').map(b => b.props['aria-pressed']), [false,true,false])
+  act(() => button('Trails').props.onClick())
+  assert.equal(opened, 1)
+})

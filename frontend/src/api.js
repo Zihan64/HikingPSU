@@ -26,6 +26,8 @@ async function request(path, { method = 'GET', body, token = null, signal } = {}
 export const chat = (messages, profile, { token = null, sessionId = null } = {}) =>
   request('/chat', { method: 'POST', body: { messages, profile, session_id: sessionId }, token })
 export const listTrails = () => request('/trails')
+export const listParks = signal => request('/parks', {signal})
+export const getTrailGeometry = (id, signal) => request(`/trails/${encodeURIComponent(id)}/geometry`, {signal})
 
 // ---- reviews (reading is public; a token marks your own review as `mine`) ----
 export const getReviewSummaries = () => request('/reviews/summary')
