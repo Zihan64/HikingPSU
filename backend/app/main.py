@@ -1,11 +1,28 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import logging
 
-from . import agent, store
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pymongo.errors import ConnectionFailure
+
+from . import agent, auth, chats, hikes, store, users
+from .db import DatabaseUnavailable
 from .models import ChatRequest, ChatResponse, TrailWithDifficulty
+from .routes_user import auth_router, me_router
+
+log = logging.getLogger("hikingpsu.main")
 
 app = FastAPI(title="HikingPSU API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.include_router(auth_router)
+app.include_router(me_router)
+
+
+@app.exception_handler(DatabaseUnavailable)
+@app.exception_handler(ConnectionFailure)  # includes ServerSelectionTimeoutError
+def _db_down(request: Request, exc: Exception):
+    log.error("database unavailable: %r", exc)
+    return JSONResponse({"detail": "user database unavailable"}, status_code=503)
 
 
 @app.get("/health")
@@ -27,7 +44,30 @@ def get_trail(trail_id: str):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest, user_id: str | None = Depends(auth.current_user_id_optional)):
     if not req.messages:
         raise HTTPException(400, "messages required")
-    return agent.run(req.messages, req.profile)
+    profile = req.profile
+    if user_id:
+        # Persistence is best-effort: a database outage must never break the chat itself.
+        try:
+            profile = {**_stored_profile(user_id), **(req.profile or {})}
+        except Exception:
+            log.exception("could not load user profile; continuing anonymously")
+    res = agent.run(req.messages, profile)
+    if user_id:
+        try:
+            res.session_id = chats.record_exchange(user_id, req.session_id, req.messages, res.reply, res.recommended_ids)
+        except Exception:
+            log.exception("could not save chat history")
+    return res
+
+
+def _stored_profile(user_id: str) -> dict:
+    """What the agent should know about a signed-in user (explicit request fields still win)."""
+    user = users.get(user_id)
+    if user is None:
+        return {}
+    profile = {k: v for k, v in user["profile"].items() if v is not None and k != "bio"}
+    prefs = {k: v for k, v in user["preferences"].items() if v not in (None, [])}
+    return {**profile, "preferences": prefs, **hikes.agent_summary(user_id)}

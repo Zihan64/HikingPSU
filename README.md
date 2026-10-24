@@ -130,7 +130,23 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `GET` | `/health` | Liveness check and trail count |
 | `GET` | `/trails?max_level=&car_free=&max_time_min=` | Filtered list of trails with difficulty |
 | `GET` | `/trails/{id}` | One trail |
-| `POST` | `/chat` | `{ messages: [{role, content}], profile: {has_car} }` → reply, recommended trails, tool log |
+| `POST` | `/chat` | `{ messages: [{role, content}], profile: {has_car} }` → reply, recommended trails, tool log. Send `Authorization: Bearer <token>` to use your saved profile and save the chat (optional `session_id` continues one) |
+
+### User database (MongoDB)
+
+Set `MONGODB_URI` and `JWT_SECRET` in `backend/.env`. Without them everything above still works; the routes below return 503.
+Collections: `users` (account, profile, preferences, saved trails), `hike_logs` (one doc per completed hike), `chat_sessions` (messages embedded).
+All `/me` routes need a bearer token and only ever see the caller's own data.
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/auth/register`, `/auth/login` | `{ email, password }` → `{ access_token }` |
+| `GET` `PATCH` `DELETE` | `/me` | Profile and preferences (PATCH changes only the fields sent); DELETE erases the account and all its data |
+| `PUT` `DELETE` | `/me/saved/{trail_id}` | Save / unsave a trail |
+| `GET` `POST` | `/me/hikes` | Hike log: `{ trail_id, completed_on, duration_min?, rating?, felt_difficulty?, notes? }` |
+| `GET` | `/me/hikes/stats` | Total hikes, unique trails, miles, elevation |
+| `PATCH` `DELETE` | `/me/hikes/{id}` | Edit / remove a log entry |
+| `GET` | `/me/chats`, `/me/chats/{id}` | Saved conversations; `DELETE /me/chats/{id}` removes one |
 
 ## Project structure
 
@@ -143,6 +159,11 @@ backend/
     tools.py        search_trails · get_weather · hunting_season_note
     models.py       Pydantic schemas
     main.py         FastAPI routes
+    db.py           MongoDB connection and indexes
+    auth.py         Password hashing, JWT, auth dependencies
+    users.py · hikes.py · chats.py   Per-collection data access
+    user_models.py  Schemas for profile, preferences, hikes, chats
+    routes_user.py  /auth and /me routes
   data/trails.json  Trail database
   scripts/          Calibration against hiker ratings
   tests/            Model, search, guardrail and agent tests (no network needed)

@@ -66,10 +66,12 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    profile: Optional[dict] = None  # e.g. {"has_car": false, "fitness": 2}
+    profile: Optional[dict] = None  # e.g. {"has_car": false, "fitness": 2}; overrides the stored profile
+    session_id: Optional[str] = None  # signed-in users: continue this saved chat; omitted starts a new one
 
 
 class ChatResponse(BaseModel):
+    session_id: Optional[str] = None  # set when the exchange was saved
     reply: str
     recommended_ids: list[str]
     trails: list[TrailWithDifficulty]
