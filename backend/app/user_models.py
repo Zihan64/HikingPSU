@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .models import TrailWithDifficulty
 
 Gender = Literal["male", "female", "custom"]
-Transport = Literal["car", "bus", "bike_walk"]  # car / bus or public transit / bike or walk
 
 PHONE_PATTERN = r"^\+?[0-9 ().-]{7,20}$"
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
@@ -29,9 +28,11 @@ class Profile(BaseModel):
     gender_custom: Optional[str] = Field(None, max_length=40)
     birthday: Optional[dt.date] = None
     phone: Optional[str] = Field(None, pattern=PHONE_PATTERN)
-    # Also from the sign-up form; the model sees these.
+    secondary_email: Optional[str] = Field(None, max_length=254, pattern=EMAIL_PATTERN)
+    address: Optional[str] = Field(None, max_length=200)
+    # Also from the sign-up form; the model sees these. (How they get to hikes goes to preferences.transit_modes.)
+    is_psu_student: Optional[bool] = Field(None, description="null = rather not say")
     hiking_experience: Optional[int] = Field(None, ge=0, le=5, description="0 (never hiked) … 5 (expert)")
-    transport: Optional[Transport] = Field(None, description="How they said they usually get to a hike")
 
 
 TransitMode = Literal["walk", "bus", "bike", "car"]
@@ -61,20 +62,28 @@ class UserOut(BaseModel):
 
 
 class Registration(BaseModel):
-    """The form shown once, right after a new account's first login."""
+    """The 3-page form shown once, right after a new account's first login."""
 
+    # page 1: about you
+    full_name: str = Field(min_length=1, max_length=60)
     gender: Gender
     gender_custom: Optional[str] = Field(None, max_length=40)
-    full_name: str = Field(min_length=1, max_length=60)
     birthday: dt.date
+    is_psu_student: Optional[bool] = Field(None, description="optional; null = rather not say")
+    # page 2: hiking
     hiking_experience: int = Field(ge=0, le=5, description="0 (never hiked) … 5 (expert)")
-    transport: Transport
-    # optional
-    preferences: Optional[str] = Field(None, max_length=500)
-    email: Optional[str] = Field(None, max_length=254, pattern=EMAIL_PATTERN)
+    transit_modes: list[TransitMode] = Field(min_length=1, max_length=4, description="every way they can get to a hike")
+    # page 3: contact, all optional (the page can be skipped)
+    secondary_email: Optional[str] = Field(None, max_length=254, pattern=EMAIL_PATTERN)
     phone: Optional[str] = Field(None, pattern=PHONE_PATTERN)
+    address: Optional[str] = Field(None, max_length=200)
 
-    @field_validator("gender_custom", "full_name", "preferences", "email", "phone", mode="before")
+    @field_validator("transit_modes")
+    @classmethod
+    def _unique_modes(cls, v: list[str]) -> list[str]:
+        return list(dict.fromkeys(v))
+
+    @field_validator("gender_custom", "full_name", "secondary_email", "phone", "address", mode="before")
     @classmethod
     def _blank_is_none(cls, v):
         if isinstance(v, str):

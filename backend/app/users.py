@@ -30,7 +30,6 @@ def _bson(v):
 
 
 # Sign-up answers -> the fields the recommender already uses.
-TRANSIT_FOR = {"car": ["car"], "bus": ["bus", "walk"], "bike_walk": ["bike", "walk"]}
 MAX_LEVEL_FOR_EXPERIENCE = {0: 1, 1: 2, 2: 2, 3: 3, 4: 4, 5: 5}
 
 
@@ -76,8 +75,9 @@ def patch(user_id: str, changes: dict) -> dict | None:
 def register(user: dict, form: Registration) -> dict | None:
     """Save the sign-up form. Submitting again (to edit it) keeps the original registered_at.
 
-    Transport and experience also fill transit_modes / has_car / max_level / fitness so recommendations
-    use them right away; max_level and fitness are only set if the user hasn't chosen them already.
+    The transport answer is saved as transit_modes, and has_car follows it, so the recommender and the
+    chat agent assume a car exactly when the user picked one. Experience fills max_level / fitness
+    only if the user hasn't chosen them already.
     """
     now = _now()
     profile, prefs = user["profile"], user["preferences"]
@@ -88,10 +88,10 @@ def register(user: dict, form: Registration) -> dict | None:
         "profile.gender_custom": form.gender_custom,
         "profile.birthday": _bson(form.birthday),
         "profile.age": age if 10 <= age <= 110 else None,
+        "profile.is_psu_student": form.is_psu_student,
         "profile.hiking_experience": form.hiking_experience,
-        "profile.transport": form.transport,
-        "profile.has_car": form.transport == "car",
-        "preferences.transit_modes": TRANSIT_FOR[form.transport],
+        "profile.has_car": "car" in form.transit_modes,
+        "preferences.transit_modes": form.transit_modes,
         "updated_at": now,
     }
     if prefs.get("max_level") is None:
@@ -101,14 +101,16 @@ def register(user: dict, form: Registration) -> dict | None:
     if not profile.get("display_name"):
         # Reviews show display_name publicly, so use the first name only.
         sets["profile.display_name"] = form.full_name.split()[0]
-    # Optional fields change only when sent; sending "" or null clears one.
-    optional = {"phone": "profile.phone", "preferences": "preferences.notes", "email": "email"}
-    for field, path in optional.items():
+    # Contact fields change only when sent (skipping page 3 sends none); "" or null clears one.
+    for field in ("secondary_email", "phone", "address"):
         if field in form.model_fields_set:
-            sets[path] = normalize_email(form.email) if field == "email" else getattr(form, field)
+            value = getattr(form, field)
+            sets[f"profile.{field}"] = normalize_email(value) if field == "secondary_email" else value
     if not user.get("registered_at"):
         sets["registered_at"] = now
-    return get_db().users.find_one_and_update({"_id": user["_id"]}, {"$set": sets}, return_document=ReturnDocument.AFTER)
+    # profile.transport: single answer saved by the first version of this form; transit_modes replaces it.
+    update = {"$set": sets, "$unset": {"profile.transport": ""}}
+    return get_db().users.find_one_and_update({"_id": user["_id"]}, update, return_document=ReturnDocument.AFTER)
 
 
 def set_saved(user_id: str, trail_id: str, saved: bool) -> dict | None:
