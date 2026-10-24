@@ -1,44 +1,15 @@
-/* Scenery behind the app (AppBackdrop.jsx). Fixed, behind every panel, never clickable. */
+/* App backdrop (AppBackdrop.jsx): fixed, behind every panel, never clickable.
+   Sky blue at the top fades through a blue-green haze into meadow green at the bottom. */
 .hp-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 84% 3%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.45) 9%, rgba(255, 255, 255, 0) 30%),
-    linear-gradient(180deg, #b7d3f0 0%, #d8e8f7 30%, #edf4fb 58%, #f5f8fc 100%);
+  background: linear-gradient(180deg, #8cc4ee 0%, #b9dcf4 22%, #dcedf6 42%, #ebf4ec 62%, #e3efd8 80%, #d3e5c4 100%);
 }
-.hp-backdrop-clouds { position: absolute; inset: 0 0 42% 0; opacity: 0.85; }
-.hp-backdrop-land { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(150px, 26vh, 290px); }
-
-/* Conifers lean with the wind, each on its own rhythm. */
-.hp-tree {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: hp-sway var(--sway-dur, 6s) ease-in-out var(--sway-delay, 0s) infinite alternate;
-}
-@keyframes hp-sway {
-  from { transform: rotate(-2.2deg); }
-  to   { transform: rotate(2.2deg); }
-}
-
-/* The hiker's stride: legs and pole swing from the hip/hand. */
-.hp-leg, .hp-pole {
-  transform-box: fill-box;
-  transform-origin: 50% 0;
-  animation: hp-step 0.9s ease-in-out infinite alternate;
-}
-.hp-leg-b { animation-delay: -0.9s; }
-.hp-pole  { animation-delay: -0.45s; }
-@keyframes hp-step {
-  from { transform: rotate(-24deg); }
-  to   { transform: rotate(24deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hp-tree, .hp-leg, .hp-pole { animation: none !important; }
-}
+.hp-backdrop-sky { position: absolute; inset: 0 0 45% 0; opacity: 0.9; }
+.hp-backdrop-land { position: absolute; left: -2%; bottom: 0; width: 104%; height: clamp(160px, 28vh, 300px); }
 
 /* Header trail (HeaderTrail.jsx): sits on the header's bottom line. */
 .hp-trail {
@@ -46,7 +17,7 @@
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 26px;
+  height: 28px;
   pointer-events: none;
   container-type: inline-size;
   overflow: hidden;
@@ -54,9 +25,8 @@
 .hp-trail-pine {
   position: absolute;
   bottom: 1px;
-  transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: hp-sway 5.5s ease-in-out infinite alternate;
+  animation: lp-sway 5.5s ease-in-out infinite alternate;
 }
 .hp-trail-pine:nth-child(even) { animation-duration: 7s; animation-delay: -2s; }
 .hp-trail-walker {
@@ -78,7 +48,20 @@
   to   { transform: translateY(-1px); }
 }
 
+/* The hiker's stride: legs and pole swing from the hip/hand. */
+.hp-leg, .hp-pole {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: hp-step 0.9s ease-in-out infinite alternate;
+}
+.hp-leg-b { animation-delay: -0.9s; }
+.hp-pole  { animation-delay: -0.45s; }
+@keyframes hp-step {
+  from { transform: rotate(-24deg); }
+  to   { transform: rotate(24deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hp-trail-pine, .hp-trail-walker, .hp-trail-hiker-body { animation: none !important; }
+  .hp-trail-pine, .hp-trail-walker, .hp-trail-hiker-body, .hp-leg, .hp-pole { animation: none !important; }
   .hp-trail-walker { transform: translateX(22cqw); }
 }

@@ -42,7 +42,7 @@ export default function AuthButton({ onProfile, profileActive = false }) {
         onClick={onProfile}
         aria-pressed={profileActive}
         aria-label={`My profile (${user?.name || user?.email})`}
-        className={`flex items-center gap-2 rounded-xl border px-2 py-1 text-left hover:bg-stone-50 ${profileActive ? 'border-psu-navy bg-white' : 'border-transparent'}`}
+        className={`flex items-center gap-2 rounded-xl border px-2 py-1 text-left hover:bg-stone-50 ${profileActive ? 'border-trail-forest bg-white' : 'border-transparent'}`}
       >
         {user?.picture && <img src={user.picture} alt="" className="h-8 w-8 rounded-full" referrerPolicy="no-referrer" />}
         <div className="leading-tight">

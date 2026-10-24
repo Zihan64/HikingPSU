@@ -11,7 +11,7 @@ const SEASONS = ['spring', 'summer', 'fall', 'winter']
 const GROUPS = [['solo', 'Solo'], ['friends', 'Friends'], ['family', 'Family'], ['club', 'Club']]
 const withSaved = (options, saved) => [...new Set([...options, ...saved])]
 const inputCls ='min-h-[40px] rounded-lg border border-[#d8dfd1] bg-white px-2 py-1.5 text-sm'
-const GREEN = '#174e3c'
+const GREEN = '#2F6B47'
 
 function Card({ title, hint, children }) {
   return (
@@ -41,7 +41,7 @@ function Chips({ options, value, onToggle }) {
         const on = value.includes(key)
         return (
           <button key={key} type="button" aria-pressed={on} onClick={() => onToggle(key)}
-            className={`min-h-[36px] rounded-full border px-3 py-1 text-xs capitalize ${on ? 'border-[#174e3c] bg-[#174e3c] text-white' : 'border-[#d8dfd1] bg-white hover:bg-[#f2f4ee]'}`}>
+            className={`min-h-[36px] rounded-full border px-3 py-1 text-xs capitalize ${on ? 'border-[#2F6B47] bg-[#2F6B47] text-white' : 'border-[#d8dfd1] bg-white hover:bg-[#f2f4ee]'}`}>
             {label}
           </button>
         )

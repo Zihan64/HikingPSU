@@ -62,9 +62,9 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
                   <span className="text-stone-500">· {summary.count} review{summary.count === 1 ? '' : 's'}</span>
                 </>
               ) : <span className="text-stone-500">No reviews yet</span>}
-              <span className="text-xs text-psu-beaver underline">{showReviews ? 'Hide' : 'Show'}</span>
+              <span className="text-xs text-trail-sky underline">{showReviews ? 'Hide' : 'Show'}</span>
             </button>
-            <button onClick={onReview} className="rounded-lg border border-psu-navy px-3 py-1 text-xs font-semibold text-psu-navy hover:bg-psu-mist">
+            <button onClick={onReview} className="rounded-lg border border-trail-forest px-3 py-1 text-xs font-semibold text-trail-forest hover:bg-trail-sage">
               ✓ I finished this trail
             </button>
           </div>
