@@ -315,10 +315,10 @@ button:disabled { cursor: default; opacity: .5; }
    Colours only, plus glass panels over the scenery in theme/AppBackdrop.jsx.
    No layout values here, so every widget keeps its size and behaviour.
    =================================================================== */
-body { background: #f1f6ee; color: #173a40; }
+body { background: #2a4a2c; color: #173a40; }
 .app-shell { position: relative; isolation: isolate; }
-.app-header { position: relative; border-bottom-color: rgba(23, 58, 64, 0.14); }
-.brand-name { font-weight: 700; letter-spacing: -0.03em; color: #173a40; }
+.app-header { position: relative; border-bottom-color: rgba(255, 255, 255, 0.35); }
+.brand-name { font-weight: 700; letter-spacing: -0.03em; }
 
 /* Glass panels: the sky, river and forest show through, softly. */
 .conversation, .map-panel, .route-sidebar, .official-area, .library-routes, .library-filters, .mobile-navigation {
@@ -387,9 +387,34 @@ body { background: #f1f6ee; color: #173a40; }
 .message-user { background: #2f6b47; color: #fff; }
 .message-user .message-author { color: #cfe8c2; }
 .nav-badge { background: #2f6b47; }
-.composer-note { color: #4f6466; text-shadow: 0 0 6px rgba(255, 255, 255, 0.95), 0 0 2px rgba(255, 255, 255, 0.9); }
+
 
 @media (prefers-reduced-motion: reduce) {
   .location-label > span::after, .loading-dots { animation: none; }
   .primary-button::after { display: none; }
+}
+
+/* Type that sits directly on the scene (not inside a white panel): white with a soft shadow.
+   Text inside panels keeps its dark colours. */
+.brand-name, .brand-caption, .location-label, .panel-heading, .panel-heading .eyebrow, .panel-heading > p,
+.transport-option, .transport-hint, .composer-note, .trail-list-heading, .trail-list-heading .eyebrow,
+.list-hint, .trail-list > .empty-state, .library-intro, .library-intro .eyebrow, .library-intro p,
+.library-intro .library-coverage, .library-documents > h2, .library-documents > h2 > span {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(4, 22, 38, 0.35), 0 3px 18px rgba(4, 22, 38, 0.35);
+}
+.brand-caption, .panel-heading > p, .transport-hint, .library-intro p, .library-intro .library-coverage { color: rgba(255, 255, 255, 0.85); }
+.panel-heading .text-button, .trail-list-heading .text-button { color: #fff; text-shadow: 0 1px 8px rgba(4, 22, 38, 0.5); }
+.trail-list-heading h2 > span { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.location-label > span { background: #f5b83d; }
+.transport-option input { accent-color: #f5b83d; }
+
+/* The profile page has its own headings outside any card: give the whole page one glass sheet. */
+#profile-panel {
+  background-color: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 22px 60px -32px rgba(31, 59, 40, 0.45);
 }
