@@ -5,6 +5,10 @@ import { LEVEL_HEX } from './levels'
 
 const DEFAULT_CENTER = [40.78, -77.85]
 const DEFAULT_ZOOM = 11
+// Keep the map within 60 km of State College (square bounds that contain the 60 km circle).
+const MAX_RADIUS_M = 60000
+const MAX_BOUNDS = L.latLng(DEFAULT_CENTER).toBounds(MAX_RADIUS_M * 2)
+const MIN_ZOOM = 9
 
 // Pin = colored circle with the difficulty level inside.
 // emphasis: 'normal' | 'rec' (recommended by the agent) | 'selected'
@@ -83,7 +87,14 @@ export default function MapView({ trails, recIds = [], selectedId = null, onSele
   const hasRec = recIds.length > 0
 
   return (
-    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} className="h-80 w-full rounded-xl">
+    <MapContainer
+      center={DEFAULT_CENTER}
+      zoom={DEFAULT_ZOOM}
+      minZoom={MIN_ZOOM}
+      maxBounds={MAX_BOUNDS}
+      maxBoundsViscosity={1.0}
+      className="h-80 w-full rounded-xl"
+    >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
       <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} />
       {trails.map(t => {
