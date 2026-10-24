@@ -94,6 +94,47 @@ git clone https://github.com/Zihan64/HikingPSU.git
 cd HikingPSU
 ```
 
+### Windows (PowerShell)
+
+Initial setup (Python 3.11+ and Node.js LTS):
+
+```powershell
+python -m venv backend/.venv
+& backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+npm ci --prefix frontend
+```
+
+Start both services in offline demo mode, without an API key:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start-demo.ps1
+```
+
+Open http://127.0.0.1:5173. Ctrl+C stops the demo. The launcher also supports a portable
+Node.js distribution at `.tools/node-*-win-x64/`; `.tools/` and the Python environment
+are local files excluded from Git. Backend logs are in `.tools/demo-backend*.log`.
+Offline recommendations match transport, difficulty and feature keywords and preserve transport
+preferences in follow-ups. They do not evaluate dates, time budgets, weather or hunting season.
+The map tiles still need internet access.
+
+For real AI mode, copy `backend/.env.example` to `backend/.env`, set a real
+`ANTHROPIC_API_KEY` and `DEMO_MODE=0`, then run in separate terminals:
+
+```powershell
+# Terminal 1
+cd backend
+& .venv/Scripts/python.exe -m uvicorn app.main:app --env-file .env --reload
+
+# Terminal 2 (from the project root, with Node.js on PATH)
+npm run dev --prefix frontend
+
+# Tests (from the project root)
+cd backend
+& .venv/Scripts/python.exe -m pytest -q
+```
+
+### macOS / Linux
+
 **Backend**
 
 ```bash

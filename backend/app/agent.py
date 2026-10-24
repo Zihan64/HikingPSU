@@ -43,14 +43,14 @@ def _client() -> anthropic.Anthropic:
 
 def run(messages: list[ChatMessage], profile: dict | None = None) -> ChatResponse:
     if os.getenv("DEMO_MODE") == "1":
-        return _demo(messages)
+        return _demo(messages, profile)
 
     try:
         return _run_live(messages, profile)
     except Exception:
         # Missing/invalid API key, network or model error: never 500 in front of judges.
         log.exception("live agent failed; falling back to offline demo mode")
-        res = _demo(messages)
+        res = _demo(messages, profile)
         res.reply = "(Live AI is unavailable right now, showing a simple offline match.)\n" + res.reply
         return res
 
@@ -116,12 +116,21 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
     return ChatResponse(reply=text, recommended_ids=ids, trails=[store.get(i) for i in ids], tool_log=tool_log)
 
 
-def _demo(messages: list[ChatMessage]) -> ChatResponse:
+def _demo(messages: list[ChatMessage], profile: dict | None = None) -> ChatResponse:
     """Offline fallback so the demo never dies. Picks by crude keyword match."""
     last = messages[-1].content.lower()
-    car_free = "no car" in last or "没车" in last or "bus" in last
-    easy = any(w in last for w in ["easy", "beginner", "轻松", "easier", "first-time", "hasn't hiked"])
-    hard = any(w in last for w in ["hard", "challenging", "rocks", "rocky", "难"])
+    car_free = (profile or {}).get("has_car") is False
+    # Preserve transport preferences through follow-up questions. Explicit text wins.
+    for message in messages:
+        if message.role != "user":
+            continue
+        content = message.content.lower()
+        if any(w in content for w in ["no car", "without a car", "没车", "没有车", "bus"]):
+            car_free = True
+        elif any(w in content for w in ["have a car", "有车"]):
+            car_free = False
+    easy = any(w in last for w in ["easy", "beginner", "轻松", "easier", "first-time", "hasn't hiked", "简单"])
+    hard = not easy and any(w in last for w in ["hard", "challenging", "rocks", "rocky", "难", "挑战"])
     wanted = [k for k, words in {
         "view": ["view", "overlook", "风景"],
         "sunset": ["sunset", "日落"],
@@ -130,13 +139,19 @@ def _demo(messages: list[ChatMessage]) -> ChatResponse:
     }.items() if any(w in last for w in words)]
     kw = dict(car_free=car_free or None, limit=3)
     if hard:
-        kw["min_level"] = 3
+        kw["min_level"] = 4
     else:
         kw["max_level"] = 2 if easy else 3
     res = store.search(features=wanted or None, **kw) if wanted else []
     if not res:  # nothing matched the wish: relax it rather than show an empty page
         res = store.search(**kw)
     lines = ["Here's what I'd pick (offline demo mode):"]
+    if not res:
+        lines.append("No trails match these transport and difficulty preferences. Try an easier hike or change your transport preference.")
     for t in res:
         lines.append(f"• {t.name} — Level {t.difficulty.level} ({t.difficulty.label}): " + "; ".join(t.difficulty.reasons))
+        access = t.access.bus or (f"{t.access.walk_from_campus_min} min walk from campus"
+                                 if t.access.walk_from_campus_min is not None else f"{t.access.drive_min} min drive")
+        lines.append(f"  About {t.difficulty.est_time_min} min hiking; access: {access}.")
+    lines.append("Offline mode matches transport, difficulty and feature keywords only; dates, time budgets, weather and hunting season are not evaluated.")
     return ChatResponse(reply="\n".join(lines), recommended_ids=[t.id for t in res], trails=res, tool_log=[{"tool": "demo", "input": {}, "output": {}}])

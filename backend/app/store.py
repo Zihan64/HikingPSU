@@ -58,7 +58,7 @@ def _is_car_free(trail: Trail) -> bool:
 
 @lru_cache(maxsize=1)
 def load_all() -> list[TrailWithDifficulty]:
-    raw = json.loads(DATA_PATH.read_text())
+    raw = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     out = []
     for item in raw:
         t = Trail(**item)
@@ -94,5 +94,5 @@ def search(
         # A trail matches if it matches ANY requested feature (so "view" OR "sunset").
         results = [t for t in results if any(feature_matches(t, f) for f in features)]
     # prefer verified data, then shorter drives
-    results.sort(key=lambda t: (not t.verified, t.access.drive_min or 999))
+    results.sort(key=lambda t: (not t.verified, t.access.drive_min if t.access.drive_min is not None else 999))
     return results[:limit]

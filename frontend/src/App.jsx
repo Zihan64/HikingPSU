@@ -28,12 +28,13 @@ export default function App() {
   }, [])
 
   async function send(text) {
+    if (loading) return
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next); setInput(''); setLoading(true); setError(null)
     try {
       const res = await chat(next, { has_car: hasCar })
       setMessages([...next, { role: 'assistant', content: res.reply }])
-      if (res.trails.length) { setRecommended(res.trails); setSelectedId(null) }
+      setRecommended(res.trails); setSelectedId(null)
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
@@ -60,14 +61,14 @@ export default function App() {
             <div className="space-y-2">
               <p className="text-sm text-stone-500">Try one of these:</p>
               {SUGGESTIONS.map(s => (
-                <button key={s} onClick={() => send(s)} className="block w-full rounded-lg border border-stone-200 px-3 py-2 text-left text-sm hover:bg-stone-50">{s}</button>
+                <button key={s} disabled={loading} onClick={() => send(s)} className="block w-full rounded-lg border border-stone-200 px-3 py-2 text-left text-sm hover:bg-stone-50">{s}</button>
               ))}
             </div>
           )}
           {messages.map((m, i) => (
             <div key={i} className={`whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${m.role === 'user' ? 'ml-8 bg-emerald-50' : 'mr-8 bg-stone-100'}`}>{m.content}</div>
           ))}
-          {loading && <div className="mr-8 rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-500">Checking trails, weather, hunting season…</div>}
+          {loading && <div className="mr-8 rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-500">Finding matching trails…</div>}
           {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         </div>
 
