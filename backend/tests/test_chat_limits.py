@@ -124,3 +124,16 @@ def test_global_budget_falls_back_to_offline(client, monkeypatch):
     monkeypatch.setattr(agent, "_run_live", lambda *a, **k: pytest.fail("live AI must not be called"))
     r = ask(client)
     assert r.status_code == 200 and "today's limit" in r.json()["reply"]
+
+
+def test_guests_get_five_questions_a_day_then_a_login_hint(client, monkeypatch):
+    monkeypatch.setenv("CHAT_LIMIT_ANON_PER_MIN", "100")  # isolate the daily limit
+    assert [ask(client).status_code for _ in range(5)] == [200] * 5
+    r = ask(client)
+    assert r.status_code == 429 and "Log in" in r.json()["detail"]
+
+
+def test_signed_in_users_get_sixty_a_day_by_default():
+    from app import ratelimit
+    assert ratelimit.limits(signed_in=True)[1] == 60
+    assert ratelimit.limits(signed_in=False)[1] == 5
