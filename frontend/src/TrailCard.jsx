@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Reviews from './Reviews'
 import { StarDisplay } from './Stars'
+import { CommentItem } from './Comments'
 
 const LEVEL_COLORS = {
   1: 'bg-emerald-100 text-emerald-800',
@@ -11,7 +12,8 @@ const LEVEL_COLORS = {
 }
 
 // fit: this trail's entry from /me/recommendations, when it is in the signed-in user's ranking.
-export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, proximityMeters = null }) {
+// highlights: the trail's top community comments (most hearted first).
+export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, proximityMeters = null, highlights = [] }) {
   const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
@@ -43,6 +45,12 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
         <p className="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-900">
           <b>Fits you</b> · ~{Math.round(fit.personal_time_min / 60 * 10) / 10} h at your pace · {fit.reasons.join(' · ')}
         </p>
+      )}
+      {highlights.length > 0 && (
+        <section className="mt-3" aria-label={`What hikers say about ${t.name}`} onClick={e => e.stopPropagation()}>
+          <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#3e7b52]">What hikers say</h4>
+          <ul className="space-y-1.5">{highlights.map(c => <CommentItem key={c.id} c={c} compact />)}</ul>
+        </section>
       )}
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
         {proximityMeters !== null && <span className="rounded bg-sky-100 px-2 py-0.5 text-sky-800">≈ {(proximityMeters / 1609.344).toFixed(1)} mi to trailhead · straight line</span>}
