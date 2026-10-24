@@ -317,7 +317,7 @@ export default function App() {
             <p className="map-hint">{officialRoute ? 'Original geometry · check current manager notices and trail signs' : isTouch ? 'Drag to explore · pinch to zoom · tap a trail' : 'Select a pin or trail card to explore'}</p>
           </section>
 
-          <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
+          {(isCompact || !officialRoute) && <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
             {officialRoute ? <article className="official-area selected-official-summary"><span className="official-badge">Official manager geometry</span><h2 id="trails-title">{officialRoute.route.name}</h2><p>{officialRoute.route.area} · {officialRoute.route.manager}</p><p>{officialRoute.route.description}</p><p className="source-notice">{officialRoute.source_notice}</p><OfficialLinks resources={officialRoute.route.resources} /><div className="route-reference-actions"><button className="primary-button" onClick={() => { showTrailsOnMap(); setMobileView('map') }}>View official route on map</button><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button></div></article> : <>
             <div className="trail-list-heading">
               <div><span className="eyebrow">{hasResult ? 'PICKED FOR YOUR PLANS' : 'SOMEWHERE GOOD TO GO'}</span><h2 id="trails-title">{hasResult ? 'Your trail matches' : 'Around Happy Valley'} <span>{cards.length}</span></h2></div>
@@ -328,7 +328,7 @@ export default function App() {
             {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
-          </section>
+          </section>}
         </section>
       </main>
       {reviewing && <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />}
