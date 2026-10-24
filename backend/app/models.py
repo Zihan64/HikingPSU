@@ -43,6 +43,7 @@ class Trail(BaseModel):
     best_seasons: list[str] = []
     notes: str = ""
     verified: bool = False
+    source: Literal["curated", "osm"] = "curated"  # osm: imported by scripts/fetch_osm_trails.py, estimated
 
 
 class Difficulty(BaseModel):

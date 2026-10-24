@@ -66,6 +66,8 @@ Agency sources: [DCNR state park boundaries](https://www.gis.dcnr.state.pa.us/ag
 
 Map attribution: [OpenStreetMap contributors, ODbL](https://www.openstreetmap.org/copyright). Elevations: [Open-Meteo elevation API](https://open-meteo.com/en/docs/elevation-api), approximately 90 m DEM, converted from meters to feet. These lines are OSM snapshots, not manager-certified legal-route or turn-by-turn instructions. Official document downloads remain external links.
 
+The latest main branch computes imported non-loop distance, climb and time for the full out-and-back hike. The source geometry and profile still follow the mapped line once; the detail page labels this difference instead of doubling the route line or fabricating a return profile. Older one-way records are still labeled explicitly if served by an older backend.
+
 ## Refresh (manual; never run network imports in CI)
 
 ```powershell

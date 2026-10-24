@@ -72,7 +72,9 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
           {showReviews && <div className="mt-3"><Reviews trailId={t.id} reloadKey={reviewsVersion} /></div>}
         </div>
       )}
-      {!t.verified && <p className="seed-data-note">Planning estimate · not an official navigation itinerary.</p>}
+      {!t.verified && <p className="seed-data-note">{t.source === 'osm'
+        ? 'Estimated from OpenStreetMap · distance and climb are approximate, not checked in the field.'
+        : 'Planning estimate · not an official navigation itinerary.'}</p>}
       {onOfficialResources && <button className="text-button" onClick={e => { e.stopPropagation(); onOfficialResources() }}>Official maps & route sources →</button>}
     </article>
   )

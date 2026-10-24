@@ -38,6 +38,7 @@ function TrailDetail({trail, park, backLabel, summary, onBack, onReview, reviews
         {data && <p className="catalog-muted">Route geometry: <a href={`https://www.openstreetmap.org/relation/${data.osm_relation}`} target="_blank" rel="noopener noreferrer">OpenStreetMap contributors ↗</a> · not manager-certified; check current signs and closures.</p>}
       </section>
       <ElevationProfile profile={data?.profile} />
+      {data?.profile?.length > 1 && trail.source === 'osm' && !trail.loop && <p className="catalog-muted">The profile follows the mapped line once. Length, elevation gain and time above include the return journey.</p>}
       <section className="catalog-section"><h2>Reviews {summary?.count ? `(${summary.count})` : ''}</h2><button className="primary-button" onClick={() => onReview(trail)}>✓ I finished this trail</button><Reviews trailId={trail.id} reloadKey={reviewsVersion} /></section>
     </div><div>
       <section className="catalog-section"><h2>Why this level</h2><Level trail={trail} /><ul>{trail.difficulty.reasons.map((reason,i) => <li key={i}>{reason}</li>)}</ul><p className="catalog-muted">{Object.entries(LEVEL_LABELS).map(([level,label]) => `L${level} ${label}`).join(' · ')}</p></section>

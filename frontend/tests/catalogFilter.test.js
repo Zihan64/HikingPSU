@@ -30,4 +30,5 @@ test('time and route labels preserve backend values and OSM one-way semantics', 
   assert.equal(routeType({loop:true}), 'Loop')
   assert.equal(routeType({loop:false, notes:'OSM (one-way length; an out-and-back is roughly double)'}), 'One-way · out-and-back ≈ 2×')
   assert.equal(routeType({loop:false, notes:''}), 'Out-and-back')
+  assert.equal(routeType({loop:false,source:'osm',notes:'Distance from OSM geometry (round trip: out and back)'}), 'Out-and-back')
 })
