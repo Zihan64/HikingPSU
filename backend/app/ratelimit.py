@@ -8,6 +8,7 @@ scale. Limits can be changed with env vars without a code change.
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import os
 import threading
 import time
@@ -18,6 +19,8 @@ from fastapi import HTTPException, Request, status
 _hits: dict[str, deque[float]] = defaultdict(deque)
 _live_calls = {"day": "", "count": 0}  # live AI calls today (UTC), across all callers
 _lock = threading.Lock()
+_logged_source = False
+log = logging.getLogger("hikingpsu.ratelimit")
 
 
 def _limit(name: str, default: int) -> int:
@@ -34,14 +37,34 @@ def limits(signed_in: bool) -> tuple[int, int]:
     return _limit("CHAT_LIMIT_ANON_PER_MIN", 3), _limit("CHAT_LIMIT_ANON_PER_DAY", 5)
 
 
+# Render sits behind Cloudflare, which sets these to the visitor's address and overwrites any
+# value the visitor sends, so they can't be spoofed and don't change between requests.
+_EDGE_HEADERS = ("cf-connecting-ip", "true-client-ip")
+
+
 def client_ip(request: Request) -> str:
-    """The address Render's proxy saw. It appends that to X-Forwarded-For, so only the LAST entry is
-    trustworthy: everything before it is whatever the client sent, and trusting it lets one caller
-    pose as a new IP on every request."""
+    """The visitor's address, for keying guest limits.
+
+    Prefer Cloudflare's header. X-Forwarded-For is only a fallback: its LAST entry is the one our
+    proxy added (anything before it is whatever the client sent), but on Render that last entry can
+    be a proxy's own address, which changes between requests and would let guests skip the limit."""
+    global _logged_source
+    source, ip = None, None
+    for name in _EDGE_HEADERS:
+        value = request.headers.get(name, "").strip()
+        if value:
+            source, ip = name, value
+            break
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[-1].strip()
-    return request.client.host if request.client else "unknown"
+    if ip is None and forwarded:
+        source, ip = "x-forwarded-for (last)", forwarded.split(",")[-1].strip()
+    if ip is None:
+        source, ip = "socket", request.client.host if request.client else "unknown"
+    if not _logged_source:  # once per process: shows in the Render log which header is used
+        _logged_source = True
+        log.warning("guest rate-limit key from %s; x-forwarded-for has %d entr(ies)",
+                    source, len(forwarded.split(",")) if forwarded else 0)
+    return ip
 
 
 def check(request: Request, user_id: str | None) -> None:

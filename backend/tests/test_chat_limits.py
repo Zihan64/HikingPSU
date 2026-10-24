@@ -137,3 +137,20 @@ def test_signed_in_users_get_sixty_a_day_by_default():
     from app import ratelimit
     assert ratelimit.limits(signed_in=True)[1] == 60
     assert ratelimit.limits(signed_in=False)[1] == 5
+
+
+def test_guest_limit_uses_cloudflare_client_ip_not_the_changing_proxy_address(client, monkeypatch):
+    # On Render the last X-Forwarded-For entry can be a different proxy each time; CF-Connecting-IP is the visitor.
+    monkeypatch.setenv("CHAT_LIMIT_ANON_PER_MIN", "100")
+    for i in range(5):
+        r = ask(client, headers={"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": f"203.0.113.7, 10.0.0.{i}"})
+        assert r.status_code == 200
+    r = ask(client, headers={"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": "203.0.113.7, 10.0.0.99"})
+    assert r.status_code == 429
+    assert ask(client, headers={"CF-Connecting-IP": "198.51.100.2"}).status_code == 200  # another visitor
+
+
+def test_true_client_ip_is_used_when_cloudflare_header_is_absent(client, monkeypatch):
+    monkeypatch.setenv("CHAT_LIMIT_ANON_PER_MIN", "1")
+    assert ask(client, headers={"True-Client-IP": "203.0.113.9", "X-Forwarded-For": "10.0.0.1"}).status_code == 200
+    assert ask(client, headers={"True-Client-IP": "203.0.113.9", "X-Forwarded-For": "10.0.0.2"}).status_code == 429
