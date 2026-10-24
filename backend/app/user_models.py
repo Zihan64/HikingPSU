@@ -87,6 +87,40 @@ class HikeStats(BaseModel):
     total_elevation_gain_ft: int
 
 
+class ReviewIn(BaseModel):
+    """What a hiker rates after finishing a trail; each score is out of 5."""
+
+    accuracy: int = Field(ge=1, le=5, description="How accurate our trail info was")
+    difficulty: int = Field(ge=1, le=5, description="How hard the trail actually felt")
+    enjoyment: int = Field(ge=1, le=5, description="Overall enjoyment / views")
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class ReviewOut(BaseModel):
+    id: str
+    trail_id: str
+    author: str
+    accuracy: int
+    difficulty: int
+    enjoyment: int
+    comment: Optional[str] = None
+    created_at: dt.datetime
+    updated_at: dt.datetime
+    mine: bool = False
+
+
+class ReviewSummary(BaseModel):
+    count: int = 0
+    accuracy: Optional[float] = None
+    difficulty: Optional[float] = None
+    enjoyment: Optional[float] = None
+
+
+class TrailReviews(BaseModel):
+    summary: ReviewSummary
+    reviews: list[ReviewOut]
+
+
 class StoredMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str

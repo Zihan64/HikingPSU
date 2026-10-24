@@ -46,6 +46,8 @@ def ensure_indexes(db: Database) -> None:
     db.hike_logs.create_index([("user_id", ASCENDING), ("completed_on", DESCENDING)])
     db.hike_logs.create_index([("user_id", ASCENDING), ("trail_id", ASCENDING)])
     db.chat_sessions.create_index([("user_id", ASCENDING), ("updated_at", DESCENDING)])
+    db.reviews.create_index([("user_id", ASCENDING), ("trail_id", ASCENDING)], unique=True)
+    db.reviews.create_index([("trail_id", ASCENDING), ("created_at", DESCENDING)])
 
 
 def to_oid(value: str) -> ObjectId | None:

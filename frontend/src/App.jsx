@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { chat, listTrails } from './api'
+import { chat, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
+import ReviewModal from './ReviewModal'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
 const SUGGESTIONS = [
@@ -20,11 +21,17 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  const [summaries, setSummaries] = useState({})      // trail id -> average review scores
+  const [reviewing, setReviewing] = useState(null)    // trail currently being reviewed
+  const [reviewsVersion, setReviewsVersion] = useState(0)
+
+  const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})  // reviews are optional; trails still work
 
   useEffect(() => {
     listTrails()
       .then(ts => setAllTrails([...ts].sort((a, b) => a.difficulty.level - b.difficulty.level || a.distance_mi - b.distance_mi)))
       .catch(() => setLoadError("Couldn't load trails. Is the backend running on port 8000?"))
+    refreshSummaries()
   }, [])
 
   async function send(text) {
@@ -107,12 +114,16 @@ export default function App() {
           </div>
         )}
         {cards.map(t => (
-          <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => setSelectedId(t.id)} />
+          <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => setSelectedId(t.id)}
+            summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} />
         ))}
         {!loadError && cards.length === 0 && (
           <div className="rounded-xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400">Loading trails…</div>
         )}
       </section>
+      {reviewing && (
+        <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />
+      )}
     </div>
   )
 }

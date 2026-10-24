@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import Reviews from './Reviews'
+import { StarDisplay } from './Stars'
+
 const LEVEL_COLORS = {
   1: 'bg-emerald-100 text-emerald-800',
   2: 'bg-lime-100 text-lime-800',
@@ -6,7 +10,8 @@ const LEVEL_COLORS = {
   5: 'bg-red-100 text-red-800',
 }
 
-export default function TrailCard({ t, selected = false, onSelect }) {
+export default function TrailCard({ t, selected = false, onSelect, summary, onReview, reviewsVersion = 0 }) {
+  const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
   return (
@@ -36,6 +41,26 @@ export default function TrailCard({ t, selected = false, onSelect }) {
         {t.hunting_zone && <span className="rounded bg-orange-100 px-2 py-0.5 text-orange-800">🟠 hunting zone</span>}
         {t.cell_signal !== 'good' && <span className="rounded bg-stone-100 px-2 py-0.5 text-stone-600">📶 {t.cell_signal}</span>}
       </div>
+      {onReview && (
+        <div className="mt-3 border-t border-stone-100 pt-3" onClick={e => e.stopPropagation()}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button onClick={() => setShowReviews(v => !v)} aria-expanded={showReviews} className="flex items-center gap-2 text-sm text-stone-700 hover:text-stone-900">
+              {summary?.count ? (
+                <>
+                  <StarDisplay value={summary.enjoyment} />
+                  <span className="font-semibold">{summary.enjoyment}</span>
+                  <span className="text-stone-500">· {summary.count} review{summary.count === 1 ? '' : 's'}</span>
+                </>
+              ) : <span className="text-stone-500">No reviews yet</span>}
+              <span className="text-xs text-emerald-800 underline">{showReviews ? 'Hide' : 'Show'}</span>
+            </button>
+            <button onClick={onReview} className="rounded-lg border border-emerald-700 px-3 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+              ✓ I finished this trail
+            </button>
+          </div>
+          {showReviews && <div className="mt-3"><Reviews trailId={t.id} reloadKey={reviewsVersion} /></div>}
+        </div>
+      )}
     </div>
   )
 }

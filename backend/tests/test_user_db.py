@@ -200,3 +200,63 @@ def test_delete_account_removes_everything(client):
     d = db.get_db()
     assert d.users.count_documents({}) == d.hike_logs.count_documents({}) == d.chat_sessions.count_documents({}) == 0
     assert client.get("/me", headers=h).status_code == 401
+
+
+# ---------- trail reviews ----------
+
+GOOD = {"accuracy": 4, "difficulty": 3, "enjoyment": 5, "comment": "  Great ridge views  "}
+
+
+def test_reviews_public_read_needs_account_to_write(client):
+    assert client.get(f"/trails/{TRAIL}/reviews").json() == {
+        "summary": {"count": 0, "accuracy": None, "difficulty": None, "enjoyment": None}, "reviews": [],
+    }
+    assert client.put(f"/trails/{TRAIL}/reviews/me", json=GOOD).status_code == 401
+    assert client.get("/trails/nope/reviews").status_code == 404
+    assert client.put("/trails/nope/reviews/me", headers=signup(client), json=GOOD).status_code == 404
+
+
+def test_review_create_update_and_summary(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    client.patch("/me", headers=alice, json={"profile": {"display_name": "Alice"}})
+
+    r = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
+    assert r.status_code == 200
+    assert r.json()["comment"] == "Great ridge views" and r.json()["author"] == "Alice" and r.json()["mine"] is True
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=bob, json={"accuracy": 2, "difficulty": 5, "enjoyment": 3})
+
+    # re-rating replaces, not duplicates
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json={**GOOD, "enjoyment": 4})
+    body = client.get(f"/trails/{TRAIL}/reviews", headers=alice).json()
+    assert len(body["reviews"]) == 2
+    assert body["summary"] == {"count": 2, "accuracy": 3.0, "difficulty": 4.0, "enjoyment": 3.5}
+    mine = {x["author"]: x["mine"] for x in body["reviews"]}
+    assert mine == {"Alice": True, "Hiker": False}  # no display name -> "Hiker", never the email
+    assert "psu.edu" not in client.get(f"/trails/{TRAIL}/reviews").text
+    assert all(not x["mine"] for x in client.get(f"/trails/{TRAIL}/reviews").json()["reviews"])
+
+    client.put(f"/trails/{TRAIL2}/reviews/me", headers=bob, json=GOOD)
+    summaries = client.get("/reviews/summary").json()
+    assert summaries[TRAIL]["count"] == 2 and summaries[TRAIL2]["count"] == 1
+
+
+def test_review_validation(client):
+    h = signup(client)
+    for bad in ({**GOOD, "accuracy": 0}, {**GOOD, "difficulty": 6}, {**GOOD, "comment": "x" * 1001}):
+        assert client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json=bad).status_code == 422
+    assert client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json={"accuracy": 3}).status_code == 422
+    blank = client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json={**GOOD, "comment": "   "})
+    assert blank.status_code == 200 and blank.json()["comment"] is None  # comment is optional
+
+
+def test_review_delete_is_own_only_and_account_delete_removes_reviews(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
+    assert client.delete(f"/trails/{TRAIL}/reviews/me", headers=bob).status_code == 404
+    assert len(client.get(f"/trails/{TRAIL}/reviews").json()["reviews"]) == 1
+    assert client.delete(f"/trails/{TRAIL}/reviews/me", headers=alice).status_code == 204
+    assert client.delete(f"/trails/{TRAIL}/reviews/me", headers=alice).status_code == 404
+
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
+    client.delete("/me", headers=alice)
+    assert db.get_db().reviews.count_documents({}) == 0
