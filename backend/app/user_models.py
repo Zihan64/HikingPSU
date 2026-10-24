@@ -154,14 +154,23 @@ class ReviewIn(BaseModel):
 class ReviewOut(BaseModel):
     id: str
     trail_id: str
+    trail_name: Optional[str] = Field(None, description="Set in the community feed, which mixes trails")
     author: str
-    accuracy: int
-    difficulty: int
-    enjoyment: int
+    accuracy: Optional[int] = None  # starter tips carry no scores
+    difficulty: Optional[int] = None
+    enjoyment: Optional[int] = None
     comment: Optional[str] = None
     created_at: dt.datetime
     updated_at: dt.datetime
     mine: bool = False
+    likes: int = 0
+    liked: bool = Field(False, description="The viewer has hearted this comment")
+    tip: bool = Field(False, description="A HikingPSU starter tip rather than a hiker's review")
+
+
+class LikeState(BaseModel):
+    likes: int
+    liked: bool
 
 
 class ReviewSummary(BaseModel):

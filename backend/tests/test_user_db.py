@@ -289,6 +289,81 @@ def test_email_like_auth0_name_is_never_shown(client, monkeypatch):
     assert r["author"] == "Hiker" and "psu.edu" not in client.get(f"/trails/{TRAIL}/reviews").text
 
 
+# ---------- community: feed, trail-card highlights, hearts ----------
+
+def test_highlights_show_tips_until_hikers_comment(client):
+    tips = client.get("/reviews/highlights").json()
+    assert all(1 <= len(v) <= 2 for v in tips.values()) and len(tips[TRAIL]) == 2
+    assert all(c["tip"] and c["accuracy"] is None for c in tips[TRAIL])
+
+    alice = signup(client, "alice@psu.edu")
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
+    client.put(f"/trails/{TRAIL2}/reviews/me", headers=alice, json={**GOOD, "comment": None})
+    top = client.get("/reviews/highlights").json()
+    assert top[TRAIL][0]["comment"] == "Great ridge views" and top[TRAIL][1]["tip"]  # hikers beat tips on a tie
+    assert all(c["tip"] for c in top[TRAIL2])  # a review without a comment isn't highlighted
+    # Tips never count as ratings.
+    assert client.get("/reviews/summary").json()[TRAIL]["count"] == 1
+
+
+def test_hearts_rank_comments_and_need_login(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    review = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD).json()
+    tip = client.get("/reviews/highlights").json()[TRAIL][1]
+
+    assert client.put(f"/reviews/{tip['id']}/like").status_code == 401
+    assert client.put("/reviews/nope/like", headers=bob).status_code == 404
+    assert client.put(f"/reviews/{tip['id']}/like", headers=bob).json() == {"likes": 1, "liked": True}
+    assert client.put(f"/reviews/{tip['id']}/like", headers=bob).json() == {"likes": 1, "liked": True}  # idempotent
+    client.put(f"/reviews/{tip['id']}/like", headers=alice)
+
+    top = client.get("/reviews/highlights", headers=bob).json()[TRAIL]
+    assert top[0]["id"] == tip["id"] and top[0]["likes"] == 2 and top[0]["liked"] is True
+    assert top[1]["id"] == review["id"] and top[1]["liked"] is False
+    assert client.get("/reviews/highlights").json()[TRAIL][0]["liked"] is False  # anonymous viewer
+
+    client.put(f"/reviews/{review['id']}/like", headers=bob)
+    listed = client.get(f"/trails/{TRAIL}/reviews", headers=bob).json()["reviews"][0]
+    assert listed["likes"] == 1 and listed["liked"] is True
+    assert client.delete(f"/reviews/{tip['id']}/like", headers=bob).json() == {"likes": 1, "liked": False}
+
+
+def test_feed_mixes_trails_and_sorts_by_hearts(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    first = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD).json()
+    client.put(f"/trails/{TRAIL2}/reviews/me", headers=bob, json={**GOOD, "comment": "Boardwalk was lovely"})
+
+    recent = client.get("/reviews/feed").json()
+    assert [r["trail_id"] for r in recent] == [TRAIL2, TRAIL] and not any(r["tip"] for r in recent)
+    assert recent[0]["trail_name"].startswith("Millbrook Marsh")
+    client.put(f"/reviews/{first['id']}/like", headers=bob)
+    assert client.get("/reviews/feed?sort=top").json()[0]["id"] == first["id"]
+    assert [r["trail_id"] for r in client.get(f"/reviews/feed?trail_id={TRAIL2}").json()] == [TRAIL2]
+    assert len(client.get("/reviews/feed?limit=1&skip=1").json()) == 1
+    assert client.get("/reviews/feed?trail_id=nope").status_code == 404
+    assert client.get("/reviews/feed?sort=bogus").status_code == 422
+
+
+def test_deleting_reviews_and_accounts_removes_their_hearts(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    review = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD).json()
+    client.put(f"/reviews/{review['id']}/like", headers=bob)
+    client.delete(f"/trails/{TRAIL}/reviews/me", headers=alice)
+    assert db.get_db().likes.count_documents({}) == 0
+
+    tip_id = next(iter(client.get("/reviews/highlights").json().values()))[0]["id"]
+    client.put(f"/reviews/{tip_id}/like", headers=bob)
+    client.delete("/me", headers=bob)
+    assert db.get_db().likes.count_documents({}) == 0
+
+
+def test_highlights_work_without_a_database(monkeypatch, fake_auth0):
+    db.set_client(None)
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+    body = TestClient(app).get("/reviews/highlights").json()
+    assert body[TRAIL] and all(c["tip"] and c["likes"] == 0 for c in body[TRAIL])
+
+
 # ---------- dashboard insights ----------
 
 def test_insights_empty_user(client):

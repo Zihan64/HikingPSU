@@ -350,6 +350,19 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 | `PATCH` `DELETE` | `/me/hikes/{id}` | Edit / remove a log entry |
 | `GET` | `/me/chats`, `/me/chats/{id}` | Saved conversations; `DELETE /me/chats/{id}` removes one |
 
+### Reviews and community
+
+Hikers rate a trail and leave an optional comment (collection `reviews`, one per user and trail). The **Community** page shows these across all trails, and each trail card shows its top one or two comments. Signed-in users can heart any comment (collection `likes`, one per user and comment). Trails nobody has commented on yet show a starter tip from `backend/data/community_seed.json`. Tips are labelled "Trail tip", can be hearted, and never count toward ratings. Reading is public; writing and hearting need a token.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/reviews/summary` | Average scores per reviewed trail |
+| `GET` | `/trails/{id}/reviews` | One trail's average scores and reviews, each with `likes` and the viewer's `liked` |
+| `PUT` `DELETE` | `/trails/{id}/reviews/me` | Write or replace / delete your review `{ accuracy, difficulty, enjoyment, comment? }` |
+| `GET` | `/reviews/feed?sort=recent\|top&trail_id=&limit=&skip=` | Community feed across trails, newest or most hearted first |
+| `GET` | `/reviews/highlights?per_trail=2` | Top comments per trail (most hearted first; starter tips fill the gaps, also without a database) |
+| `PUT` `DELETE` | `/reviews/{comment_id}/like` | Heart / un-heart a review or tip → `{ likes, liked }` |
+
 ## Project structure
 
 ```
@@ -365,6 +378,8 @@ backend/
     main.py         FastAPI routes
     official.py     Official link index and bounded, non-persistent GIS adapter
     db.py           MongoDB connection and indexes
+    community.py    Community feed, top comments per trail, starter tips
+    likes.py        Hearts on reviews and tips
     auth.py         Auth0 token verification, auth dependencies
     users.py · hikes.py · chats.py   Per-collection data access
     user_models.py  Schemas for profile, preferences, hikes, chats

@@ -33,6 +33,12 @@ export const getTrailReviews = (id, token = null) => request(`/trails/${id}/revi
 export const saveReview = (id, review, token) => request(`/trails/${id}/reviews/me`, { method: 'PUT', body: review, token })
 export const deleteReview = (id, token) => request(`/trails/${id}/reviews/me`, { method: 'DELETE', token })
 
+// ---- community: feed, top comments per trail, hearts (hearting needs a token) ----
+export const getCommunityFeed = ({ sort = 'recent', limit = 20, skip = 0, trailId = '' } = {}, token = null) =>
+  request(`/reviews/feed?${new URLSearchParams({ sort, limit, skip, ...(trailId ? { trail_id: trailId } : {}) })}`, { token })
+export const getCommentHighlights = (token = null) => request('/reviews/highlights', { token })
+export const setCommentLike = (id, liked, token) => request(`/reviews/${encodeURIComponent(id)}/like`, { method: liked ? 'PUT' : 'DELETE', token })
+
 // ---- profile, hike log and dashboard insights (all need a token) ----
 export const getMe = token => request('/me', { token })
 export const patchMe = (changes, token) => request('/me', { method: 'PATCH', body: changes, token })
