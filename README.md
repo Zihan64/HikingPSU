@@ -272,6 +272,10 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `ANTHROPIC_API_KEY` | — | Claude API key |
 | `HIKINGPSU_MODEL` | see `agent.py` | Which Claude model the agent uses |
 | `DEMO_MODE` | `0` | `1` = no API calls, offline keyword matching |
+| `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `20` | Chat limits per anonymous IP |
+| `CHAT_LIMIT_USER_PER_MIN` / `_PER_DAY` | `6` / `60` | Chat limits per signed-in user |
+| `CHAT_LIMIT_GLOBAL_PER_DAY` | `1000` | Live AI calls per day across everyone; after that, chat answers offline |
+| `CHAT_SIGNING_KEY` | random per start | Signs assistant replies so clients can't forge them. Set it if you run several workers |
 
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
 

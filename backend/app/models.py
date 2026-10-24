@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Terrain(BaseModel):
@@ -59,23 +59,35 @@ class TrailWithDifficulty(Trail):
     car_free: bool
 
 
-MAX_USER_MESSAGE_CHARS = 500  # the newest user message; older turns may be longer (assistant replies)
+MAX_USER_MESSAGE_CHARS = 500  # every user turn; assistant turns are our own (signed) replies
 
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(max_length=8000)
+    sig: Optional[str] = Field(None, max_length=128)  # assistant turns: the reply_sig we returned with it
+
+
+class ChatProfile(BaseModel):
+    """Per-request overrides of the stored profile. It goes into the system prompt, so only known,
+    bounded fields are accepted: free-form keys would be a way around the message length limit."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    has_car: Optional[bool] = None
+    fitness: Optional[int] = Field(None, ge=1, le=5)
 
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(max_length=60)
-    profile: Optional[dict] = None  # e.g. {"has_car": false, "fitness": 2}; overrides the stored profile
+    profile: Optional[ChatProfile] = None  # overrides the stored profile
     session_id: Optional[str] = None  # signed-in users: continue this saved chat; omitted starts a new one
 
 
 class ChatResponse(BaseModel):
     session_id: Optional[str] = None  # set when the exchange was saved
     reply: str
+    reply_sig: Optional[str] = None  # send back as `sig` with this reply in later requests
     recommended_ids: list[str]
     trails: list[TrailWithDifficulty]
     tool_log: list[dict] = []

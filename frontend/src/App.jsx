@@ -159,7 +159,8 @@ export default function App() {
     try {
       const res = await chat(next, {}, { token: await getToken(), sessionId })
       if (res.session_id) setSessionId(res.session_id)
-      setMessages([...next, { role: 'assistant', content: res.reply }])
+      // sig proves the reply came from the server; unsigned assistant turns are dropped from the AI's context.
+      setMessages([...next, { role: 'assistant', content: res.reply, sig: res.reply_sig }])
       // Off-topic requests are declined without any tool call: keep the current trail list as it is.
       if (!res.trails.length && !res.tool_log?.length) return
       const resourcesOnly = !res.trails.length && res.tool_log?.some(entry => entry.tool === 'search_official_resources')

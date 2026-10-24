@@ -64,6 +64,8 @@ def get_recommendations(k: int = 5, user: dict = Depends(auth.current_user)):
 def parse_preferences(body: PreferenceText, request: Request, user_id: str = Depends(auth.current_user_id)):
     """Suggest structured preferences from free text. Nothing is saved; the client PATCHes /me after the user confirms."""
     ratelimit.check(request, user_id)  # may call the Claude API, so it shares the chat budget
+    if not ratelimit.take_live_call():
+        return preference_parser.parse_offline(body.text)
     return preference_parser.parse(body.text)
 
 

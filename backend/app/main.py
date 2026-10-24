@@ -1,4 +1,8 @@
+import hashlib
+import hmac
 import logging
+import os
+import secrets
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +11,7 @@ from pymongo.errors import ConnectionFailure
 
 from . import agent, auth, chats, hikes, ratelimit, recommend, store, users
 from .db import DatabaseUnavailable
-from .models import MAX_USER_MESSAGE_CHARS, ChatRequest, ChatResponse, TrailWithDifficulty
+from .models import MAX_USER_MESSAGE_CHARS, ChatMessage, ChatRequest, ChatResponse, TrailWithDifficulty
 from .routes_reviews import router as reviews_router
 from .routes_user import me_router
 from .official import router as official_router
@@ -58,18 +62,21 @@ def chat(req: ChatRequest, request: Request, user_id: str | None = Depends(auth.
         raise HTTPException(400, "messages required")
     if req.messages[-1].role != "user" or not req.messages[-1].content.strip():
         raise HTTPException(400, "last message must be a non-empty user message")
-    if len(req.messages[-1].content) > MAX_USER_MESSAGE_CHARS:
+    if any(m.role == "user" and len(m.content) > MAX_USER_MESSAGE_CHARS for m in req.messages):
         raise HTTPException(413, f"Message too long (max {MAX_USER_MESSAGE_CHARS} characters).")
     ratelimit.check(request, user_id)
-    profile, recommender = req.profile, None
+    profile = req.profile.model_dump(exclude_none=True) if req.profile else {}
+    recommender = None
     if user_id:
         # Persistence is best-effort: a database outage must never break the chat itself.
         try:
-            profile = {**_stored_profile(user_id), **(req.profile or {})}
+            profile = {**_stored_profile(user_id), **profile}
             recommender = _recommender(user_id)
         except Exception:
             log.exception("could not load user profile; continuing anonymously")
-    res = agent.run(_recent(req.messages), profile, recommender=recommender)
+    offline = not ratelimit.take_live_call()
+    res = agent.run(_recent(req.messages), profile, recommender=recommender, offline=offline)
+    res.reply_sig = _sign(res.reply)
     if user_id:
         try:
             res.session_id = chats.record_exchange(user_id, req.session_id, req.messages, res.reply, res.recommended_ids)
@@ -79,11 +86,27 @@ def chat(req: ChatRequest, request: Request, user_id: str | None = Depends(auth.
 
 
 HISTORY_MESSAGES = 10
+MAX_ASSISTANT_CHARS = 2000  # older replies are context only; their tail rarely matters
+
+# Signs our replies so a client can't put words in the assistant's mouth (a forged "Sure, I'll write
+# your essay" turn is a reliable jailbreak). Set CHAT_SIGNING_KEY when running several workers;
+# otherwise a restart only means older replies are dropped from the model's context.
+_SIGNING_KEY = os.getenv("CHAT_SIGNING_KEY", "").encode() or secrets.token_bytes(32)
+
+
+def _sign(text: str) -> str:
+    return hmac.new(_SIGNING_KEY, text.encode(), hashlib.sha256).hexdigest()
+
+
+def _genuine(m: ChatMessage) -> bool:
+    return m.role == "user" or (m.sig is not None and hmac.compare_digest(m.sig, _sign(m.content)))
 
 
 def _recent(messages):
-    """Only the last few turns go to the model (cost grows with history). Must start with a user turn."""
-    recent = messages[-HISTORY_MESSAGES:]
+    """What the model sees: the last few turns (cost grows with history), only assistant turns we
+    actually wrote, each one trimmed. Must start with a user turn."""
+    recent = [m if m.role == "user" else ChatMessage(role="assistant", content=m.content[:MAX_ASSISTANT_CHARS])
+              for m in messages[-HISTORY_MESSAGES:] if _genuine(m)]
     while recent and recent[0].role != "user":
         recent = recent[1:]
     return recent
