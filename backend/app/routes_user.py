@@ -13,6 +13,7 @@ from .user_models import (
     HikeOut,
     HikeStats,
     HikeUpdate,
+    Insights,
     MePatch,
     UserOut,
 )
@@ -42,6 +43,11 @@ def delete_me(user: dict = Depends(auth.current_user)):
     reviews.delete_all(uid)
     users.delete(uid)
     return Response(status_code=204)
+
+
+@me_router.get("/insights", response_model=Insights)
+def get_insights(user: dict = Depends(auth.current_user)):
+    return hikes.insights(user)
 
 
 # ---------- saved trails ----------

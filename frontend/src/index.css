@@ -225,7 +225,7 @@ button:disabled { cursor: default; opacity: .5; }
   .location-label { font-size: 10px; }
   .header-actions:has(.auth-control) .location-label { display: none; }
   .header-actions { max-width: 50%; }
-  .auth-control > div > div { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+  .auth-control > div > button:first-child > div { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
   .workspace { display: flex; flex: 1; min-height: 0; align-items: stretch; padding: 18px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); }
   .planner { position: static; height: auto; min-height: 0; max-height: none; width: 100%; flex: 1; }
   .panel-heading h1 { font-size: 27px; letter-spacing: -.8px; margin-top: 5px; }
@@ -254,7 +254,7 @@ button:disabled { cursor: default; opacity: .5; }
   .map-heading .eyebrow { font-size: 9px; }
   .map-hint { flex-shrink: 0; padding: 0 12px 10px; font-size: 9px; }
   .mobile-navigation { display: flex; justify-content: space-around; border-top: 1px solid #dfe4da; background: #fff; flex-shrink: 0; padding: 6px max(12px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
-  .mobile-navigation > button { width: 23%; min-height: 55px; color: #7b8772; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; border-radius: 12px; font-weight: 650; }
+  .mobile-navigation > button { flex: 1; min-width: 0; min-height: 55px; color: #7b8772; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; border-radius: 12px; font-weight: 650; }
   .mobile-navigation > button[aria-pressed="true"] { background: #edf2e6; color: #285333; }
   .nav-icon { position: relative; display: block; }
   .nav-icon svg { width: 21px; height: 21px; }

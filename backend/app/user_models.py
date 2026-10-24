@@ -10,12 +10,21 @@ class Profile(BaseModel):
     display_name: Optional[str] = Field(None, max_length=60)
     home_area: Optional[str] = Field(None, max_length=80)
     has_car: Optional[bool] = None
+    age: Optional[int] = Field(None, ge=10, le=110)
     fitness: Optional[int] = Field(None, ge=1, le=5, description="1 (new) … 5 (strong)")
+    group_type: Optional[Literal["solo", "friends", "family", "club"]] = None
     bio: Optional[str] = Field(None, max_length=500)
+
+
+TransitMode = Literal["walk", "bus", "bike", "car"]
+Season = Literal["spring", "summer", "fall", "winter"]
 
 
 class Preferences(BaseModel):
     preferred_features: list[str] = Field(default_factory=list, max_length=20)
+    transit_modes: list[TransitMode] = Field(default_factory=list, max_length=4)
+    preferred_seasons: list[Season] = Field(default_factory=list, max_length=4)
+    prefers_loop: Optional[bool] = Field(None, description="True: loops, False: out-and-back, null: no preference")
     max_level: Optional[int] = Field(None, ge=1, le=5)
     max_time_min: Optional[int] = Field(None, ge=1, le=1440)
     max_drive_min: Optional[int] = Field(None, ge=0, le=600)
@@ -72,6 +81,29 @@ class HikeStats(BaseModel):
     unique_trails: int
     total_distance_mi: float
     total_elevation_gain_ft: int
+
+
+class Count(BaseModel):
+    key: str
+    count: int
+
+
+class Insights(BaseModel):
+    """Taste signals derived from the hike log. Intended as input to the recommender."""
+
+    profile_completeness: int = Field(description="0-100, share of profile/preference fields filled in")
+    stats: HikeStats
+    level_counts: dict[int, int] = Field(description="official difficulty level -> hikes completed")
+    avg_rating: Optional[float] = None
+    felt_vs_official: Optional[float] = Field(None, description="mean(felt - official level); >0 means you find trails harder than rated")
+    comfortable_level: Optional[int] = Field(None, description="highest level hiked and rated >= 4, else highest hiked")
+    top_features: list[Count]
+    top_areas: list[Count]
+    access_counts: dict[str, int] = Field(description="how the hiked trails can be reached: car_free / drive_only")
+    loop_share: Optional[float] = None
+    season_counts: dict[str, int]
+    feature_affinity: dict[str, float] = Field(description="feature -> score in [-1, 1] from ratings (rating 3 = neutral)")
+    recent_hikes: list[HikeOut]
 
 
 class ReviewIn(BaseModel):

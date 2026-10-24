@@ -83,7 +83,8 @@ def test_patch_only_changes_sent_fields(client):
     body = r.json()
     assert body["profile"]["fitness"] == 2  # untouched by the second patch
     assert body["preferences"] == {
-        "preferred_features": ["view"], "max_level": 3, "max_time_min": None, "max_drive_min": None, "notes": None,
+        "preferred_features": ["view"], "transit_modes": [], "preferred_seasons": [], "prefers_loop": None,
+        "max_level": 3, "max_time_min": None, "max_drive_min": None, "notes": None,
     }
     assert client.patch("/me", headers=h, json={"profile": {"fitness": 9}}).status_code == 422
     # explicit null clears
@@ -286,3 +287,39 @@ def test_email_like_auth0_name_is_never_shown(client, monkeypatch):
     assert client.get("/me", headers=h).json()["profile"]["display_name"] is None
     r = client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json=GOOD).json()
     assert r["author"] == "Hiker" and "psu.edu" not in client.get(f"/trails/{TRAIL}/reviews").text
+
+
+# ---------- dashboard insights ----------
+
+def test_insights_empty_user(client):
+    h = signup(client)
+    body = client.get("/me/insights", headers=h).json()
+    assert body["stats"]["total_hikes"] == 0
+    assert body["level_counts"] == {str(i): 0 for i in range(1, 6)}
+    assert body["avg_rating"] is None and body["comfortable_level"] is None
+    assert body["profile_completeness"] == 0
+
+
+def test_insights_from_hikes_and_new_profile_fields(client):
+    h = signup(client)
+    patch = {"profile": {"age": 21, "group_type": "friends"}, "preferences": {"transit_modes": ["bus", "walk"], "prefers_loop": True}}
+    me = client.patch("/me", json=patch, headers=h).json()
+    assert me["profile"]["age"] == 21 and me["preferences"]["transit_modes"] == ["bus", "walk"]
+    for trail, rating in ((TRAIL, 5), (TRAIL2, 2)):
+        r = client.post("/me/hikes", json={"trail_id": trail, "completed_on": "2025-10-04", "rating": rating, "felt_difficulty": 3}, headers=h)
+        assert r.status_code == 201
+    body = client.get("/me/insights", headers=h).json()
+    assert body["stats"]["unique_trails"] == 2
+    assert sum(body["level_counts"].values()) == 2
+    assert body["avg_rating"] == 3.5
+    assert body["season_counts"]["fall"] == 2
+    assert body["profile_completeness"] > 0
+    assert len(body["recent_hikes"]) == 2
+    from app import store
+    for f in store.get(TRAIL).features:
+        if f not in store.get(TRAIL2).features:
+            assert body["feature_affinity"][f] == 1.0
+
+
+def test_insights_requires_login(client):
+    assert client.get("/me/insights").status_code == 401

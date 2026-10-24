@@ -10,6 +10,7 @@ import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
 import ReviewModal from './ReviewModal'
 import AuthButton from './AuthButton'
+import Dashboard from './Dashboard'
 import { Mark } from './landing/Logo'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
@@ -48,6 +49,8 @@ export default function App() {
   const [libraryTrailId, setLibraryTrailId] = useState(null)
   const routeReference = useMemo(() => officialRoute ? prepareRouteReference(officialRoute.geojson, reverseReference) : null, [officialRoute, reverseReference])
   const libraryOpen = mobileView === 'library'
+  const profileOpen = mobileView === 'profile'
+  const fullPage = libraryOpen || profileOpen   // views that replace the planner/map workspace
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [allTrails, setAllTrails] = useState([])
@@ -165,10 +168,10 @@ export default function App() {
   const mapTrails = allTrails.length ? allTrails : recommended
   const cards = hasResult ? recommended : allTrails
   const selectedTrail = mapTrails.find(t => t.id === selectedId)
-  const mapVisible = !libraryOpen && (!isCompact || mobileView === 'map')
+  const mapVisible = !fullPage && (!isCompact || mobileView === 'map')
 
   function changeView(view) {
-    if (view === 'library' || (isCompact && view !== 'map')) location.stopTracking()
+    if (view === 'library' || view === 'profile' || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
   }
 
@@ -242,16 +245,17 @@ export default function App() {
           <span><span className="brand-name">HikingPSU</span><span className="brand-caption">A little closer to the outdoors.</span></span>
         </a>
         <div className="header-actions">
-          <nav className="desktop-navigation" aria-label="Workspace"><button onClick={() => changeView('plan')} aria-pressed={!libraryOpen}>Explore</button><button onClick={() => openOfficialLibrary()} aria-pressed={libraryOpen}>Official library</button></nav>
+          <nav className="desktop-navigation" aria-label="Workspace"><button onClick={() => changeView('plan')} aria-pressed={!fullPage}>Explore</button><button onClick={() => openOfficialLibrary()} aria-pressed={libraryOpen}>Official library</button></nav>
           <span className="location-label"><span />Happy Valley, PA</span>
-          {AUTH_ENABLED && <div className="auth-control"><AuthButton /></div>}
+          {AUTH_ENABLED && <div className="auth-control"><AuthButton onProfile={() => changeView('profile')} profileActive={profileOpen} /></div>}
         </div>
       </header>
 
-      <main className={`workspace ${libraryOpen ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
+      <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
         <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} onOpenRoute={openOfficialRoute} /></div>
-        {officialRoute && !isCompact && <aside className="route-sidebar" hidden={libraryOpen} aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
-        <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={libraryOpen || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
+        {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} /></div>}
+        {officialRoute && !isCompact && <aside className="route-sidebar" hidden={fullPage}aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
+        <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
           <div className="panel-heading">
             <span className="eyebrow">YOUR NEXT OUTING</span>
             <h1 id="plan-title">Find your kind of trail.</h1>
@@ -301,7 +305,7 @@ export default function App() {
           <p className="composer-note">Local trails. Clear difficulty. A plan that fits you.</p>
         </section>
 
-        <section className="explorer" aria-label="Explore local trails" hidden={libraryOpen || (isCompact && mobileView === 'plan')}>
+        <section className="explorer" aria-label="Explore local trails" hidden={fullPage || (isCompact && mobileView === 'plan')}>
           <section id="map-panel" className="map-panel" hidden={isCompact && mobileView !== 'map'} aria-label="Trail map">
             <div className="map-heading"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
             <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />

@@ -33,6 +33,14 @@ export const getTrailReviews = (id, token = null) => request(`/trails/${id}/revi
 export const saveReview = (id, review, token) => request(`/trails/${id}/reviews/me`, { method: 'PUT', body: review, token })
 export const deleteReview = (id, token) => request(`/trails/${id}/reviews/me`, { method: 'DELETE', token })
 
+// ---- profile, hike log and dashboard insights (all need a token) ----
+export const getMe = token => request('/me', { token })
+export const patchMe = (changes, token) => request('/me', { method: 'PATCH', body: changes, token })
+export const getInsights = token => request('/me/insights', { token })
+export const listHikes = token => request('/me/hikes?limit=200', { token })
+export const addHike = (hike, token) => request('/me/hikes', { method: 'POST', body: hike, token })
+export const deleteHike = (id, token) => request(`/me/hikes/${id}`, { method: 'DELETE', token })
+
 export const getOfficialLibrary = (params = {}, signal) => request(`/official/library?${new URLSearchParams(params)}`, { signal })
 export const getOfficialTrails = (areaId, activity, signal) => request(`/official/trails?${new URLSearchParams({area_id: areaId, activity})}`, { signal })
 export const getOfficialGeometry = (areaId, routeId, activity, signal) => request(`/official/trails/${encodeURIComponent(areaId)}/${encodeURIComponent(routeId)}/geometry?${new URLSearchParams({activity})}`, { signal })
