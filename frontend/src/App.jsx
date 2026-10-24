@@ -5,6 +5,7 @@ import MapView from './MapView'
 import ReviewModal from './ReviewModal'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import AuthButton from './AuthButton'
+import Onboarding from './Onboarding'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 
 const SUGGESTIONS = [
@@ -27,6 +28,7 @@ export default function App() {
   const [reviewing, setReviewing] = useState(null)    // trail currently being reviewed
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const [sessionId, setSessionId] = useState(null)   // saved chat (logged-in users only)
+  const [me, setMe] = useState(null)                  // the logged-in user's account, from /me
   const getToken = useOptionalToken()                 // null when logged out or login isn't configured
 
   const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})  // reviews are optional; trails still work
@@ -37,6 +39,11 @@ export default function App() {
       .catch(() => setLoadError("Couldn't load trails. Is the backend running on port 8000?"))
     refreshSummaries()
   }, [])
+
+  // Start the car checkbox from how the user said they get to hikes.
+  useEffect(() => {
+    if (typeof me?.profile.has_car === 'boolean') setHasCar(me.profile.has_car)
+  }, [me])
 
   async function send(text) {
     if (loading) return
@@ -65,7 +72,7 @@ export default function App() {
             <h1 className="text-2xl font-bold">HikingPSU</h1>
             <p className="text-sm text-stone-500">Hikes around Happy Valley, rated for real people.</p>
           </div>
-          {AUTH_ENABLED && <AuthButton />}
+          {AUTH_ENABLED && <AuthButton onMe={setMe} />}
         </header>
 
         <label className="mb-3 flex items-center gap-2 text-sm">
@@ -130,6 +137,7 @@ export default function App() {
           <div className="rounded-xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400">Loading trails…</div>
         )}
       </section>
+      {me && !me.registered && <Onboarding me={me} onDone={setMe} />}
       {reviewing && (
         <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />
       )}

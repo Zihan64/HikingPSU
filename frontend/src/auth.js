@@ -36,7 +36,7 @@ export function useAuthFetch() {
       },
     })
     if (!r.ok) {
-      const detail = await r.json().then(j => j.detail).catch(() => null)
+      const detail = await r.json().then(j => (Array.isArray(j.detail) ? j.detail.map(d => d.msg).join('; ') : j.detail)).catch(() => null)
       throw new Error(detail || `API ${r.status}`)
     }
     return r.status === 204 ? null : r.json()

@@ -4,15 +4,16 @@ import { useAuthFetch } from './auth'
 
 // Top-right login control. After login it calls /me once, which proves the
 // backend accepted the token (and lets the database create the user's row).
-export default function AuthButton() {
+// onMe receives that user (or null when logged out).
+export default function AuthButton({ onMe }) {
   const { isLoading, isAuthenticated, user, loginWithRedirect, logout, error } = useAuth0()
   const authFetch = useAuthFetch()
   const [backend, setBackend] = useState(null) // null = not checked, 'ok', or an error message
 
   useEffect(() => {
-    if (!isAuthenticated) { setBackend(null); return }
-    authFetch('/me').then(() => setBackend('ok')).catch(e => setBackend(e.message))
-  }, [isAuthenticated, authFetch])
+    if (!isAuthenticated) { setBackend(null); onMe?.(null); return }
+    authFetch('/me').then(me => { setBackend('ok'); onMe?.(me) }).catch(e => setBackend(e.message))
+  }, [isAuthenticated, authFetch, onMe])
 
   if (isLoading) return <span className="text-sm text-stone-400">…</span>
 

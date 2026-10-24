@@ -14,6 +14,7 @@ from .user_models import (
     HikeStats,
     HikeUpdate,
     MePatch,
+    Registration,
     UserOut,
 )
 
@@ -32,6 +33,12 @@ def get_me(user: dict = Depends(auth.current_user)):
 def patch_me(body: MePatch, user: dict = Depends(auth.current_user)):
     changes = body.model_dump(exclude_unset=True)
     return users.to_out(users.patch(str(user["_id"]), changes) or user)
+
+
+@me_router.put("/registration", response_model=UserOut)
+def register(body: Registration, user: dict = Depends(auth.current_user)):
+    """The sign-up form shown after a new account's first login (also used to edit it later)."""
+    return users.to_out(users.register(user, body) or user)
 
 
 @me_router.delete("", status_code=204)

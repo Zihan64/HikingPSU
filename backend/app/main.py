@@ -70,11 +70,15 @@ def chat(req: ChatRequest, user_id: str | None = Depends(auth.current_user_id_op
     return res
 
 
+# Personal details from the sign-up form stay in the database; the model doesn't need them.
+PRIVATE_PROFILE_FIELDS = {"bio", "full_name", "gender", "gender_custom", "birthday", "phone"}
+
+
 def _stored_profile(user_id: str) -> dict:
     """What the agent should know about a signed-in user (explicit request fields still win)."""
     user = users.get(user_id)
     if user is None:
         return {}
-    profile = {k: v for k, v in user["profile"].items() if v is not None and k != "bio"}
+    profile = {k: v for k, v in user["profile"].items() if v is not None and k not in PRIVATE_PROFILE_FIELDS}
     prefs = {k: v for k, v in user["preferences"].items() if v not in (None, [])}
     return {**profile, "preferences": prefs, **hikes.agent_summary(user_id)}
