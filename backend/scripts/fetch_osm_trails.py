@@ -3,7 +3,8 @@
     python backend/scripts/fetch_osm_trails.py [--bbox S,W,N,E] [--min-mi 0.8] [--max-mi 10]
 
 Writes backend/data/trails_osm.json, which store.py merges with the hand-curated trails.json.
-Everything written here is `verified: false`: distance comes from OSM geometry (one-way for non-loops),
+Everything written here is `verified: false`: distance comes from OSM geometry (round trip: a non-loop
+route is hiked out and back, so its one-way length is doubled and both directions' climbs are added),
 elevation gain from the Open-Meteo DEM (~90 m resolution, so gain is approximate), terrain scores from
 OSM tags, and access times are straight-line estimates. Hand-curated trails always win on duplicates.
 """
@@ -160,7 +161,12 @@ def build(client, rel: dict, min_mi: float, max_mi: float):
     for w in ways:
         pts = sample(w)
         if len(pts) > 1:
-            gain += gain_ft(elevations(client, pts))
+            elev = elevations(client, pts)
+            gain += gain_ft(elev)
+            if not loop:  # out and back: the way back climbs what the way out descended
+                gain += gain_ft(elev[::-1])
+    if not loop:
+        dist *= 2  # distance and difficulty are for the whole hike, there and back
 
     town, _ = nearest_town(th)
     to_campus = miles(th, CAMPUS)
@@ -189,10 +195,11 @@ def build(client, rel: dict, min_mi: float, max_mi: float):
         "features": feats,
         "best_seasons": ["spring", "summer", "fall"],
         "notes": f"Imported from OpenStreetMap relation {rid}. Distance from OSM geometry"
-                 f"{'' if loop else ' (one-way length; an out-and-back is roughly double)'}; elevation from a ~90 m DEM; "
+                 f"{'' if loop else ' (round trip: out and back)'}; elevation from a ~90 m DEM; "
                  "drive/walk times are straight-line estimates. Unchecked in the field."
                  + (f" {tags['description']}" if tags.get("description") else ""),
         "verified": False,
+        "source": "osm",
     }, None
 
 
