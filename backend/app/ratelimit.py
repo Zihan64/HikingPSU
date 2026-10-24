@@ -31,7 +31,7 @@ def limits(signed_in: bool) -> tuple[int, int]:
     """(per minute, per day)."""
     if signed_in:
         return _limit("CHAT_LIMIT_USER_PER_MIN", 6), _limit("CHAT_LIMIT_USER_PER_DAY", 60)
-    return _limit("CHAT_LIMIT_ANON_PER_MIN", 3), _limit("CHAT_LIMIT_ANON_PER_DAY", 20)
+    return _limit("CHAT_LIMIT_ANON_PER_MIN", 3), _limit("CHAT_LIMIT_ANON_PER_DAY", 5)
 
 
 def client_ip(request: Request) -> str:
@@ -54,7 +54,9 @@ def check(request: Request, user_id: str | None) -> None:
             q.popleft()
         last_minute = sum(1 for t in q if now - t < 60)
         if len(q) >= per_day:
-            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Daily chat limit reached. Please come back tomorrow.")
+            msg = ("Daily chat limit reached. Please come back tomorrow." if user_id
+                   else f"Guests can ask {per_day} questions a day. Log in to keep planning.")
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, msg)
         if last_minute >= per_min:
             raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "You're sending messages too fast. Please wait a minute.",
                                 headers={"Retry-After": "60"})
