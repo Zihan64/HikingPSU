@@ -39,8 +39,14 @@ function useParallax() {
   return ref
 }
 
-export default function Landing({ onSignIn, onSignUp, onGuest, busy = false, error = null }) {
+// signedInName: set when someone already signed in came back here with the browser Back button.
+// guestReturning: a guest came back here; the guest link then reads "Keep browsing".
+export default function Landing({
+  onSignIn, onSignUp, onGuest, onContinue, onSignOut,
+  signedInName = null, guestReturning = false, busy = false, error = null,
+}) {
   const root = useParallax()
+  const signedIn = Boolean(signedInName)
 
   return (
     // Below 960px the app shell locks html/body scrolling (index.css), so the sign-in page scrolls itself there.
@@ -57,11 +63,11 @@ export default function Landing({ onSignIn, onSignUp, onGuest, busy = false, err
             40.79° N, 77.86° W
           </p>
           <button
-            onClick={onSignIn}
+            onClick={signedIn ? onContinue : onSignIn}
             disabled={busy}
             className={`rounded-full bg-psu-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-70 lg:hidden ${focusRing}`}
           >
-            Sign in
+            {signedIn ? 'Continue' : 'Sign in'}
           </button>
         </header>
 
@@ -102,38 +108,40 @@ export default function Landing({ onSignIn, onSignUp, onGuest, busy = false, err
             >
               <RotatingBadge className="absolute -right-5 -top-10 h-24 w-24 sm:-right-10 sm:-top-12 sm:h-28 sm:w-28" />
               <h2 id="sign-in-title" className="pr-16 text-[1.9rem] font-normal leading-tight tracking-[-0.02em]">
-                Plan your next hike
+                {signedIn ? 'Welcome back' : 'Plan your next hike'}
               </h2>
               <p className="mt-3 leading-relaxed text-psu-slate">
-                Sign in to save trails, keep your trip conversations and review the hikes you’ve done.
+                {signedIn
+                  ? <>You’re signed in as <span className="font-medium text-psu-navy">{signedInName}</span>. Your saved trails and conversations are waiting.</>
+                  : 'Sign in to save trails, keep your trip conversations and review the hikes you’ve done.'}
               </p>
 
               <button
-                onClick={onSignIn}
+                onClick={signedIn ? onContinue : onSignIn}
                 disabled={busy}
                 className={`lp-shine mt-8 [@media(min-width:1024px)_and_(max-height:820px)]:mt-6 h-[52px] w-full rounded-2xl bg-psu-navy font-medium text-white transition-colors hover:bg-psu-beaver disabled:cursor-wait disabled:bg-psu-beaver/80 ${focusRing}`}
               >
-                {busy ? 'Continue in the pop-up window' : 'Sign in'}
+                {signedIn ? 'Continue to HikingPSU' : busy ? 'Continue in the pop-up window' : 'Sign in'}
               </button>
               <button
-                onClick={onSignUp}
+                onClick={signedIn ? onSignOut : onSignUp}
                 disabled={busy}
                 className={`mt-3 h-[52px] w-full rounded-2xl border border-psu-navy/15 font-medium text-psu-navy transition-colors hover:border-psu-navy/40 hover:bg-psu-mist disabled:opacity-60 ${focusRing}`}
               >
-                Create an account
+                {signedIn ? 'Sign out' : 'Create an account'}
               </button>
 
-              {error && (
+              {error && !signedIn && (
                 <p role="alert" className="mt-5 rounded-xl bg-psu-mist px-4 py-3 text-sm leading-relaxed text-psu-navy">
                   {error}
                 </p>
               )}
 
-              {onGuest && (
+              {onGuest && !signedIn && (
                 <p className="mt-6 text-sm text-psu-slate">
-                  Just looking?{' '}
+                  {guestReturning ? 'Not ready to sign in?' : 'Just looking?'}{' '}
                   <button onClick={onGuest} disabled={busy} className={`font-medium text-psu-beaver underline underline-offset-4 hover:text-psu-navy ${focusRing}`}>
-                    Browse trails without an account
+                    {guestReturning ? 'Keep browsing without an account' : 'Browse trails without an account'}
                   </button>
                 </p>
               )}

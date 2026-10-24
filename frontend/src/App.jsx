@@ -12,6 +12,8 @@ import ReviewModal from './ReviewModal'
 import AuthButton from './AuthButton'
 import Dashboard from './Dashboard'
 import { Mark } from './landing/Logo'
+import AppBackdrop from './theme/AppBackdrop'
+import HeaderTrail from './theme/HeaderTrail'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
@@ -258,6 +260,7 @@ export default function App() {
 
   return (
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
+      <AppBackdrop />
       <header className="app-header">
         <a className="brand" href="#" aria-label="HikingPSU home" onClick={e => { e.preventDefault(); changeView('plan') }}>
           <Mark className="h-11 w-11 shrink-0 max-[959px]:h-9 max-[959px]:w-9" />
@@ -268,6 +271,7 @@ export default function App() {
           <span className="location-label"><span />Happy Valley, PA</span>
           {AUTH_ENABLED && <div className="auth-control"><AuthButton onProfile={() => changeView('profile')} profileActive={profileOpen} /></div>}
         </div>
+        <HeaderTrail />
       </header>
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>

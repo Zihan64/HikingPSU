@@ -11,6 +11,20 @@ export default {
           slate: '#475A73',   // secondary text on white/sky
           mist: '#F3F8FC',    // horizon haze
         },
+        // Neutral greys used across the widgets (`stone-*`), cooled toward PSU navy
+        // so cards, reviews and the profile page match the blue-and-white theme.
+        stone: {
+          50: '#F6F8FB',
+          100: '#EEF2F7',
+          200: '#DFE6EF',
+          300: '#C9D3E0',
+          400: '#97A6BA',
+          500: '#6B7B90',
+          600: '#4F6178',
+          700: '#3A4B62',
+          800: '#24354C',
+          900: '#13243A',
+        },
       },
       fontFamily: {
         landing: ['"Hanken Grotesk Variable"', 'system-ui', 'sans-serif'],

@@ -7,16 +7,13 @@
     linear-gradient(180deg, #a6c9ee 0%, #c9e0f6 38%, #e8f2fb 70%, #f6fafd 100%);
 }
 
-/* index.css sets `html, body, #root { overflow: hidden }` under 960px for the app shell;
-   the sign-in page is taller than a phone screen, so it becomes its own scroll container there. */
-@media (width < 960px) {
-  /* doubled class: must beat Tailwind's `overflow-hidden` on the same element */
-  .lp-scroll.lp-scroll {
-    height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+/* index.css locks `html, body, #root` scrolling for the app shell (at every width now),
+   so the sign-in page is its own scroll container. Doubled class beats Tailwind's `overflow-hidden`. */
+.lp-scroll.lp-scroll {
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Pointer parallax. Landing sets --mx/--my (-1..1); each layer sets its depth with --px/--py. */
