@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import agent, store
 from .models import ChatRequest, ChatResponse, TrailWithDifficulty
 
-app = FastAPI(title="Trailhead API", version="0.1.0")
+app = FastAPI(title="HikingPSU API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 

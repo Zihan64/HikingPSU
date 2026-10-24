@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { chat } from './api'
+import { useEffect, useState } from 'react'
+import { chat, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
+import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
 const SUGGESTIONS = [
   'Saturday afternoon, two of us, no car, ~3 hours, want a view',
@@ -12,10 +13,19 @@ const SUGGESTIONS = [
 export default function App() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [trails, setTrails] = useState([])
+  const [allTrails, setAllTrails] = useState([])      // every trail, loaded on page open
+  const [recommended, setRecommended] = useState([])  // what the agent picked
+  const [selectedId, setSelectedId] = useState(null)
   const [hasCar, setHasCar] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    listTrails()
+      .then(ts => setAllTrails([...ts].sort((a, b) => a.difficulty.level - b.difficulty.level || a.distance_mi - b.distance_mi)))
+      .catch(() => setLoadError("Couldn't load trails. Is the backend running on port 8000?"))
+  }, [])
 
   async function send(text) {
     const next = [...messages, { role: 'user', content: text }]
@@ -23,17 +33,21 @@ export default function App() {
     try {
       const res = await chat(next, { has_car: hasCar })
       setMessages([...next, { role: 'assistant', content: res.reply }])
-      if (res.trails.length) setTrails(res.trails)
+      if (res.trails.length) { setRecommended(res.trails); setSelectedId(null) }
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
   }
 
+  const recIds = recommended.map(t => t.id)
+  const mapTrails = allTrails.length ? allTrails : recommended   // map still works if /trails failed
+  const cards = recommended.length ? recommended : allTrails
+
   return (
     <div className="mx-auto grid max-w-6xl gap-6 p-4 md:grid-cols-[1fr_1.1fr]">
       <section className="flex flex-col">
         <header className="mb-3">
-          <h1 className="text-2xl font-bold">Trailhead</h1>
+          <h1 className="text-2xl font-bold">HikingPSU</h1>
           <p className="text-sm text-stone-500">Hikes around Happy Valley, rated for real people.</p>
         </header>
 
@@ -64,9 +78,39 @@ export default function App() {
       </section>
 
       <section className="space-y-3">
-        {trails.length > 0 && <MapView trails={trails} />}
-        {trails.map(t => <TrailCard key={t.id} t={t} />)}
-        {trails.length === 0 && <div className="rounded-xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400">Recommendations show up here.</div>}
+        {mapTrails.length > 0 && (
+          <>
+            <MapView trails={mapTrails} recIds={recIds} selectedId={selectedId} onSelect={setSelectedId} />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600">
+              {[1, 2, 3, 4, 5].map(l => (
+                <span key={l} className="flex items-center gap-1">
+                  <span className="inline-block h-3 w-3 rounded-full" style={{ background: LEVEL_HEX[l] }} />
+                  L{l} {LEVEL_LABELS[l]}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+        {loadError && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</div>}
+
+        {cards.length > 0 && (
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-stone-700">
+              {recommended.length ? 'Recommended for you' : `All trails (${allTrails.length})`}
+            </h2>
+            {recommended.length > 0 && (
+              <button onClick={() => { setRecommended([]); setSelectedId(null) }} className="text-xs text-emerald-800 underline">
+                Show all trails
+              </button>
+            )}
+          </div>
+        )}
+        {cards.map(t => (
+          <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => setSelectedId(t.id)} />
+        ))}
+        {!loadError && cards.length === 0 && (
+          <div className="rounded-xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-400">Loading trails…</div>
+        )}
       </section>
     </div>
   )

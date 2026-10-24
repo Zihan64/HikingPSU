@@ -6,11 +6,14 @@ const LEVEL_COLORS = {
   5: 'bg-red-100 text-red-800',
 }
 
-export default function TrailCard({ t }) {
+export default function TrailCard({ t, selected = false, onSelect }) {
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+    <div
+      onClick={onSelect}
+      className={`rounded-xl border bg-white p-4 shadow-sm ${onSelect ? 'cursor-pointer hover:border-stone-400' : ''} ${selected ? 'border-stone-800 ring-1 ring-stone-800' : 'border-stone-200'}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{t.name}</h3>
