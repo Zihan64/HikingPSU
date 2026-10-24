@@ -10,6 +10,7 @@ import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
 import ReviewModal from './ReviewModal'
 import Dashboard from './Dashboard'
+import Onboarding from './Onboarding'
 import AppHeader, { HomeLink } from './AppHeader'
 import Icon from './Icon'
 import useMapFullscreen from './useMapFullscreen'
@@ -74,6 +75,7 @@ export default function App() {
   const [sessionId, setSessionId] = useState(null)
   const getToken = useOptionalToken()
   const [ranking, setRanking] = useState(null)   // signed-in only: trails that fit you, best first
+  const [profileVersion, setProfileVersion] = useState(0) // bumped when the sign-up form is saved
   const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})
   const shellRef = useRef(null)
   const conversationRef = useRef(null)
@@ -108,8 +110,8 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  // Personal order for the trail list. Refetched on login/logout and after leaving the profile,
-  // where preferences and the hike log change.
+  // Personal order for the trail list. Refetched on login/logout, after leaving the profile,
+  // where preferences and the hike log change, and after the sign-up form is saved.
   useEffect(() => {
     if (profileOpen) return
     let cancelled = false
@@ -118,7 +120,7 @@ export default function App() {
       .then(r => { if (!cancelled) setRanking(r?.trails ?? null) })
       .catch(() => { if (!cancelled) setRanking(null) })
     return () => { cancelled = true }
-  }, [getToken, profileOpen])
+  }, [getToken, profileOpen, profileVersion])
 
   // A phone's keyboard can shrink the visual viewport while 100dvh still
   // describes the area behind it. Keep the composer inside the visible area.
@@ -402,6 +404,7 @@ export default function App() {
           </section>}
         </section>
       </main>
+      <Onboarding onSaved={() => setProfileVersion(v => v + 1)} />
       {reviewing && <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />}
 
       {isCompact && (

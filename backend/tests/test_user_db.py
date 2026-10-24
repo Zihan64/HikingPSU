@@ -5,7 +5,7 @@ import mongomock
 import pytest
 from fastapi.testclient import TestClient
 
-from app import agent, db
+from app import agent, db, users
 from app.main import app
 from app.models import ChatResponse
 
@@ -323,3 +323,108 @@ def test_insights_from_hikes_and_new_profile_fields(client):
 
 def test_insights_requires_login(client):
     assert client.get("/me/insights").status_code == 401
+
+
+# ---------- sign-up form ----------
+
+FORM = {
+    "gender": "female", "full_name": "Alice Nittany", "birthday": "2004-05-06",
+    "hiking_experience": 0, "transport": "bus",
+}
+
+
+def test_new_user_is_unregistered_until_form_is_saved(client):
+    h = signup(client)
+    assert client.get("/me", headers=h).json()["registered"] is False
+    r = client.put("/me/registration", headers=h, json=FORM)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["registered"] is True
+    p = body["profile"]
+    assert p["full_name"] == "Alice Nittany" and p["gender"] == "female" and p["birthday"] == "2004-05-06"
+    assert p["hiking_experience"] == 0 and p["transport"] == "bus"
+    assert body["email"] == "a@psu.edu"  # not sent, so the Auth0 email is kept
+    assert client.get("/me", headers=h).json()["profile"] == p  # persisted (birthday round-trips through BSON)
+
+
+def test_registration_fills_recommender_fields(client):
+    h = signup(client)
+    body = client.put("/me/registration", headers=h, json=FORM).json()
+    p, prefs = body["profile"], body["preferences"]
+    assert p["has_car"] is False and prefs["transit_modes"] == ["bus", "walk"]
+    assert prefs["max_level"] == 1 and p["fitness"] == 1  # never hiked
+    assert p["age"] == users.age_on(dt.date(2004, 5, 6), dt.date.today())
+    body = client.put("/me/registration", headers=h, json={**FORM, "transport": "car", "hiking_experience": 5}).json()
+    assert body["profile"]["has_car"] is True and body["preferences"]["transit_modes"] == ["car"]
+    # levels the user already has (from the first submit, or set on the dashboard) are not overwritten
+    assert body["preferences"]["max_level"] == 1 and body["profile"]["fitness"] == 1
+
+
+def test_registration_keeps_levels_set_on_the_dashboard(client):
+    h = signup(client)
+    client.patch("/me", headers=h, json={"profile": {"fitness": 4}, "preferences": {"max_level": 3}})
+    body = client.put("/me/registration", headers=h, json=FORM).json()
+    assert body["profile"]["fitness"] == 4 and body["preferences"]["max_level"] == 3
+
+
+def test_age_on():
+    assert users.age_on(dt.date(2000, 5, 6), dt.date(2026, 5, 5)) == 25
+    assert users.age_on(dt.date(2000, 5, 6), dt.date(2026, 5, 6)) == 26
+
+
+def test_registration_optional_fields_and_editing(client):
+    h = signup(client)
+    first = client.put("/me/registration", headers=h, json={
+        **FORM, "preferences": "  views and lakes ", "email": "Alice@Example.com", "phone": "+1 (814) 555-0100",
+    }).json()
+    assert first["profile"]["phone"] == "+1 (814) 555-0100"
+    assert first["preferences"]["notes"] == "views and lakes" and first["email"] == "alice@example.com"
+    registered_at = db.get_db().users.find_one()["registered_at"]
+    again = client.put("/me/registration", headers=h, json={**FORM, "email": "", "phone": None, "preferences": ""}).json()
+    assert again["email"] is None and again["profile"]["phone"] is None and again["preferences"]["notes"] is None
+    assert db.get_db().users.find_one()["registered_at"] == registered_at
+
+
+def test_registration_validation(client):
+    h = signup(client)
+    future = (dt.date.today() + dt.timedelta(days=1)).isoformat()
+    for bad in [
+        {k: v for k, v in FORM.items() if k != "gender"},        # required field missing
+        {**FORM, "full_name": "   "},
+        {**FORM, "gender": "custom"},                              # custom needs a description
+        {**FORM, "gender": "other"},
+        {**FORM, "birthday": future},
+        {**FORM, "hiking_experience": 6},
+        {**FORM, "hiking_experience": -1},
+        {**FORM, "transport": "plane"},
+        {**FORM, "email": "not-an-email"},
+        {**FORM, "phone": "call me"},
+    ]:
+        assert client.put("/me/registration", headers=h, json=bad).status_code == 422, bad
+    assert client.get("/me", headers=h).json()["registered"] is False
+    ok = client.put("/me/registration", headers=h, json={**FORM, "gender": "custom", "gender_custom": "Non-binary"}).json()
+    assert ok["profile"]["gender"] == "custom" and ok["profile"]["gender_custom"] == "Non-binary"
+    assert client.put("/me/registration", json=FORM).status_code == 401
+
+
+def test_registration_names_reviews_by_first_name_only(client, monkeypatch):
+    monkeypatch.setattr("app.auth.fetch_profile", lambda identity: {"email": "c@psu.edu", "name": "c@psu.edu"})
+    h = bearer("auth0|c")
+    assert client.put("/me/registration", headers=h, json=FORM).json()["profile"]["display_name"] == "Alice"
+
+
+def test_agent_gets_experience_and_transport_but_not_personal_details(client):
+    h = signup(client)
+    client.put("/me/registration", headers=h, json={**FORM, "phone": "814-555-0100"})
+    seen_profiles.clear()
+    client.post("/chat", headers=h, json={"messages": [{"role": "user", "content": "hi"}]})
+    profile = seen_profiles[-1]
+    assert profile["hiking_experience"] == 0 and profile["transport"] == "bus" and profile["has_car"] is False
+    for private in ("full_name", "gender", "birthday", "phone"):
+        assert private not in profile
+
+
+def test_patch_can_edit_birthday(client):
+    h = signup(client)
+    r = client.patch("/me", headers=h, json={"profile": {"birthday": "2000-01-02"}})
+    assert r.status_code == 200 and r.json()["profile"]["birthday"] == "2000-01-02"
