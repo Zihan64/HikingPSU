@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
-import { Birds, Clouds, Landscape, Sun } from './SkyScene'
+import { useCallback, useRef } from 'react'
 import { RotatingBadge, Wordmark } from './Logo'
 import TrailTicker from './TrailTicker'
+import OutdoorScene from '../scene/OutdoorScene'
+import { Deer, Flocks, Hawk, Hiker } from '../scene/Wildlife'
 import './landing.css'
 
 const FEATURES = [
@@ -13,31 +14,8 @@ const FEATURES = [
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trail-forest'
 
-// Writes the pointer position as --mx/--my (-1..1) on the root; .lp-par layers read it.
-function useParallax() {
-  const ref = useRef(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return } catch { /* old browsers */ }
-    let raf = 0
-    let x = 0
-    let y = 0
-    const onMove = e => {
-      x = (e.clientX / window.innerWidth) * 2 - 1
-      y = (e.clientY / window.innerHeight) * 2 - 1
-      if (raf) return
-      raf = requestAnimationFrame(() => {
-        raf = 0
-        el.style.setProperty('--mx', x.toFixed(3))
-        el.style.setProperty('--my', y.toFixed(3))
-      })
-    }
-    window.addEventListener('pointermove', onMove, { passive: true })
-    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
-  }, [])
-  return ref
-}
+// Land height: about a third of the first screen, never tiny, never overwhelming.
+const landHeight = () => Math.min(420, Math.max(260, window.innerHeight * 0.36))
 
 // signedInName: set when someone already signed in came back here with the browser Back button.
 // guestReturning: a guest came back here; the guest link then reads "Keep browsing".
@@ -45,30 +23,43 @@ export default function Landing({
   onSignIn, onSignUp, onGuest, onContinue, onSignOut,
   signedInName = null, guestReturning = false, busy = false, error = null,
 }) {
-  const root = useParallax()
+  const sceneBox = useRef(null)
   const signedIn = Boolean(signedInName)
+
+  // Called by the scene on every resize (canvas size in CSS px). Shares the land height with the
+  // wildlife through --land, so the deer and the hiker always stand on the rendered meadow.
+  const layout = useCallback((w, h) => {
+    const land = landHeight()
+    sceneBox.current?.style.setProperty('--land', `${land}px`)
+    return { horizon: land / h, sun: [w < 640 ? 0.74 : 0.62, 1 - Math.min(150, window.innerHeight * 0.17) / h] }
+  }, [])
 
   return (
     // Below 960px the app shell locks html/body scrolling (index.css), so the sign-in page scrolls itself there.
-    // The outer div only scrolls; the inner one is as tall as the content and carries the sky-to-meadow
-    // gradient, so on phones the sky stays at the top and the landscape sits at the very bottom.
-    <div ref={root} className="lp-scroll font-landing text-trail-ink antialiased">
-    <div className="lp-sky relative isolate min-h-full overflow-hidden">
-      {/* sky box = first screen: sun, clouds and birds stay up top even when the page scrolls on a phone */}
+    // The outer div only scrolls; the inner one is as tall as the content and holds the scene, so on phones
+    // the sky stays at the top and the land sits at the very bottom.
+    <div className="lp-scroll font-landing text-trail-ink antialiased">
+    <div ref={sceneBox} className="lp-sky relative isolate min-h-full overflow-hidden">
+      <OutdoorScene className="absolute inset-0" layout={layout} interactive />
+      {/* a soft shade behind the white text keeps it legible against bright cloud */}
+      <div className="lp-shade pointer-events-none absolute inset-0" aria-hidden="true" />
+      {/* sky life, first screen */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-screen" aria-hidden="true">
-        {/* sun high on the right, sliding a little with the pointer like the far sky */}
-        <div className="lp-par absolute inset-0" style={{ '--px': -10, '--py': -4 }}>
-          <Sun className="right-[6%] top-[-46px] sm:right-[12%] sm:top-[-30px] lg:right-[30%] lg:top-[-40px]" />
-        </div>
-        <Clouds />
-        <Birds />
+        <Flocks />
+        <Hawk className="hidden sm:block sm:left-[52%] sm:top-[40%] lg:left-[47%] lg:top-[36%]" size={60} />
       </div>
-      <Landscape className="pointer-events-none absolute bottom-0 left-[-4%] h-[30vh] min-h-[190px] w-[108%]" />
+      {/* meadow life, positioned in the land frame shared with the scene */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: 'var(--land, 300px)' }} aria-hidden="true">
+        <Deer className="aspect-square h-[24%]" style={{ left: '49%', bottom: '3%' }} />
+        <div className="hp-trek" style={{ left: '31%', width: '15%', bottom: '1.5%', height: '20%' }}>
+          <div className="hp-trek-walker h-full" style={{ aspectRatio: '60 / 102' }}><Hiker className="h-full w-full" /></div>
+        </div>
+      </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-6 pt-6 sm:px-10 lg:px-16 lg:pt-8">
-          <Wordmark />
-          <p className="hidden text-right text-xs leading-relaxed tabular-nums text-trail-slate lg:block">
+          <Wordmark tone="white" className="lp-on-scene" />
+          <p className="lp-on-scene hidden text-right text-xs leading-relaxed tabular-nums text-white/85 lg:block">
             State College, Pennsylvania
             <br />
             40.79° N, 77.86° W
@@ -76,7 +67,7 @@ export default function Landing({
           <button
             onClick={signedIn ? onContinue : onSignIn}
             disabled={busy}
-            className={`rounded-full bg-trail-forest px-4 py-2 text-sm font-medium text-white disabled:opacity-70 lg:hidden ${focusRing}`}
+            className={`rounded-full bg-trail-forest px-4 py-2 text-sm font-medium text-white shadow-lg disabled:opacity-70 lg:hidden ${focusRing}`}
           >
             {signedIn ? 'Continue' : 'Sign in'}
           </button>
@@ -87,22 +78,22 @@ export default function Landing({
           {/* ---------- left: what HikingPSU is ---------- */}
           <div>
             <h1
-              className="lp-fade font-light leading-[0.9] tracking-[-0.045em] text-[clamp(3.6rem,min(8.4vw,14vh),8.5rem)]"
+              className="lp-fade lp-on-scene font-light leading-[0.9] tracking-[-0.045em] text-white text-[clamp(3.6rem,min(8.4vw,14vh),8.5rem)]"
               style={{ '--d': '0.05s' }}
             >
               Hike Happy
               <br />
               Valley.
             </h1>
-            <p className="lp-fade mt-7 max-w-[42ch] text-lg leading-relaxed text-trail-slate xl:text-xl" style={{ '--d': '0.2s' }}>
+            <p className="lp-fade lp-on-scene mt-7 max-w-[42ch] text-lg leading-relaxed text-white/90 xl:text-xl" style={{ '--d': '0.2s' }}>
               Trails around State College, rated for real people. Tell us your time, your group and whether
               you have a car, and we’ll find the right hike.
             </p>
-            <ul className="lp-fade mt-10 [@media(min-width:1024px)_and_(max-height:820px)]:mt-7 grid max-w-3xl grid-cols-2 gap-x-8 gap-y-5 xl:grid-cols-4" style={{ '--d': '0.35s' }}>
+            <ul className="lp-fade lp-on-scene mt-10 [@media(min-width:1024px)_and_(max-height:820px)]:mt-7 grid max-w-3xl grid-cols-2 gap-x-8 gap-y-5 xl:grid-cols-4" style={{ '--d': '0.35s' }}>
               {FEATURES.map(f => (
-                <li key={f.title} className="border-t border-trail-ink/20 pt-3">
-                  <h2 className="text-sm font-semibold">{f.title}</h2>
-                  <p className="mt-0.5 text-sm text-trail-slate">{f.text}</p>
+                <li key={f.title} className="border-t border-white/35 pt-3">
+                  <h2 className="text-sm font-semibold text-white">{f.title}</h2>
+                  <p className="mt-0.5 text-sm text-white/80">{f.text}</p>
                 </li>
               ))}
             </ul>

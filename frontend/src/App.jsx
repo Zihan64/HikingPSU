@@ -4,7 +4,7 @@ import TrailCard from './TrailCard'
 import MapView from './MapView'
 import useDeviceLayout from './useDeviceLayout'
 import useLocation from './useLocation'
-import LocationControl from './LocationControl'
+import LocationControl, { LocationStatus } from './LocationControl'
 import OfficialLibrary, { OfficialLinks } from './OfficialLibrary'
 import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
@@ -264,7 +264,7 @@ export default function App() {
       <AppBackdrop />
       <header className="app-header">
         <a className="brand" href="#" aria-label="HikingPSU home" onClick={e => { e.preventDefault(); changeView('plan') }}>
-          <Mark className="h-11 w-11 shrink-0 max-[959px]:h-9 max-[959px]:w-9" />
+          <Mark className="h-9 w-9 shrink-0" />
           <span><span className="brand-name">HikingPSU</span><span className="brand-caption">A little closer to the outdoors.</span></span>
         </a>
         <div className="header-actions">
@@ -290,7 +290,6 @@ export default function App() {
           <div className="conversation" ref={conversationRef} role="log" aria-label="Hiking planner conversation" aria-live="polite" aria-relevant="additions text" aria-busy={loading}>
             {messages.length === 0 && (
               <div className="welcome">
-                <span className="welcome-icon"><Icon name="plan" /></span>
                 <h2>Where do you want to go?</h2>
                 <p>Tell me your time, transport and who's coming along. Or start here:</p>
                 <div className="suggestions">
@@ -327,8 +326,12 @@ export default function App() {
 
         <section className="explorer" aria-label="Explore local trails" hidden={fullPage || (isCompact && mobileView === 'plan')}>
           <section id="map-panel" className="map-panel" hidden={isCompact && mobileView !== 'map'} aria-label="Trail map">
-            <div className="map-heading"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
-            <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />
+            {/* Desktop: location buttons share the heading row so the map gets that height. */}
+            <div className="map-heading">
+              <div className="map-heading-title"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
+              {!isCompact && <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} showStatus={false} />}
+            </div>
+            {isCompact && <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />}
             {officialRoute && isCompact && <RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} />}
             <div className="map-canvas">
               <MapView trails={officialRoute ? [] : mapTrails} recIds={officialRoute ? [] : recIds} selectedId={selectedId} onSelect={selectFromMap} active={mapVisible} touch={isTouch} compact={isCompact} reducedMotion={reducedMotion} userPosition={location.position} mapFocus={mapFocus} officialRoute={officialRoute} />
@@ -343,6 +346,7 @@ export default function App() {
               {officialRoute ? <><span><i style={{background: '#0f766e'}} />Manager-published route</span><span><i style={{background: '#2563eb'}} />Your location (when enabled)</span></> : [1, 2, 3, 4, 5].map(l => <span key={l}><i style={{ background: LEVEL_HEX[l] }} />L{l} {LEVEL_LABELS[l]}</span>)}
             </div>
             <p className="map-hint">{officialRoute ? 'Original geometry · check current manager notices and trail signs' : isTouch ? 'Drag to explore · pinch to zoom · tap a trail' : 'Select a pin or trail card to explore'}</p>
+            {!isCompact && <LocationStatus location={location} routeActive={!!officialRoute} className="map-location-status" />}
           </section>
 
           {(isCompact || !officialRoute) && <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
