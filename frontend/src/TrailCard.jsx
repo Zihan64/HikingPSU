@@ -10,7 +10,8 @@ const LEVEL_COLORS = {
   5: 'bg-red-100 text-red-800',
 }
 
-export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0 }) {
+// fit: this trail's entry from /me/recommendations, when it is in the signed-in user's ranking.
+export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null }) {
   const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
@@ -38,6 +39,11 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
       <ul className="mt-2 list-disc pl-5 text-sm text-stone-600">
         {d.reasons.map((r, i) => <li key={i}>{r}</li>)}
       </ul>
+      {fit && (
+        <p className="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-900">
+          <b>Fits you</b> · ~{Math.round(fit.personal_time_min / 60 * 10) / 10} h at your pace · {fit.reasons.join(' · ')}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
         <span className={`rounded px-2 py-0.5 ${t.car_free ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-600'}`}>
           {t.car_free ? '🚌 ' : '🚗 '}{access}
@@ -56,9 +62,9 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
                   <span className="text-stone-500">· {summary.count} review{summary.count === 1 ? '' : 's'}</span>
                 </>
               ) : <span className="text-stone-500">No reviews yet</span>}
-              <span className="text-xs text-emerald-800 underline">{showReviews ? 'Hide' : 'Show'}</span>
+              <span className="text-xs text-trail-sky underline">{showReviews ? 'Hide' : 'Show'}</span>
             </button>
-            <button onClick={onReview} className="rounded-lg border border-emerald-700 px-3 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+            <button onClick={onReview} className="rounded-lg border border-trail-forest px-3 py-1 text-xs font-semibold text-trail-forest hover:bg-trail-sage">
               ✓ I finished this trail
             </button>
           </div>

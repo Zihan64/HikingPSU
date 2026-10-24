@@ -1,22 +1,18 @@
 @import '@fontsource-variable/hanken-grotesk/index.css';
 
-/* Full-bleed sky: soft sun high on the right, Pugh Blue overhead, white haze at the horizon. */
+/* Full-bleed outdoor gradient: deep blue overhead, paler toward the horizon, then a blue-green
+   haze that hands over to the meadow greens of the landscape at the bottom. */
 .lp-sky {
-  background:
-    radial-gradient(circle at 76% 6%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.5) 8%, rgba(255, 255, 255, 0) 30%),
-    linear-gradient(180deg, #a6c9ee 0%, #c9e0f6 38%, #e8f2fb 70%, #f6fafd 100%);
+  background: linear-gradient(180deg, #74b4e8 0%, #9ccbf0 22%, #c7e3f6 42%, #e4f1f1 58%, #e1eed6 72%, #d0e4bf 100%);
 }
 
-/* index.css sets `html, body, #root { overflow: hidden }` under 960px for the app shell;
-   the sign-in page is taller than a phone screen, so it becomes its own scroll container there. */
-@media (width < 960px) {
-  /* doubled class: must beat Tailwind's `overflow-hidden` on the same element */
-  .lp-scroll.lp-scroll {
-    height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+/* index.css locks `html, body, #root` scrolling for the app shell (at every width now),
+   so the sign-in page is its own scroll container. Doubled class beats Tailwind's `overflow-hidden`. */
+.lp-scroll.lp-scroll {
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Pointer parallax. Landing sets --mx/--my (-1..1); each layer sets its depth with --px/--py. */
@@ -62,14 +58,14 @@
 }
 @keyframes lp-spin { to { transform: rotate(360deg); } }
 
-/* Primary button: a light sweep answers the hover. */
+/* Primary button: a sweep of sunlight answers the hover. */
 .lp-shine { position: relative; overflow: hidden; isolation: isolate; }
 .lp-shine::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(110deg, transparent 30%, rgba(150, 190, 230, 0.35) 50%, transparent 70%);
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 214, 102, 0.45) 50%, transparent 70%);
   transform: translateX(-120%);
   transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -87,8 +83,61 @@
   to   { transform: scaleX(1); }
 }
 
+
+/* ---------- sun ---------- */
+.lp-sun { position: absolute; width: 210px; height: 210px; pointer-events: none; }
+.lp-sun-glow {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 228, 130, 0.8) 0%, rgba(255, 228, 130, 0.38) 28%, rgba(255, 244, 205, 0) 64%);
+  animation: lp-sun-breathe 6s ease-in-out infinite alternate;
+}
+.lp-sun-rays { position: absolute; inset: 0; width: 100%; height: 100%; animation: lp-spin 90s linear infinite; }
+.lp-sun-core {
+  position: absolute;
+  inset: 33%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 36%, #fff6c4 0%, #ffd955 55%, #f6b52f 100%);
+  box-shadow: 0 0 40px 12px rgba(255, 210, 77, 0.55);
+}
+@keyframes lp-sun-breathe {
+  from { transform: scale(0.9); opacity: 0.8; }
+  to   { transform: scale(1.08); opacity: 1; }
+}
+
+/* ---------- birds: each flock crosses the sky, wings beat ---------- */
+.lp-flock { animation: lp-drift var(--dur, 60s) linear infinite; animation-delay: var(--delay, 0s); }
+.lp-wing {
+  transform-box: fill-box;
+  transform-origin: 50% 70%;
+  animation: lp-flap 0.55s ease-in-out infinite alternate;
+}
+@keyframes lp-flap {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0.25); }
+}
+
+/* ---------- water: light moving downstream ---------- */
+.lp-flow { stroke-dasharray: 6 26; opacity: 0.8; animation: lp-flow 2.6s linear infinite; }
+.lp-flow-b { stroke-dasharray: 3 41; opacity: 0.55; animation-duration: 3.6s; }
+.lp-flow-slow { stroke-dasharray: 4 20; animation-duration: 3.2s; }
+@keyframes lp-flow { to { stroke-dashoffset: -64; } }
+
+/* ---------- trees lean with the wind ---------- */
+.lp-tree {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-sway var(--sway-dur, 6s) ease-in-out var(--sway-delay, 0s) infinite alternate;
+}
+@keyframes lp-sway {
+  from { transform: rotate(-1.8deg); }
+  to   { transform: rotate(1.8deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lp-cloud, .lp-rise, .lp-fade, .lp-swap, .lp-progress, .lp-spin { animation: none !important; }
+  .lp-cloud, .lp-rise, .lp-fade, .lp-swap, .lp-progress, .lp-spin,
+  .lp-sun-glow, .lp-sun-rays, .lp-flock, .lp-wing, .lp-flow, .lp-tree { animation: none !important; }
   .lp-par { transform: none !important; transition: none !important; }
   .lp-shine::after { display: none; }
 }

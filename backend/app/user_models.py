@@ -6,6 +6,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from .models import TrailWithDifficulty
+
 class Profile(BaseModel):
     display_name: Optional[str] = Field(None, max_length=60)
     home_area: Optional[str] = Field(None, max_length=80)
@@ -22,6 +24,7 @@ Season = Literal["spring", "summer", "fall", "winter"]
 
 class Preferences(BaseModel):
     preferred_features: list[str] = Field(default_factory=list, max_length=20)
+    avoid: list[str] = Field(default_factory=list, max_length=20, description="Features to rank lower, e.g. mud, crowds")
     transit_modes: list[TransitMode] = Field(default_factory=list, max_length=4)
     preferred_seasons: list[Season] = Field(default_factory=list, max_length=4)
     prefers_loop: Optional[bool] = Field(None, description="True: loops, False: out-and-back, null: no preference")
@@ -104,6 +107,39 @@ class Insights(BaseModel):
     season_counts: dict[str, int]
     feature_affinity: dict[str, float] = Field(description="feature -> score in [-1, 1] from ratings (rating 3 = neutral)")
     recent_hikes: list[HikeOut]
+
+
+class RecommendedTrail(BaseModel):
+    trail_id: str
+    score: float
+    breakdown: dict[str, float] = Field(description="score term -> contribution; the score is their sum")
+    reasons: list[str]
+    reachable_by: list[str]
+    personal_time_min: int = Field(description="estimated hiking time at this user's pace")
+    trail: TrailWithDifficulty
+
+
+class Recommendations(BaseModel):
+    comfort_level: int = Field(ge=1, le=5)
+    felt_drift: float = Field(description="mean felt-vs-rated over recent hikes: -1 easier ... +1 harder")
+    pace_multiplier: float
+    trails: list[RecommendedTrail]
+
+
+class PreferenceText(BaseModel):
+    text: str = Field(min_length=1, max_length=500)
+
+
+class ParsedPreferences(BaseModel):
+    """A suggestion for the user to confirm; nothing is saved until they PATCH /me."""
+
+    max_level: Optional[int] = Field(None, ge=1, le=5)
+    preferred_features: list[str] = Field(default_factory=list, max_length=20)
+    avoid: list[str] = Field(default_factory=list, max_length=20)
+    transit_modes: list[TransitMode] = Field(default_factory=list, max_length=4)
+    max_time_min: Optional[int] = Field(None, ge=1, le=1440)
+    prefers_loop: Optional[bool] = None
+    source: Literal["ai", "offline"]
 
 
 class ReviewIn(BaseModel):

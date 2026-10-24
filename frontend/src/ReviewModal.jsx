@@ -19,7 +19,7 @@ function SignIn() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-stone-600">Log in so your review is tied to your account (you can edit or delete it later).</p>
-      <button onClick={() => loginWithRedirect()} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
+      <button onClick={() => loginWithRedirect()} className="w-full rounded-lg bg-trail-forest px-4 py-2 text-sm font-semibold text-white">
         Log in or sign up
       </button>
     </div>
@@ -56,7 +56,7 @@ function ReviewForm({ trail, existing, getToken, onSaved, onAuthLost }) {
       </div>
       {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       <div className="flex items-center gap-3">
-        <button disabled={busy || !complete} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button disabled={busy || !complete} className="rounded-lg bg-trail-forest px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {existing ? 'Update review' : 'Submit review'}
         </button>
         {existing && (

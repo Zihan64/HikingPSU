@@ -6,19 +6,24 @@ import json
 import logging
 import os
 import re
+from typing import Callable
 
 import anthropic
 
 from . import store
 from .models import ChatMessage, ChatResponse
 from .official import search_resources
-from .tools import REGISTRY, TOOLS
+from .tools import RECOMMEND_FOR_ME_TOOL, REGISTRY, TOOLS
 
 log = logging.getLogger("hikingpsu.agent")
 
 # HIKINGPSU_MODEL is preferred; TRAILHEAD_MODEL kept so existing .env files still work.
 MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "claude-sonnet-5-5")
 MAX_TURNS = 5  # tool-use rounds per request; caps the cost of a single message
+RECOMMEND = RECOMMEND_FOR_ME_TOOL["name"]
+
+# Signed-in users only: k -> the personal ranking in recommend.tool_output() form.
+Recommender = Callable[[int], dict]
 
 SYSTEM = """You are HikingPSU, a hiking guide for the Penn State / State College community.
 
@@ -32,6 +37,7 @@ Rules:
 - For official maps, offline PDFs, trail rules or authoritative sources, call search_official_resources and link only URLs it returns. Say when this pilot does not index the requested area.
 - Local seed distances and loops are estimates, not verified navigation itineraries. Use the Official library for manager-sourced geometry and activity permissions. Never invent route geometry, shortcuts, turn instructions, current opening status, or cycling permission from a hiking listing.
 - ALWAYS call search_trails before recommending anything. Recommend only trail ids it returned.
+- If recommend_for_me is available and the user asks what suits them without concrete constraints for this outing ("what should I hike?", "recommend something for me"), call it instead of search_trails. Present its trails in the order given with their why_recommended reasons; do not add, drop or reorder them. For requests with concrete constraints (time, place, features), use search_trails.
 - If search_trails returns 0 trails, call it again with fewer filters (drop features first, then loosen max_level or max_time_min). If the database truly has nothing, say so; never name a trail that was not returned.
 - Use the difficulty_level and difficulty_reasons from the tool; never make up your own difficulty.
 - If the user has no car, set car_free=true. Say how to get there (bus, walk, bike).
@@ -51,23 +57,25 @@ def _client() -> anthropic.Anthropic:
     return anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
 
 
-def run(messages: list[ChatMessage], profile: dict | None = None) -> ChatResponse:
+def run(messages: list[ChatMessage], profile: dict | None = None, recommender: Recommender | None = None) -> ChatResponse:
     if os.getenv("DEMO_MODE") == "1":
-        return _demo(messages, profile)
+        return _demo(messages, profile, recommender)
 
     try:
-        return _run_live(messages, profile)
+        return _run_live(messages, profile, recommender)
     except Exception:
         # Missing/invalid API key, network or model error: never 500 in front of judges.
         log.exception("live agent failed; falling back to offline demo mode")
-        res = _demo(messages, profile)
+        res = _demo(messages, profile, recommender)
         res.reply = "(Live AI is unavailable right now, showing a simple offline match.)\n" + res.reply
         return res
 
 
-def _call_tool(name: str, args: dict) -> tuple[dict, bool]:
+def _call_tool(name: str, args: dict, recommender: Recommender | None = None) -> tuple[dict, bool]:
     """Run one tool. Returns (output, is_error). Errors go back to the model, not to the user."""
     fn = REGISTRY.get(name)
+    if name == RECOMMEND and recommender:
+        fn = lambda k=3: recommender(max(1, min(int(k), 8)))  # noqa: E731
     if fn is None:
         return {"error": f"unknown tool '{name}'"}, True
     try:
@@ -77,15 +85,16 @@ def _call_tool(name: str, args: dict) -> tuple[dict, bool]:
         return {"error": f"{e.__class__.__name__}: {e}"}, True
 
 
-def _run_live(messages: list[ChatMessage], profile: dict | None) -> ChatResponse:
+def _run_live(messages: list[ChatMessage], profile: dict | None, recommender: Recommender | None = None) -> ChatResponse:
     client = _client()
     system = SYSTEM.format(today=dt.date.today().isoformat(), profile=json.dumps(profile or {}))
+    tools = [*TOOLS, RECOMMEND_FOR_ME_TOOL] if recommender else TOOLS
     convo = [{"role": m.role, "content": m.content} for m in messages]
     tool_log: list[dict] = []
 
     for _ in range(MAX_TURNS):
         resp = client.messages.create(
-            model=MODEL, max_tokens=1200, system=system, tools=TOOLS, messages=convo
+            model=MODEL, max_tokens=1200, system=system, tools=tools, messages=convo
         )
         if resp.stop_reason != "tool_use":
             text = "".join(b.text for b in resp.content if b.type == "text")
@@ -96,7 +105,7 @@ def _run_live(messages: list[ChatMessage], profile: dict | None) -> ChatResponse
         for block in resp.content:
             if block.type != "tool_use":
                 continue
-            out, is_error = _call_tool(block.name, block.input)
+            out, is_error = _call_tool(block.name, block.input, recommender)
             tool_log.append({"tool": block.name, "input": block.input, "output": out})
             result = {"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(out)}
             if is_error:
@@ -115,10 +124,14 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
         text = text[: m.start()].rstrip()
     # Guardrail: only ids that exist AND were returned by a search this turn
     seen: dict[str, str] = {}  # id -> name, in the order the search returned them
+    sources = {e["tool"] for e in tool_log if e["tool"] in ("search_trails", RECOMMEND)}
     for entry in tool_log:
-        if entry["tool"] == "search_trails":
+        if entry["tool"] in sources:
             for t in entry["output"].get("trails", []):  # .get: a failed search has no "trails"
                 seen[t["id"]] = t["name"]
+    if sources == {RECOMMEND}:
+        # Personal ranking only: the model explains it but cannot add, drop or reorder trails.
+        ids = list(seen)
     if not ids:
         # Model forgot the RECOMMENDED line: fall back to searched trails it named in the text.
         ids = [i for i, name in seen.items() if name in text]
@@ -126,9 +139,22 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
     return ChatResponse(reply=text, recommended_ids=ids, trails=[store.get(i) for i in ids], tool_log=tool_log)
 
 
-def _demo(messages: list[ChatMessage], profile: dict | None = None) -> ChatResponse:
+def _demo_personal(out: dict) -> ChatResponse:
+    """Offline "recommended for you": the same deterministic ranking the panel shows."""
+    lines = [f"Picked for you (offline demo mode; your comfort level is L{out['comfort_level']}):"]
+    for t in out["trails"]:
+        lines.append(f"• {t['name']} — Level {t['difficulty_level']} ({t['difficulty_label']}), about {t['personal_time_min']} min at your pace")
+        lines.append("  " + "; ".join(t["why_recommended"]))
+    if not out["trails"]:
+        lines.append("Nothing fits your saved transport, level and time preferences yet. Try loosening them in your profile.")
+    return _finalize("\n".join(lines), [{"tool": RECOMMEND, "input": {"k": 3}, "output": out}])
+
+
+def _demo(messages: list[ChatMessage], profile: dict | None = None, recommender: Recommender | None = None) -> ChatResponse:
     """Offline fallback so the demo never dies. Picks by crude keyword match."""
     last = messages[-1].content.lower()
+    if recommender and any(p in last for p in ("for me", "recommend me", "my recommendations", "suits me", "what should i hike")):
+        return _demo_personal(recommender(3))
     if any(word in last for word in ("pdf", "offline map", "official map", "地图", "离线", "官方资料")):
         indexed = search_resources()
         areas = []

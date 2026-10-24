@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure
 
-from . import agent, auth, chats, hikes, ratelimit, store, users
+from . import agent, auth, chats, hikes, ratelimit, recommend, store, users
 from .db import DatabaseUnavailable
 from .models import MAX_USER_MESSAGE_CHARS, ChatRequest, ChatResponse, TrailWithDifficulty
 from .routes_reviews import router as reviews_router
@@ -61,14 +61,15 @@ def chat(req: ChatRequest, request: Request, user_id: str | None = Depends(auth.
     if len(req.messages[-1].content) > MAX_USER_MESSAGE_CHARS:
         raise HTTPException(413, f"Message too long (max {MAX_USER_MESSAGE_CHARS} characters).")
     ratelimit.check(request, user_id)
-    profile = req.profile
+    profile, recommender = req.profile, None
     if user_id:
         # Persistence is best-effort: a database outage must never break the chat itself.
         try:
             profile = {**_stored_profile(user_id), **(req.profile or {})}
+            recommender = _recommender(user_id)
         except Exception:
             log.exception("could not load user profile; continuing anonymously")
-    res = agent.run(_recent(req.messages), profile)
+    res = agent.run(_recent(req.messages), profile, recommender=recommender)
     if user_id:
         try:
             res.session_id = chats.record_exchange(user_id, req.session_id, req.messages, res.reply, res.recommended_ids)
@@ -96,3 +97,11 @@ def _stored_profile(user_id: str) -> dict:
     profile = {k: v for k, v in user["profile"].items() if v is not None and k != "bio"}
     prefs = {k: v for k, v in user["preferences"].items() if v not in (None, [])}
     return {**profile, "preferences": prefs, **hikes.agent_summary(user_id)}
+
+
+def _recommender(user_id: str):
+    """The recommend_for_me tool for this user, or None before their account document exists."""
+    user = users.get(user_id)
+    if user is None:
+        return None
+    return lambda k: recommend.tool_output(recommend.for_user(user, k=k))
