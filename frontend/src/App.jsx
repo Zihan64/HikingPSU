@@ -19,13 +19,14 @@ import AppBackdrop from './theme/AppBackdrop'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import { parseBlocks, parseInline } from './markdown'
 import { distanceToTrail, sortTrails } from './trailSort'
+import TrailCatalog from './TrailCatalog'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
   ['My first hike', 'Something easy for a first-time hiker, near campus'],
   ['A little more adventure', 'I have a car, want something hard with rocks on Sunday'],
 ]
-const VIEWS = [['plan', 'Plan'], ['trails', 'Trails'], ['map', 'Map'], ['library', 'Library']]
+const VIEWS = [['plan', 'Plan'], ['trails', 'Results'], ['map', 'Map'], ['catalog', 'Trails'], ['library', 'Library']]
 
 function Inline({ tokens }) {
   return tokens.map((tok, i) => tok.t === 'link' ? <a key={i} href={tok.v} target="_blank" rel="noopener noreferrer">{tok.v}</a>
@@ -54,10 +55,12 @@ export default function App() {
   const [officialRoute, setOfficialRoute] = useState(null)
   const [reverseReference, setReverseReference] = useState(false)
   const [libraryTrailId, setLibraryTrailId] = useState(null)
+  const [libraryAreaId, setLibraryAreaId] = useState(null)
   const routeReference = useMemo(() => officialRoute ? prepareRouteReference(officialRoute.geojson, reverseReference) : null, [officialRoute, reverseReference])
   const libraryOpen = mobileView === 'library'
   const profileOpen = mobileView === 'profile'
-  const fullPage = libraryOpen || profileOpen   // views that replace the planner/map workspace
+  const catalogOpen = mobileView === 'catalog'
+  const fullPage = libraryOpen || profileOpen || catalogOpen
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [allTrails, setAllTrails] = useState([])
@@ -217,7 +220,7 @@ export default function App() {
     if (location.status === 'locating' || location.status === 'fallback') location.cancel()
     else location.stopTracking()
     setMapExpanded(false); setOfficialRoute(null); setReverseReference(false)
-    setLibraryTrailId(null); setSelectedId(null); setRecommended([]); setHasResult(false)
+    setLibraryTrailId(null); setLibraryAreaId(null); setSelectedId(null); setRecommended([]); setHasResult(false)
     setReviewing(null); setError(null); setMobileView('plan')
     setSortMode('recommended')
     scrollToSelected.current = false; focusMapSelection.current = false
@@ -228,12 +231,12 @@ export default function App() {
 
   function changeView(view) {
     setMapExpanded(false)
-    if (view === 'library' || view === 'profile' || (isCompact && view !== 'map')) location.stopTracking()
+    if (view === 'library' || view === 'profile' || view === 'catalog' || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
   }
 
-  function openOfficialLibrary(trailId = null) {
-    setLibraryTrailId(trailId)
+  function openOfficialLibrary(trailId = null, areaId = null) {
+    setLibraryTrailId(trailId); setLibraryAreaId(areaId)
     changeView('library')
   }
 
@@ -306,10 +309,11 @@ export default function App() {
   return (
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
       <AppBackdrop />
-      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
+      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
-        <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} onOpenRoute={openOfficialRoute} /></div>
+        <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} initialAreaId={libraryAreaId} onOpenRoute={openOfficialRoute} /></div>
+        <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} trails={allTrails} summaries={summaries} onReview={setReviewing} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError} /></div>
         {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} /></div>}
         {officialRoute && !isCompact && <aside className="route-sidebar" hidden={fullPage}aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
         <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>

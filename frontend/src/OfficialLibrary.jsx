@@ -6,7 +6,7 @@ export function OfficialLinks({ resources = [] }) {
   return <div className="official-links">{resources.map(resource => <a key={resource.url} href={resource.url} target="_blank" rel="noopener noreferrer">{resource.kind === 'pdf' ? '↗ PDF / download at publisher' : '↗ Official maps & information'}<span>{resource.title}</span></a>)}</div>
 }
 
-export default function OfficialLibrary({ active, trailId, onOpenRoute }) {
+export default function OfficialLibrary({ active, trailId, initialAreaId, onOpenRoute }) {
   const [areas, setAreas] = useState([])
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState('all')
@@ -25,9 +25,15 @@ export default function OfficialLibrary({ active, trailId, onOpenRoute }) {
   const area = areas.find(item => item.id === areaId)
 
   useEffect(() => {
+    if (active && initialAreaId && areas.some(item => item.id === initialAreaId)) {
+      setAreaId(initialAreaId); setQuery(''); setTrailQuery('')
+    }
+  }, [areas, initialAreaId, active])
+
+  useEffect(() => {
     const match = areas.find(item => item.trail_ids?.includes(trailId))
     if (match) { setAreaId(match.id); setQuery(''); setTrailQuery('') }
-  }, [areas, trailId])
+  }, [areas, trailId, active])
 
   useEffect(() => {
     if (!active || areas.length) return

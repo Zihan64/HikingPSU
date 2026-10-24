@@ -10,6 +10,18 @@ from .models import Trail, TrailWithDifficulty
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "trails.json"
 OSM_PATH = DATA_PATH.with_name("trails_osm.json")
+PARKS_PATH = DATA_PATH.with_name('parks.json')
+GEOMETRY_PATH = DATA_PATH.with_name('trail_geometry.json')
+
+
+@lru_cache(maxsize=1)
+def load_parks() -> list[dict]:
+    return json.loads(PARKS_PATH.read_text(encoding='utf-8'))
+
+
+@lru_cache(maxsize=1)
+def load_geometry() -> dict:
+    return json.loads(GEOMETRY_PATH.read_text(encoding='utf-8')) if GEOMETRY_PATH.exists() else {}
 
 
 # The model asks for "view"; the data says "overlook" / "ridge views" / "7 overlooks".
@@ -64,9 +76,12 @@ def load_all() -> list[TrailWithDifficulty]:
         known = {r["id"] for r in raw}
         raw += [r for r in json.loads(OSM_PATH.read_text(encoding="utf-8")) if r["id"] not in known]
     out = []
+    parks = {trail_id: p for p in load_parks() for trail_id in p['trail_ids']}
     for item in raw:
         t = Trail(**item)
-        out.append(TrailWithDifficulty(**t.model_dump(), difficulty=rate(t), car_free=_is_car_free(t)))
+        park = parks.get(t.id, {'id':'other-nearby-trails', 'name':'Other nearby trails'})
+        out.append(TrailWithDifficulty(**t.model_dump(), difficulty=rate(t), car_free=_is_car_free(t),
+                                       park_id=park['id'], park_name=park['name']))
     return out
 
 

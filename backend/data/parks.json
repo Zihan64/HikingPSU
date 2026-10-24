@@ -1,0 +1,378 @@
+[
+  {
+    "id": "bald-eagle-state-forest",
+    "name": "Bald Eagle State Forest",
+    "manager": "PA DCNR, Bureau of Forestry",
+    "kind": "state_forest",
+    "center": {
+      "lat": 40.77982,
+      "lon": -77.57466
+    },
+    "official_area_id": null,
+    "trail_ids": [
+      "bog-loop-trail-21374050",
+      "faust-valley-trail-21374046",
+      "horse-path-trail-21374048",
+      "north-sand-mountain-trail-13655344",
+      "north-sand-mountain-trail-21376013",
+      "south-sand-mountain-trail-21374040"
+    ],
+    "evidence": {
+      "bog-loop-trail-21374050": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      },
+      "faust-valley-trail-21374046": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      },
+      "horse-path-trail-21374048": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      },
+      "north-sand-mountain-trail-13655344": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      },
+      "north-sand-mountain-trail-21376013": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      },
+      "south-sand-mountain-trail-21374040": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 139989
+      }
+    }
+  },
+  {
+    "id": "black-moshannon",
+    "name": "Black Moshannon State Park",
+    "manager": "PA DCNR, Bureau of State Parks",
+    "kind": "state_park",
+    "center": {
+      "lat": 40.89103,
+      "lon": -78.04144
+    },
+    "official_area_id": "black-moshannon",
+    "trail_ids": [
+      "moss-hanne-trail-17233610"
+    ],
+    "evidence": {
+      "moss-hanne-trail-17233610": {
+        "method": "OSM operator/source matches indexed manager or official document",
+        "source": "https://www.openstreetmap.org/relation/17233610",
+        "manager_source": "https://elibrary.dcnr.pa.gov/GetDocument?docId=1737764&DocName=BLMO_ParkMap.pdf"
+      }
+    }
+  },
+  {
+    "id": "mount-nittany",
+    "name": "Mount Nittany Conservancy Trails",
+    "manager": "Mount Nittany Conservancy",
+    "kind": "conservancy",
+    "center": {
+      "lat": 40.80741,
+      "lon": -77.80904
+    },
+    "official_area_id": "mount-nittany",
+    "trail_ids": [
+      "mount-nittany-blue-and-white-trails-17408263",
+      "mount-nittany-blue-trail-17408207",
+      "mount-nittany-white-trail-17408208",
+      "mt-nittany-full-loop",
+      "mt-nittany-mike-lynch"
+    ],
+    "evidence": {
+      "mt-nittany-mike-lynch": {
+        "method": "curated official resource index",
+        "source": "https://nittany.org/trails/"
+      },
+      "mt-nittany-full-loop": {
+        "method": "curated official resource index",
+        "source": "https://nittany.org/trails/"
+      },
+      "mount-nittany-blue-trail-17408207": {
+        "method": "OSM operator/source matches indexed manager or official document",
+        "source": "https://www.openstreetmap.org/relation/17408207",
+        "manager_source": "https://nittany.org/trails/"
+      },
+      "mount-nittany-blue-and-white-trails-17408263": {
+        "method": "OSM operator/source matches indexed manager or official document",
+        "source": "https://www.openstreetmap.org/relation/17408263",
+        "manager_source": "https://nittany.org/trails/"
+      },
+      "mount-nittany-white-trail-17408208": {
+        "method": "OSM operator/source matches indexed manager or official document",
+        "source": "https://www.openstreetmap.org/relation/17408208",
+        "manager_source": "https://nittany.org/trails/"
+      }
+    }
+  },
+  {
+    "id": "rothrock",
+    "name": "Rothrock State Forest",
+    "manager": "PA DCNR, Bureau of Forestry",
+    "kind": "state_forest",
+    "center": {
+      "lat": 40.73869,
+      "lon": -77.82032
+    },
+    "official_area_id": "rothrock",
+    "trail_ids": [
+      "bald-knob-ridge-trail-21272894",
+      "bear-meadows-loop-1024488",
+      "fern-winder-trail-21272886",
+      "forest-leaves-trail-21272870",
+      "greenshoot-trail-21272893",
+      "greenwood-spur-1024489",
+      "hubler-gap-trail-21272871",
+      "indian-steps",
+      "ironstone-trail-5694643",
+      "jo-hays-vista",
+      "logging-railroad-grade-20510448",
+      "maguire-trail-21272897",
+      "mountain-mist-trail-21272887",
+      "musser-gap",
+      "musser-gap-trail-21272885",
+      "rudy-ridge-loop-21272869",
+      "shingletown-gap",
+      "shingletown-gap-trail-21272898",
+      "shingletown-ridge-loop",
+      "up-and-over-trail-21272884"
+    ],
+    "evidence": {
+      "shingletown-gap": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock"
+      },
+      "shingletown-ridge-loop": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock"
+      },
+      "musser-gap": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock"
+      },
+      "jo-hays-vista": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock"
+      },
+      "indian-steps": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock"
+      },
+      "bald-knob-ridge-trail-21272894": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "bear-meadows-loop-1024488": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "fern-winder-trail-21272886": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "forest-leaves-trail-21272870": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "greenshoot-trail-21272893": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "greenwood-spur-1024489": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 487
+      },
+      "hubler-gap-trail-21272871": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "ironstone-trail-5694643": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "logging-railroad-grade-20510448": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 1035
+      },
+      "maguire-trail-21272897": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "mountain-mist-trail-21272887": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "musser-gap-trail-21272885": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "rudy-ridge-loop-21272869": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "shingletown-gap-trail-21272898": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      },
+      "up-and-over-trail-21272884": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/BOF/State_Forests/MapServer/4",
+        "feature_id": 141434
+      }
+    }
+  },
+  {
+    "id": "whipple-dam",
+    "name": "Whipple Dam State Park",
+    "manager": "PA DCNR, Bureau of State Parks",
+    "kind": "state_park",
+    "center": {
+      "lat": 40.70097,
+      "lon": -77.85104
+    },
+    "official_area_id": "whipple-dam",
+    "trail_ids": [
+      "whipple-dam-loop",
+      "whipple-lake-trail-21279199"
+    ],
+    "evidence": {
+      "whipple-dam-loop": {
+        "method": "curated official resource index",
+        "source": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/whipple-dam-state-park"
+      },
+      "whipple-lake-trail-21279199": {
+        "method": "trailhead within agency boundary (route may cross boundaries)",
+        "source": "https://www.gis.dcnr.state.pa.us/agsprod/rest/services/Parks/State_Parks/MapServer/9",
+        "feature_id": 17
+      }
+    }
+  },
+  {
+    "id": "other-nearby-trails",
+    "name": "Other nearby trails",
+    "manager": "Park assignment unverified",
+    "kind": "unverified",
+    "center": {
+      "lat": 40.76862,
+      "lon": -77.85074
+    },
+    "official_area_id": null,
+    "trail_ids": [
+      "arboretum-hartley-wood",
+      "bluebird-5694641",
+      "charcoal-flats-trail-21272896",
+      "colyer-lake-hobies",
+      "decker-path-21376012",
+      "hobie-s-trail-hiking-18086376",
+      "lake-trail-5694644",
+      "lone-pine-trail-21272889",
+      "lower-trail-21272892",
+      "millbrook-marsh",
+      "pa-sgl-176-trail-a-21058523",
+      "pa-sgl-176-trail-b-21058524",
+      "pa-sgl-176-trail-c-21058525",
+      "pa-sgl-176-trail-d-21058526",
+      "pa-sgl-176-trail-e-21058527",
+      "pa-sgl-176-trail-f-21058528",
+      "tussey-pond-park-hiking-14356206",
+      "walnut-springs-thompson-woods"
+    ],
+    "evidence": {
+      "millbrook-marsh": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "walnut-springs-thompson-woods": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "colyer-lake-hobies": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "arboretum-hartley-wood": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "bluebird-5694641": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "charcoal-flats-trail-21272896": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "decker-path-21376012": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "hobie-s-trail-hiking-18086376": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "lake-trail-5694644": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "lone-pine-trail-21272889": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "lower-trail-21272892": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-a-21058523": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-b-21058524": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-c-21058525": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-d-21058526": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-e-21058527": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "pa-sgl-176-trail-f-21058528": {
+        "method": "no verified park assignment",
+        "source": null
+      },
+      "tussey-pond-park-hiking-14356206": {
+        "method": "no verified park assignment",
+        "source": null
+      }
+    }
+  }
+]

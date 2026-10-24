@@ -504,3 +504,79 @@ body { background: #2a4a2c; color: #173a40; }
   .desktop-navigation button { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
   .auth-control button { min-height: 40px; }
 }
+
+/* Trail catalog: a searchable list and a separate managed-area picker. */
+.catalog-workspace { height: 100%; min-height: 0; }
+.trail-catalog { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 18px; color: #173a40; }
+.trail-catalog .catalog-intro { color: #fff; text-shadow: 0 2px 10px #04162655; flex-shrink: 0; }
+.trail-catalog .catalog-intro .eyebrow { color: #fff; }
+.trail-catalog h1 { font-size: clamp(26px, 3vw, 36px); font-weight: 650; letter-spacing: -.8px; margin: 4px 0 6px; line-height: 1.2; }
+.trail-catalog h2 { font-size: 18px; font-weight: 650; letter-spacing: -.3px; }
+.trail-catalog .catalog-columns { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, .8fr); gap: 24px; flex: 1; min-height: 0; }
+.trail-catalog :is(.catalog-results, .catalog-parks, .catalog-detail) { border: 1px solid #dde7d8; border-radius: 18px; background: rgba(255,255,255,.94); box-shadow: 0 12px 40px -24px #1f3b2866; min-width: 0; }
+.trail-catalog .catalog-results { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.trail-catalog .catalog-search { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px 16px; padding: 18px; background: #eef5e9; border-bottom: 1px solid #dde7d8; flex-shrink: 0; }
+.trail-catalog .catalog-search label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 650; min-width: 0; }
+.trail-catalog .catalog-search :is(input, select) { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #ccdac3; background: #fff; border-radius: 9px; padding: 9px 12px; color: #173a40; font-size: 16px; }
+.trail-catalog .catalog-search > p { grid-column: 1 / -1; font-size: 12px; color: #62736c; }
+.trail-catalog .catalog-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 18px 18px; scrollbar-width: thin; }
+.trail-catalog .catalog-row { display: block; width: 100%; min-width: 0; padding: 18px 0; text-align: left; border-bottom: 1px solid #dde7d8; }
+.trail-catalog .catalog-row:hover { background: #f3f8ef; }
+.trail-catalog .catalog-row-title { display: flex; gap: 16px; justify-content: space-between; align-items: start; }
+.trail-catalog .catalog-row-title h2 { font-size: 16px; }
+.trail-catalog .catalog-row > p { color: #62736c; font-size: 12px; margin-top: 6px; }
+.trail-catalog .catalog-level { display: inline-flex; white-space: nowrap; font-size: 11px; font-weight: 700; background: #eef5e9; border-radius: 20px; padding: 5px 9px; }
+.trail-catalog .catalog-rating { display: flex; align-items: center; gap: 6px; color: #62736c; font-size: 12px; margin-top: 10px; }
+.trail-catalog .catalog-rating > span:last-child { margin-left: auto; }
+.trail-catalog .catalog-parks { overflow-y: auto; overscroll-behavior: contain; padding: 18px; scrollbar-width: thin; }
+.trail-catalog .catalog-parks > h2 { margin-bottom: 14px; }
+.trail-catalog .catalog-park { border: 1px solid #dde7d8; border-radius: 12px; margin-bottom: 9px; overflow: hidden; background: #fff; }
+.trail-catalog .catalog-park.is-selected { border-color: #2f6b47; background: #edf5e7; box-shadow: inset 3px 0 #2f6b47; }
+.trail-catalog .catalog-park > button:first-child { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; min-height: 50px; padding: 12px; font-size: 13px; font-weight: 650; }
+.trail-catalog .catalog-park small { display: block; font-size: 10px; font-weight: 400; color: #62736c; margin-top: 4px; }
+.trail-catalog .catalog-park b { border-radius: 20px; padding: 3px 7px; background: #e6efde; font-size: 11px; }
+.trail-catalog .catalog-park .text-button { padding: 0 12px 8px; font-size: 11px; text-align: left; }
+.trail-catalog .catalog-detail { overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px; }
+.trail-catalog .catalog-detail > header { margin: 12px 0 20px; }
+.trail-catalog .catalog-detail > header > p { margin: 8px 0; }
+.trail-catalog .catalog-detail-columns { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr); align-items: start; gap: 24px; }
+.trail-catalog .catalog-detail-columns > div { min-width: 0; }
+.trail-catalog .catalog-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 18px 0; border-block: 1px solid #dde7d8; }
+.trail-catalog .catalog-stats dt { font-size: 11px; color: #62736c; }
+.trail-catalog .catalog-stats dd { font-size: 17px; font-weight: 650; margin-top: 5px; }
+.trail-catalog .catalog-section { padding: 22px 0; border-bottom: 1px solid #dde7d8; font-size: 13px; line-height: 1.75; }
+.trail-catalog .catalog-section h2 { margin-bottom: 12px; }
+.trail-catalog .catalog-section ul { padding-left: 18px; list-style: disc; margin: 12px 0; }
+.trail-catalog .catalog-section > .primary-button { margin-bottom: 18px; }
+.trail-catalog .catalog-muted { color: #62736c; font-size: 11px; line-height: 1.7; margin-top: 10px; }
+.trail-catalog .catalog-muted a { color: #2c7fbf; text-decoration: underline; }
+.trail-catalog .catalog-warning { color: #864721; background: #fff2df; padding: 10px; border-radius: 9px; }
+.trail-catalog .catalog-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.trail-catalog .catalog-chips span { border-radius: 20px; padding: 3px 8px; background: #edf5e7; color: #2f6b47; font-size: 11px; }
+.trail-catalog .catalog-map { height: 360px; width: 100%; border-radius: 12px; background: #e8efe2; }
+.trail-catalog .catalog-section > svg { width: 100%; font-size: 11px; fill: #62736c; }
+@media (960px <= width < 1240px) {
+  .header-actions .location-label { display: none; }
+}
+@media (width < 960px) {
+  .trail-catalog { gap: 12px; }
+  .trail-catalog .catalog-intro p { display: none; }
+  .trail-catalog .catalog-columns { display: flex; flex-direction: column; gap: 10px; }
+  .trail-catalog .catalog-parks { order: -1; flex-shrink: 0; padding: 6px; border-radius: 12px; overflow: hidden; }
+  .trail-catalog .catalog-parks > h2 { display: none; }
+  .trail-catalog .catalog-park-list { display: flex; gap: 6px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+  .trail-catalog .catalog-park { flex-shrink: 0; margin: 0; }
+  .trail-catalog .catalog-park > button:first-child { white-space: nowrap; min-height: 44px; padding: 8px 10px; }
+  .trail-catalog .catalog-park :is(small, .text-button) { display: none; }
+  .trail-catalog .catalog-results { flex: 1; }
+  .trail-catalog .catalog-search { padding: 12px; grid-template-columns: minmax(0, 1fr) 110px; gap: 7px 10px; }
+  .trail-catalog .catalog-search :is(input, select) { padding: 8px; }
+  .trail-catalog .catalog-list { padding: 0 12px 12px; }
+  .trail-catalog .catalog-row-title { gap: 8px; }
+  .trail-catalog .catalog-row-title h2 { font-size: 15px; }
+  .trail-catalog .catalog-level { font-size: 10px; }
+  .trail-catalog .catalog-detail { padding: 12px; border-radius: 12px; }
+  .trail-catalog .catalog-detail-columns { display: block; }
+  .trail-catalog .catalog-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trail-catalog .catalog-map { height: 300px; }
+}

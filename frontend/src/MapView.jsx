@@ -138,7 +138,7 @@ export default function MapView({ trails, recIds = [], selectedId = null, onSele
   const hasRec = recIds.length > 0
 
   return (
-    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} minZoom={MIN_ZOOM} maxBounds={MAX_BOUNDS} maxBoundsViscosity={1.0} scrollWheelZoom={false} className="trail-map" aria-label="Interactive map of local trails">
+    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} minZoom={MIN_ZOOM} maxBounds={MAX_BOUNDS} maxBoundsViscosity={1.0} scrollWheelZoom={true} touchZoom={true} className="trail-map" aria-label="Interactive map of local trails">
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
       <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} active={active} reducedMotion={reducedMotion} compact={compact} userPosition={userPosition} mapFocus={mapFocus} routeBounds={routeBounds} />
       {officialRoute && <>

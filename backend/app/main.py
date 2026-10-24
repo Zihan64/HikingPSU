@@ -45,7 +45,27 @@ def auth_config():
 
 @app.get("/trails", response_model=list[TrailWithDifficulty])
 def list_trails(max_level: int | None = None, car_free: bool | None = None, max_time_min: int | None = None):
-    return store.search(max_level=max_level, car_free=car_free, max_time_min=max_time_min, limit=100)
+    return store.search(max_level=max_level, car_free=car_free, max_time_min=max_time_min, limit=len(store.load_all()))
+
+
+@app.get('/parks')
+def list_parks():
+    counts = {}
+    for trail in store.load_all():
+        counts[trail.park_id] = counts.get(trail.park_id, 0) + 1
+    return [{**{key: p[key] for key in ['id','name','manager','kind','center','official_area_id']},
+             'trail_count':counts.get(p['id'], 0)}
+            for p in sorted(store.load_parks(), key=lambda p:(p['kind'] == 'unverified', p['name']))]
+
+
+@app.get('/trails/{trail_id}/geometry')
+def trail_geometry(trail_id: str):
+    if not store.get(trail_id):
+        raise HTTPException(404, 'trail not found')
+    entry = store.load_geometry().get(trail_id)
+    if not entry:
+        raise HTTPException(404, 'Route line not available yet')
+    return entry
 
 
 @app.get("/trails/{trail_id}", response_model=TrailWithDifficulty)
