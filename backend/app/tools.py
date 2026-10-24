@@ -15,7 +15,12 @@ STATE_COLLEGE = (40.7934, -77.8600)
 
 
 def search_trails(**kw) -> dict[str, Any]:
-    trails = store.search(**{k: v for k, v in kw.items() if v is not None})
+    args = {k: v for k, v in kw.items() if v is not None}
+    if "limit" in args:
+        args["limit"] = max(1, min(int(args["limit"]), 8))  # keep tool output small
+    if isinstance(args.get("features"), str):  # model sometimes sends "view" instead of ["view"]
+        args["features"] = [args["features"]]
+    trails = store.search(**args)
     return {
         "count": len(trails),
         "trails": [
@@ -95,7 +100,7 @@ TOOLS: list[dict[str, Any]] = [
                 "max_time_min": {"type": "integer", "description": "Max hiking time in minutes (excluding travel)"},
                 "car_free": {"type": "boolean", "description": "True if the user has no car"},
                 "max_drive_min": {"type": "integer"},
-                "features": {"type": "array", "items": {"type": "string"}, "description": "e.g. sunset, lake, overlook, flat, stream"},
+                "features": {"type": "array", "items": {"type": "string"}, "description": "Optional. Matches ANY of these. Use plain words: view, sunset, lake, stream, flat, forest, rocks, birds, campus"},
                 "limit": {"type": "integer", "default": 5},
             },
         },

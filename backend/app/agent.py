@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import os
 import re
 
@@ -12,13 +13,17 @@ from . import store
 from .models import ChatMessage, ChatResponse
 from .tools import REGISTRY, TOOLS
 
-MODEL = os.getenv("TRAILHEAD_MODEL", "claude-sonnet-4-5")
+log = logging.getLogger("hikingpsu.agent")
+
+# HIKINGPSU_MODEL is preferred; TRAILHEAD_MODEL kept so existing .env files still work.
+MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "claude-sonnet-4-5")
 MAX_TURNS = 6
 
-SYSTEM = """You are Trailhead, a hiking guide for the Penn State / State College community.
+SYSTEM = """You are HikingPSU, a hiking guide for the Penn State / State College community.
 
 Rules:
 - ALWAYS call search_trails before recommending anything. Recommend only trail ids it returned.
+- If search_trails returns 0 trails, call it again with fewer filters (drop features first, then loosen max_level or max_time_min). If the database truly has nothing, say so; never name a trail that was not returned.
 - Use the difficulty_level and difficulty_reasons from the tool; never make up your own difficulty.
 - If the user has no car, set car_free=true. Say how to get there (bus, walk, bike).
 - Convert the user's time budget into max_time_min, leaving ~20% buffer.
@@ -40,6 +45,29 @@ def run(messages: list[ChatMessage], profile: dict | None = None) -> ChatRespons
     if os.getenv("DEMO_MODE") == "1":
         return _demo(messages)
 
+    try:
+        return _run_live(messages, profile)
+    except Exception:
+        # Missing/invalid API key, network or model error: never 500 in front of judges.
+        log.exception("live agent failed; falling back to offline demo mode")
+        res = _demo(messages)
+        res.reply = "(Live AI is unavailable right now, showing a simple offline match.)\n" + res.reply
+        return res
+
+
+def _call_tool(name: str, args: dict) -> tuple[dict, bool]:
+    """Run one tool. Returns (output, is_error). Errors go back to the model, not to the user."""
+    fn = REGISTRY.get(name)
+    if fn is None:
+        return {"error": f"unknown tool '{name}'"}, True
+    try:
+        return fn(**(args or {})), False
+    except Exception as e:
+        log.warning("tool %s failed: %r (input=%s)", name, e, args)
+        return {"error": f"{e.__class__.__name__}: {e}"}, True
+
+
+def _run_live(messages: list[ChatMessage], profile: dict | None) -> ChatResponse:
     client = _client()
     system = SYSTEM.format(today=dt.date.today().isoformat(), profile=json.dumps(profile or {}))
     convo = [{"role": m.role, "content": m.content} for m in messages]
@@ -58,10 +86,12 @@ def run(messages: list[ChatMessage], profile: dict | None = None) -> ChatRespons
         for block in resp.content:
             if block.type != "tool_use":
                 continue
-            fn = REGISTRY[block.name]
-            out = fn(**block.input)
+            out, is_error = _call_tool(block.name, block.input)
             tool_log.append({"tool": block.name, "input": block.input, "output": out})
-            results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(out)})
+            result = {"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(out)}
+            if is_error:
+                result["is_error"] = True
+            results.append(result)
         convo.append({"role": "user", "content": results})
 
     return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log)
@@ -74,8 +104,15 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
         ids = [s.strip() for s in m.group(1).split(",") if s.strip()]
         text = text[: m.start()].rstrip()
     # Guardrail: only ids that exist AND were returned by a search this turn
-    seen = {t["id"] for log in tool_log if log["tool"] == "search_trails" for t in log["output"]["trails"]}
-    ids = [i for i in ids if i in seen and store.get(i)]
+    seen: dict[str, str] = {}  # id -> name, in the order the search returned them
+    for entry in tool_log:
+        if entry["tool"] == "search_trails":
+            for t in entry["output"].get("trails", []):  # .get: a failed search has no "trails"
+                seen[t["id"]] = t["name"]
+    if not ids:
+        # Model forgot the RECOMMENDED line: fall back to searched trails it named in the text.
+        ids = [i for i, name in seen.items() if name in text]
+    ids = [i for i in dict.fromkeys(ids) if i in seen and store.get(i)]
     return ChatResponse(reply=text, recommended_ids=ids, trails=[store.get(i) for i in ids], tool_log=tool_log)
 
 
@@ -83,8 +120,22 @@ def _demo(messages: list[ChatMessage]) -> ChatResponse:
     """Offline fallback so the demo never dies. Picks by crude keyword match."""
     last = messages[-1].content.lower()
     car_free = "no car" in last or "没车" in last or "bus" in last
-    easy = any(w in last for w in ["easy", "beginner", "轻松", "easier"])
-    res = store.search(car_free=car_free or None, max_level=2 if easy else 3, limit=3)
+    easy = any(w in last for w in ["easy", "beginner", "轻松", "easier", "first-time", "hasn't hiked"])
+    hard = any(w in last for w in ["hard", "challenging", "rocks", "rocky", "难"])
+    wanted = [k for k, words in {
+        "view": ["view", "overlook", "风景"],
+        "sunset": ["sunset", "日落"],
+        "lake": ["lake", "swim", "湖"],
+        "stream": ["stream", "creek"],
+    }.items() if any(w in last for w in words)]
+    kw = dict(car_free=car_free or None, limit=3)
+    if hard:
+        kw["min_level"] = 3
+    else:
+        kw["max_level"] = 2 if easy else 3
+    res = store.search(features=wanted or None, **kw) if wanted else []
+    if not res:  # nothing matched the wish: relax it rather than show an empty page
+        res = store.search(**kw)
     lines = ["Here's what I'd pick (offline demo mode):"]
     for t in res:
         lines.append(f"• {t.name} — Level {t.difficulty.level} ({t.difficulty.label}): " + "; ".join(t.difficulty.reasons))

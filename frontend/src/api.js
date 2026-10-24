@@ -12,5 +12,6 @@ export async function chat(messages, profile) {
 
 export async function listTrails() {
   const r = await fetch(`${BASE}/trails`)
+  if (!r.ok) throw new Error(`API ${r.status}`)
   return r.json()
 }

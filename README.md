@@ -25,8 +25,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env            # add ANTHROPIC_API_KEY, or DEMO_MODE=1 for offline
-export $(cat .env | xargs)
-uvicorn app.main:app --reload   # http://localhost:8000/docs
+uvicorn app.main:app --reload   # http://localhost:8000/docs  (.env is loaded automatically)
 pytest
 
 # frontend
