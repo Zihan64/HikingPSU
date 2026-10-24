@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { authenticate, deleteReview, getToken, getTrailReviews, saveReview, setToken } from './api'
+import { useAuth0 } from '@auth0/auth0-react'
+import { deleteReview, getTrailReviews, saveReview } from './api'
+import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { StarInput } from './Stars'
 
 const QUESTIONS = [
@@ -8,38 +10,23 @@ const QUESTIONS = [
   { key: 'enjoyment', label: 'How much did you enjoy it?', hint: 'Overall enjoyment and views' },
 ]
 
-function SignIn({ onDone }) {
-  const [mode, setMode] = useState('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
-
-  async function submit(e) {
-    e.preventDefault()
-    setBusy(true); setError(null)
-    try { await authenticate(mode, email, password); onDone() }
-    catch (err) { setError(err.message) }
-    finally { setBusy(false) }
+// Login happens on Auth0's page; we never see the password.
+function SignIn() {
+  const { loginWithRedirect } = useAuth0()
+  if (!AUTH_ENABLED) {
+    return <p className="text-sm text-stone-600">Reviews need an account, and login isn't set up on this server yet.</p>
   }
-
   return (
-    <form onSubmit={submit} className="space-y-3">
-      <p className="text-sm text-stone-600">Sign in so your review is tied to your account (you can edit or delete it later).</p>
-      <input type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" />
-      <input type="password" required minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (8+ characters)" className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" />
-      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      <button disabled={busy} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-        {mode === 'login' ? 'Sign in' : 'Create account'}
+    <div className="space-y-3">
+      <p className="text-sm text-stone-600">Log in so your review is tied to your account (you can edit or delete it later).</p>
+      <button onClick={() => loginWithRedirect()} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
+        Log in or sign up
       </button>
-      <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }} className="text-xs text-emerald-800 underline">
-        {mode === 'login' ? 'New here? Create an account' : 'Already have an account? Sign in'}
-      </button>
-    </form>
+    </div>
   )
 }
 
-function ReviewForm({ trail, existing, onSaved, onAuthLost }) {
+function ReviewForm({ trail, existing, getToken, onSaved, onAuthLost }) {
   const [scores, setScores] = useState({ accuracy: existing?.accuracy ?? 0, difficulty: existing?.difficulty ?? 0, enjoyment: existing?.enjoyment ?? 0 })
   const [comment, setComment] = useState(existing?.comment ?? '')
   const [busy, setBusy] = useState(false)
@@ -54,7 +41,7 @@ function ReviewForm({ trail, existing, onSaved, onAuthLost }) {
   }
 
   return (
-    <form onSubmit={e => { e.preventDefault(); if (complete) run(() => saveReview(trail.id, { ...scores, comment: comment.trim() || null })) }} className="space-y-4">
+    <form onSubmit={e => { e.preventDefault(); if (complete) run(async () => saveReview(trail.id, { ...scores, comment: comment.trim() || null }, await getToken())) }} className="space-y-4">
       {QUESTIONS.map(q => (
         <div key={q.key}>
           <div className="text-sm font-medium">{q.label}</div>
@@ -73,7 +60,7 @@ function ReviewForm({ trail, existing, onSaved, onAuthLost }) {
           {existing ? 'Update review' : 'Submit review'}
         </button>
         {existing && (
-          <button type="button" disabled={busy} onClick={() => run(() => deleteReview(trail.id))} className="text-sm text-red-700 underline disabled:opacity-50">Delete my review</button>
+          <button type="button" disabled={busy} onClick={() => run(async () => deleteReview(trail.id, await getToken()))} className="text-sm text-red-700 underline disabled:opacity-50">Delete my review</button>
         )}
       </div>
       {!complete && <p className="text-xs text-stone-500">Rate all three to submit.</p>}
@@ -82,22 +69,25 @@ function ReviewForm({ trail, existing, onSaved, onAuthLost }) {
 }
 
 export default function ReviewModal({ trail, onClose, onSaved }) {
-  const [signedIn, setSignedIn] = useState(() => !!getToken())
+  const { isAuthenticated, loginWithRedirect } = useAuth0()
+  const getToken = useOptionalToken()
+  const signedIn = AUTH_ENABLED && isAuthenticated
   const [existing, setExisting] = useState(undefined)  // undefined = still loading, null = none yet
   const [loadError, setLoadError] = useState(null)
 
-  function signOut() {  // expired or invalid token: drop it and ask again
-    setToken(null); setSignedIn(false)
+  function signOut() {  // expired or rejected token: log in again on Auth0
+    loginWithRedirect()
   }
 
   // Prefill with the user's earlier review of this trail, if any.
   useEffect(() => {
     if (!signedIn) return
     setExisting(undefined); setLoadError(null)
-    getTrailReviews(trail.id)
+    getToken()
+      .then(token => getTrailReviews(trail.id, token))
       .then(r => setExisting(r.reviews.find(x => x.mine) ?? null))
       .catch(e => (e.status === 401 ? signOut() : setLoadError(e.message)))
-  }, [signedIn, trail.id])
+  }, [signedIn, trail.id, getToken])
 
   useEffect(() => {
     const onKey = e => e.key === 'Escape' && onClose()
@@ -116,13 +106,13 @@ export default function ReviewModal({ trail, onClose, onSaved }) {
           <button onClick={onClose} aria-label="Close" className="text-xl leading-none text-stone-400 hover:text-stone-700">×</button>
         </div>
         {!signedIn ? (
-          <SignIn onDone={() => setSignedIn(true)} />
+          <SignIn />
         ) : loadError ? (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</div>
         ) : existing === undefined ? (
           <p className="text-sm text-stone-500">Loading…</p>
         ) : (
-          <ReviewForm trail={trail} existing={existing} onSaved={() => { onSaved(); onClose() }} onAuthLost={signOut} />
+          <ReviewForm trail={trail} existing={existing} getToken={getToken} onSaved={() => { onSaved(); onClose() }} onAuthLost={signOut} />
         )}
       </div>
     </div>

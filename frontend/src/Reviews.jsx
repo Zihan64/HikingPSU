@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getTrailReviews } from './api'
+import { useOptionalToken } from './auth'
 import { StarDisplay } from './Stars'
 
 // Mongo hands back naive UTC timestamps; without a zone the browser would read them as local time.
@@ -11,11 +12,12 @@ const ROWS = [['accuracy', 'Info accuracy'], ['difficulty', 'Felt difficulty'], 
 export default function Reviews({ trailId, reloadKey }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const getToken = useOptionalToken()  // logged in: your own review is marked "(you)"
 
   useEffect(() => {
     setError(null)
-    getTrailReviews(trailId).then(setData).catch(e => setError(e.message))
-  }, [trailId, reloadKey])
+    getToken().then(token => getTrailReviews(trailId, token)).then(setData).catch(e => setError(e.message))
+  }, [trailId, reloadKey, getToken])
 
   if (error) return <p className="text-sm text-red-700">Couldn't load reviews: {error}</p>
   if (!data) return <p className="text-sm text-stone-500">Loading reviews…</p>

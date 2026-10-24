@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react'
-<<<<<<< HEAD
 import { chat, getReviewSummaries, listTrails } from './api'
-=======
-import { useAuth0 } from '@auth0/auth0-react'
-import { chat, listTrails } from './api'
->>>>>>> 977baf91bd1fd85331ca8dd01797821748ea8323
 import TrailCard from './TrailCard'
 import MapView from './MapView'
 import ReviewModal from './ReviewModal'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import AuthButton from './AuthButton'
-import { AUTH_ENABLED } from './auth'
+import { AUTH_ENABLED, useOptionalToken } from './auth'
 
 const SUGGESTIONS = [
   'Saturday afternoon, two of us, no car, ~3 hours, want a view',
@@ -28,17 +23,13 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [loadError, setLoadError] = useState(null)
-<<<<<<< HEAD
   const [summaries, setSummaries] = useState({})      // trail id -> average review scores
   const [reviewing, setReviewing] = useState(null)    // trail currently being reviewed
   const [reviewsVersion, setReviewsVersion] = useState(0)
+  const [sessionId, setSessionId] = useState(null)   // saved chat (logged-in users only)
+  const getToken = useOptionalToken()                 // null when logged out or login isn't configured
 
   const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})  // reviews are optional; trails still work
-=======
-  const [sessionId, setSessionId] = useState(null)   // saved chat (logged-in users only)
-  // Outside <Auth0Provider> (login not configured) this returns a logged-out stub.
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0()
->>>>>>> 977baf91bd1fd85331ca8dd01797821748ea8323
 
   useEffect(() => {
     listTrails()
@@ -53,11 +44,7 @@ export default function App() {
     setMessages(next); setInput(''); setLoading(true); setError(null)
     try {
       // Logged in: send the token so the server uses the saved profile/hike history and saves this chat.
-      let token = null
-      if (AUTH_ENABLED && isAuthenticated) {
-        try { token = await getAccessTokenSilently() } catch { token = null }  // fall back to anonymous
-      }
-      const res = await chat(next, { has_car: hasCar }, { token, sessionId })
+      const res = await chat(next, { has_car: hasCar }, { token: await getToken(), sessionId })
       if (res.session_id) setSessionId(res.session_id)
       setMessages([...next, { role: 'assistant', content: res.reply }])
       setRecommended(res.trails); setSelectedId(null)

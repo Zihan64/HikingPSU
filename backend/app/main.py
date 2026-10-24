@@ -8,12 +8,8 @@ from pymongo.errors import ConnectionFailure
 from . import agent, auth, chats, hikes, store, users
 from .db import DatabaseUnavailable
 from .models import ChatRequest, ChatResponse, TrailWithDifficulty
-<<<<<<< HEAD
 from .routes_reviews import router as reviews_router
-from .routes_user import auth_router, me_router
-=======
 from .routes_user import me_router
->>>>>>> 977baf91bd1fd85331ca8dd01797821748ea8323
 
 log = logging.getLogger("hikingpsu.main")
 

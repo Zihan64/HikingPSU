@@ -6,7 +6,7 @@ import datetime as dt
 from pymongo import DESCENDING, ReturnDocument
 
 from . import store
-from .db import get_db, to_oid
+from .db import get_db
 from .user_models import ReviewOut, ReviewSummary
 
 SCORES = ("accuracy", "difficulty", "enjoyment")
@@ -53,11 +53,11 @@ def summarize(trail_id: str | None = None) -> dict[str, ReviewSummary]:
 
 
 def delete(user_id: str, trail_id: str) -> bool:
-    return get_db().reviews.delete_one({"user_id": to_oid(user_id), "trail_id": trail_id}).deleted_count == 1
+    return get_db().reviews.delete_one({"user_id": user_id, "trail_id": trail_id}).deleted_count == 1
 
 
 def delete_all(user_id: str) -> int:
-    return get_db().reviews.delete_many({"user_id": to_oid(user_id)}).deleted_count
+    return get_db().reviews.delete_many({"user_id": user_id}).deleted_count
 
 
 def to_out(doc: dict, viewer_id: str | None = None) -> ReviewOut:
