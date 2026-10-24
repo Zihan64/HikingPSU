@@ -1,4 +1,4 @@
-# Trailhead
+# HikingPSU
 
 AI hiking guide for Penn State / State College. Five-level, explainable difficulty + car-free access, with a Claude tool-use agent that can only recommend trails from the local database.
 
