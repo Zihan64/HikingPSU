@@ -5,7 +5,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from app import auth
+from app import auth, ratelimit
 
 DOMAIN = "test-tenant.us.auth0.com"
 AUDIENCE = "https://api.hikingpsu"
@@ -38,3 +38,11 @@ def fake_auth0(monkeypatch):
         auth, "fetch_profile",
         lambda identity: {"email": identity.id.split("|", 1)[1] + "@psu.edu", "name": identity.id.split("|", 1)[1].title()},
     )
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    """Every test starts with empty /chat counters."""
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
