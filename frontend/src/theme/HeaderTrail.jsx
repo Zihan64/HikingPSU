@@ -1,26 +1,31 @@
+import { Hiker } from '../scene/Wildlife'
+import '../scene/scene.css'
 import './theme.css'
 
-// The header's bottom line becomes a trail: small pines (and one autumn tree) on brown trunks
-// along it, and a hiker with an orange backpack and trekking pole walking left to right, then
-// setting out again from the left. Decorative only (aria-hidden, no pointer events);
-// still when reduced motion is on.
+// The header's bottom line becomes a trail: small spruces and autumn maples stand along it, and a
+// fully equipped hiker (hat, big pack with sleeping-pad roll, trekking poles, boots) walks left to
+// right, then sets out again from the left. Decorative only; still when reduced motion is on.
 
 // [left %, height px, kind]
-const TREES = [[7, 14, 'pine'], [8.6, 18, 'pine'], [10, 12, 'leaf'], [31, 15, 'pine'], [32.4, 11, 'pine'],
-  [56, 19, 'pine'], [57.6, 13, 'leaf'], [59, 15, 'pine'], [83, 14, 'pine'], [84.5, 19, 'pine'], [96, 12, 'leaf']]
+const TREES = [[6.5, 22, 'spruce'], [7.8, 28, 'spruce'], [9.2, 18, 'maple'], [30.5, 24, 'spruce'], [31.8, 17, 'spruce'],
+  [55.5, 29, 'spruce'], [57, 20, 'maple'], [58.3, 23, 'spruce'], [82.5, 21, 'spruce'], [84, 30, 'spruce'], [95.5, 19, 'maple']]
 
-function Hiker() {
-  // feet at the bottom edge, facing right
+function Spruce() {
   return (
-    <svg viewBox="-7 -20 16 21" className="hp-trail-hiker-body" aria-hidden="true">
-      <g stroke="#173A40" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="1.5" cy="-17" r="2.4" fill="#173A40" stroke="none" />
-        <rect x="-4.8" y="-14.5" width="4.2" height="6.8" rx="1.3" fill="#D2873C" stroke="none" />
-        <path d="M0.8 -14 L1.6 -6.5" strokeWidth="2.6" fill="none" />
-        <path className="hp-leg" d="M1.6 -6.5 L0.2 0" strokeWidth="1.8" fill="none" />
-        <path className="hp-leg hp-leg-b" d="M1.6 -6.5 L3.4 0" strokeWidth="1.8" fill="none" />
-        <path className="hp-pole" d="M3 -11 L6.6 0.5" stroke="#7A5434" strokeWidth="0.9" fill="none" />
-      </g>
+    <svg viewBox="0 0 20 40" className="h-full w-full">
+      <rect x="9" y="33" width="2" height="7" fill="#5a3d26" />
+      <path fill="#1d3626" d="M10 0 L11.2 4 L13 5 L11.6 6 L14.4 9.5 L12.4 10 L16 14.5 L13.2 15 L17.6 20.5 L14 21 L19 27.5 L14.6 28 L20 34 L0 34 L5.4 28 L1 27.5 L6 21 L2.4 20.5 L6.8 15 L4 14.5 L7.6 10 L5.6 9.5 L8.4 6 L7 5 L8.8 4 Z" />
+      <path fill="none" stroke="rgba(255,214,140,0.55)" strokeWidth="0.6" d="M11.2 4 L13 5 M14.4 9.5 L12.4 10 M16 14.5 M17.6 20.5 L14 21 M19 27.5 L14.6 28 M20 34" />
+    </svg>
+  )
+}
+
+function Maple() {
+  return (
+    <svg viewBox="0 0 24 34" className="h-full w-full">
+      <path d="M11 33 L 11.6 20 L 9 15 M 12 22 L 15 16" stroke="#5a3d26" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <path fill="#b8612a" d="M12 2 C 16 1, 19 4, 19 7 C 23 8, 24 13, 21 16 C 23 19, 20 23, 16 22 C 14 25, 9 25, 7.6 22 C 3.6 23, 0.6 19, 2.6 16 C -0.4 12.6, 2 8, 5.6 8 C 5.6 4, 8.4 2, 12 2 Z" />
+      <path fill="#d98a3a" d="M13 4 C 16 4, 17.6 6, 17.6 8.4 C 20.4 9.6, 21 12.6, 19 14.6 C 17 13, 14 13, 12.6 10.6 C 11.6 8, 11.4 5.6, 13 4 Z" />
     </svg>
   )
 }
@@ -29,14 +34,11 @@ export default function HeaderTrail() {
   return (
     <div className="hp-trail" aria-hidden="true">
       {TREES.map(([left, h, kind], i) => (
-        <svg key={i} className="hp-trail-pine" style={{ left: `${left}%`, height: h, width: h * 0.72 }} viewBox="0 0 10 14">
-          <rect x="4.2" y="10" width="1.6" height="4" fill="#7A5434" />
-          {kind === 'pine'
-            ? <path d="M5 0 L9.4 10.5 L0.6 10.5 Z" fill={i % 2 ? '#3E8558' : '#2F6B47'} />
-            : <circle cx="5" cy="6.4" r="4.4" fill="#D2873C" />}
-        </svg>
+        <div key={i} className="hp-trail-tree" style={{ left: `${left}%`, height: h, width: kind === 'spruce' ? h * 0.5 : h * 0.7, animationDelay: `${-i * 0.7}s` }}>
+          {kind === 'spruce' ? <Spruce /> : <Maple />}
+        </div>
       ))}
-      <div className="hp-trail-walker"><Hiker /></div>
+      <div className="hp-trail-walker"><Hiker className="h-full w-full" /></div>
     </div>
   )
 }
