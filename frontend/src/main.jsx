@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Auth0Provider } from '@auth0/auth0-react'
 import App from './App'
+import AuthGate from './AuthGate'
 import { AUTH_ENABLED, AUTH0_AUDIENCE, AUTH0_CLIENT_ID, AUTH0_DOMAIN } from './auth'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
@@ -18,7 +19,9 @@ const app = AUTH_ENABLED ? (
     // Keep the session across page reloads (browsers block the cookie-based fallback).
     cacheLocation="localstorage"
   >
-    <App />
+    <AuthGate>
+      <App />
+    </AuthGate>
   </Auth0Provider>
 ) : (
   <App />

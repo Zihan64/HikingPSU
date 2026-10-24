@@ -10,6 +10,7 @@ import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
 import ReviewModal from './ReviewModal'
 import AuthButton from './AuthButton'
+import { Mark } from './landing/Logo'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
@@ -234,7 +235,7 @@ export default function App() {
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
       <header className="app-header">
         <a className="brand" href="#" aria-label="HikingPSU home" onClick={e => { e.preventDefault(); changeView('plan') }}>
-          <span className="brand-symbol"><Icon name="trails" /></span>
+          <Mark className="h-11 w-11 shrink-0 max-[959px]:h-9 max-[959px]:w-9" />
           <span><span className="brand-name">HikingPSU</span><span className="brand-caption">A little closer to the outdoors.</span></span>
         </a>
         <div className="header-actions">

@@ -5,7 +5,7 @@ import { useAuthFetch } from './auth'
 // Top-right login control. After login it calls /me once, which proves the
 // backend accepted the token (and lets the database create the user's row).
 export default function AuthButton() {
-  const { isLoading, isAuthenticated, user, loginWithRedirect, logout, error } = useAuth0()
+  const { isLoading, isAuthenticated, user, loginWithPopup, logout, error } = useAuth0()
   const authFetch = useAuthFetch()
   const [backend, setBackend] = useState(null) // null = not checked, 'ok', or an error message
 
@@ -16,13 +16,19 @@ export default function AuthButton() {
 
   if (isLoading) return <span className="text-sm text-stone-400">…</span>
 
-  if (error) {
+  // Closing, blocking or timing out the pop-up is routine: keep offering "Log in".
+  const popupHiccup = ['cancelled', 'popup_open', 'timeout'].includes(error?.error)
+  if (error && !popupHiccup) {
     return <span className="text-xs text-red-700" title={error.message}>Login error: {error.message}</span>
   }
 
   if (!isAuthenticated) {
     return (
-      <button onClick={() => loginWithRedirect()} className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-stone-50">
+      <button
+        onClick={() => loginWithPopup()}
+        title={error?.error === 'popup_open' ? 'Allow pop-ups for this site to log in' : undefined}
+        className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-stone-50"
+      >
         Log in
       </button>
     )

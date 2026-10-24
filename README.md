@@ -273,6 +273,23 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
 
+### Sign-in page
+
+When the three `VITE_AUTH0_*` values are set, signed-out visitors see the sign-in page first (`frontend/src/landing/`). **Sign in** and **Create an account** open Auth0 in a pop-up; **Browse trails without an account** opens the app as a guest for the rest of the browser session. Without those values the app opens directly, as before.
+
+The pop-up needs these settings in Auth0 → Applications → your Single Page Application → Settings. List every origin you use, comma-separated, without a trailing slash:
+
+| Setting | Value |
+|---|---|
+| Allowed Callback URLs | `http://localhost:5173, https://<your-amplify-domain>` |
+| Allowed Logout URLs | same list |
+| Allowed Web Origins | same list (the pop-up returns the result to this origin) |
+
+## Deploy
+
+- **Backend → Render** (Web Service): root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `ANTHROPIC_API_KEY`, `MONGODB_URI`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`. Free instances sleep when idle, so open `/health` a minute before a demo.
+- **Frontend → AWS Amplify Hosting**: connect this repo, branch `main`, and tick "monorepo" with app root `frontend` (`amplify.yml` holds the build). Environment variables: `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE`, `VITE_API_BASE=https://<your-render-service>.onrender.com`, `AMPLIFY_MONOREPO_APP_ROOT=frontend`. Vite bakes these in at build time, so redeploy after changing them. Then add the Amplify URL to the three Auth0 settings above.
+
 ## API
 
 | Method | Path | Description |

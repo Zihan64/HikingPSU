@@ -1,0 +1,21 @@
+# AWS Amplify Hosting build for the frontend (monorepo: app root = frontend).
+# Set VITE_AUTH0_DOMAIN, VITE_AUTH0_CLIENT_ID, VITE_AUTH0_AUDIENCE and VITE_API_BASE
+# in Amplify -> Hosting -> Environment variables (they are baked in at build time).
+version: 1
+applications:
+  - appRoot: frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
