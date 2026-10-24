@@ -20,7 +20,7 @@ def add(user_id: str, trail_id: str, completed_on: dt.date, **fields) -> dict:
         raise KeyError(trail_id)
     now = dt.datetime.now(dt.timezone.utc)
     doc = {
-        "user_id": to_oid(user_id),
+        "user_id": user_id,
         "trail_id": trail_id,
         "trail_name": trail.name,  # denormalized so history survives trail renames/removals
         "completed_on": _to_dt(completed_on),
@@ -33,7 +33,7 @@ def add(user_id: str, trail_id: str, completed_on: dt.date, **fields) -> dict:
 
 
 def list_for(user_id: str, limit: int = 100, skip: int = 0) -> list[dict]:
-    cur = get_db().hike_logs.find({"user_id": to_oid(user_id)}).sort("completed_on", DESCENDING).skip(skip).limit(limit)
+    cur = get_db().hike_logs.find({"user_id": user_id}).sort("completed_on", DESCENDING).skip(skip).limit(limit)
     return list(cur)
 
 
@@ -45,21 +45,21 @@ def update(user_id: str, hike_id: str, changes: dict) -> dict | None:
         changes["completed_on"] = _to_dt(changes["completed_on"])
     changes["updated_at"] = dt.datetime.now(dt.timezone.utc)
     return get_db().hike_logs.find_one_and_update(
-        {"_id": oid, "user_id": to_oid(user_id)}, {"$set": changes}, return_document=ReturnDocument.AFTER
+        {"_id": oid, "user_id": user_id}, {"$set": changes}, return_document=ReturnDocument.AFTER
     )
 
 
 def delete(user_id: str, hike_id: str) -> bool:
     oid = to_oid(hike_id)
-    return bool(oid) and get_db().hike_logs.delete_one({"_id": oid, "user_id": to_oid(user_id)}).deleted_count == 1
+    return bool(oid) and get_db().hike_logs.delete_one({"_id": oid, "user_id": user_id}).deleted_count == 1
 
 
 def delete_all(user_id: str) -> int:
-    return get_db().hike_logs.delete_many({"user_id": to_oid(user_id)}).deleted_count
+    return get_db().hike_logs.delete_many({"user_id": user_id}).deleted_count
 
 
 def stats(user_id: str) -> HikeStats:
-    docs = list(get_db().hike_logs.find({"user_id": to_oid(user_id)}, {"trail_id": 1}))
+    docs = list(get_db().hike_logs.find({"user_id": user_id}, {"trail_id": 1}))
     dist, gain = 0.0, 0
     for d in docs:
         t = store.get(d["trail_id"])

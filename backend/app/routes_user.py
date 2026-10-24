@@ -1,4 +1,4 @@
-"""HTTP routes for accounts and everything stored per user."""
+"""HTTP routes for everything stored per user. Sign-up and login happen on Auth0 (see auth.py)."""
 from __future__ import annotations
 
 import datetime as dt
@@ -9,38 +9,16 @@ from . import auth, chats, hikes, reviews, store, users
 from .user_models import (
     ChatSessionOut,
     ChatSessionSummary,
-    Credentials,
     HikeCreate,
     HikeOut,
     HikeStats,
     HikeUpdate,
     MePatch,
-    TokenResponse,
     UserOut,
 )
 
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
 me_router = APIRouter(prefix="/me", tags=["me"])
 
-
-# ---------- auth ----------
-
-@auth_router.post("/register", response_model=TokenResponse, status_code=201)
-def register(body: Credentials):
-    try:
-        user = users.create(body.email, auth.hash_password(body.password))
-    except users.EmailTaken:
-        raise HTTPException(409, "email already registered")
-    return TokenResponse(access_token=auth.issue_token(str(user["_id"])))
-
-
-@auth_router.post("/login", response_model=TokenResponse)
-def login(body: Credentials):
-    user = users.get_by_email(body.email)
-    ok = auth.verify_password(body.password, user["password_hash"] if user else auth.DUMMY_HASH)
-    if not (user and ok):
-        raise HTTPException(401, "invalid email or password")
-    return TokenResponse(access_token=auth.issue_token(str(user["_id"])))
 
 
 # ---------- profile & preferences ----------

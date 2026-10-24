@@ -6,9 +6,6 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
-
-
 class Profile(BaseModel):
     display_name: Optional[str] = Field(None, max_length=60)
     home_area: Optional[str] = Field(None, max_length=80)
@@ -25,19 +22,9 @@ class Preferences(BaseModel):
     notes: Optional[str] = Field(None, max_length=500)
 
 
-class Credentials(BaseModel):
-    email: str = Field(max_length=254, pattern=EMAIL_PATTERN)
-    password: str = Field(min_length=8, max_length=128)
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: Literal["bearer"] = "bearer"
-
-
 class UserOut(BaseModel):
-    id: str
-    email: str
+    id: str  # Auth0 user id
+    email: Optional[str] = None
     profile: Profile
     preferences: Preferences
     saved_trail_ids: list[str]

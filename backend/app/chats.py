@@ -34,7 +34,7 @@ def record_exchange(
     message plus the reply; a new session is seeded with everything the client sent.
     """
     coll = get_db().chat_sessions
-    uid, now = to_oid(user_id), _now()
+    uid, now = user_id, _now()
     reply_doc = _msg("assistant", reply, now, recommended_ids)
 
     oid = to_oid(session_id) if session_id else None
@@ -64,13 +64,13 @@ def record_exchange(
 
 
 def list_for(user_id: str, limit: int = 50, skip: int = 0) -> list[ChatSessionSummary]:
-    cur = get_db().chat_sessions.find({"user_id": to_oid(user_id)}, {"messages": 0}).sort("updated_at", DESCENDING)
+    cur = get_db().chat_sessions.find({"user_id": user_id}, {"messages": 0}).sort("updated_at", DESCENDING)
     return [_summary(d) for d in cur.skip(skip).limit(limit)]
 
 
 def get(user_id: str, session_id: str) -> ChatSessionOut | None:
     oid = to_oid(session_id)
-    doc = get_db().chat_sessions.find_one({"_id": oid, "user_id": to_oid(user_id)}) if oid else None
+    doc = get_db().chat_sessions.find_one({"_id": oid, "user_id": user_id}) if oid else None
     if doc is None:
         return None
     return ChatSessionOut(**_summary(doc).model_dump(), messages=[StoredMessage(**m) for m in doc["messages"]])
@@ -78,11 +78,11 @@ def get(user_id: str, session_id: str) -> ChatSessionOut | None:
 
 def delete(user_id: str, session_id: str) -> bool:
     oid = to_oid(session_id)
-    return bool(oid) and get_db().chat_sessions.delete_one({"_id": oid, "user_id": to_oid(user_id)}).deleted_count == 1
+    return bool(oid) and get_db().chat_sessions.delete_one({"_id": oid, "user_id": user_id}).deleted_count == 1
 
 
 def delete_all(user_id: str) -> int:
-    return get_db().chat_sessions.delete_many({"user_id": to_oid(user_id)}).deleted_count
+    return get_db().chat_sessions.delete_many({"user_id": user_id}).deleted_count
 
 
 def _summary(doc: dict) -> ChatSessionSummary:

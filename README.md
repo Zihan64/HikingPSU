@@ -175,13 +175,15 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 
 ### User database (MongoDB)
 
-Set `MONGODB_URI` and `JWT_SECRET` in `backend/.env`. Without them everything above still works; the routes below return 503.
+Set `MONGODB_URI`, `AUTH0_DOMAIN` and `AUTH0_AUDIENCE` in `backend/.env` (and the three `VITE_AUTH0_*` values in `frontend/.env.local`, see `frontend/.env.example`). Without them everything above still works; the routes below return 503.
+
+Login is handled by **Auth0**: the browser signs in there and sends `Authorization: Bearer <token>`; the backend verifies it with Auth0's public keys. We never see or store passwords. The Auth0 user id (`auth0|…`, `google-oauth2|…`) is the user's `_id`, and the first authenticated request creates the user's document.
 Collections: `users` (account, profile, preferences, saved trails), `hike_logs` (one doc per completed hike), `chat_sessions` (messages embedded).
 All `/me` routes need a bearer token and only ever see the caller's own data.
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/auth/register`, `/auth/login` | `{ email, password }` → `{ access_token }` |
+| `GET` | `/auth/config` | `{ enabled }`: whether login is configured on this server |
 | `GET` `PATCH` `DELETE` | `/me` | Profile and preferences (PATCH changes only the fields sent); DELETE erases the account and all its data |
 | `PUT` `DELETE` | `/me/saved/{trail_id}` | Save / unsave a trail |
 | `GET` `POST` | `/me/hikes` | Hike log: `{ trail_id, completed_on, duration_min?, rating?, felt_difficulty?, notes? }` |
@@ -201,10 +203,10 @@ backend/
     models.py       Pydantic schemas
     main.py         FastAPI routes
     db.py           MongoDB connection and indexes
-    auth.py         Password hashing, JWT, auth dependencies
+    auth.py         Auth0 token verification, auth dependencies
     users.py · hikes.py · chats.py   Per-collection data access
     user_models.py  Schemas for profile, preferences, hikes, chats
-    routes_user.py  /auth and /me routes
+    routes_user.py  /me routes
   data/trails.json  Trail database
   scripts/          Calibration against hiker ratings
   tests/            Model, search, guardrail and agent tests (no network needed)

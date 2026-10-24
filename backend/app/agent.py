@@ -16,7 +16,7 @@ from .tools import REGISTRY, TOOLS
 log = logging.getLogger("hikingpsu.agent")
 
 # HIKINGPSU_MODEL is preferred; TRAILHEAD_MODEL kept so existing .env files still work.
-MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "claude-sonnet-4-5")
+MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "claude-sonnet-5-5")
 MAX_TURNS = 6
 
 SYSTEM = """You are HikingPSU, a hiking guide for the Penn State / State College community.

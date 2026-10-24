@@ -1,8 +1,26 @@
+<<<<<<< HEAD
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 const TOKEN_KEY = 'hikingpsu.token'
 
 export function getToken() {
   try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+=======
+export const BASE = import.meta.env.VITE_API_BASE || '/api'
+
+// token: Auth0 access token when logged in (saves the chat and uses the stored profile), else null.
+// sessionId: continue a saved chat; null starts a new one.
+export async function chat(messages, profile, { token = null, sessionId = null } = {}) {
+  const r = await fetch(`${BASE}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ messages, profile, session_id: sessionId }),
+  })
+  if (!r.ok) throw new Error(`API ${r.status}`)
+  return r.json()
+>>>>>>> 977baf91bd1fd85331ca8dd01797821748ea8323
 }
 
 export function setToken(token) {
