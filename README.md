@@ -359,9 +359,9 @@ Hikers rate a trail and leave an optional comment (collection `reviews`, one per
 | `GET` | `/reviews/summary` | Average scores per reviewed trail |
 | `GET` | `/trails/{id}/reviews` | One trail's average scores and reviews, each with `likes` and the viewer's `liked` |
 | `PUT` `DELETE` | `/trails/{id}/reviews/me` | Write or replace / delete your review `{ accuracy, difficulty, enjoyment, comment? }` |
-| `GET` | `/reviews/feed?sort=recent\|top&trail_id=&limit=&skip=` | Community feed across trails, newest or most hearted first |
+| `GET` | `/reviews/feed?sort=recent\|top&trail_id=&limit=&skip=` | Community feed of written comments across trails (ratings-only reviews left out), newest or most hearted first |
 | `GET` | `/reviews/highlights?per_trail=2` | Top comments per trail (most hearted first; starter tips fill the gaps, also without a database) |
-| `PUT` `DELETE` | `/reviews/{comment_id}/like` | Heart / un-heart a review or tip → `{ likes, liked }` |
+| `PUT` `DELETE` | `/reviews/{comment_id}/like` | Heart / un-heart a tip or a review with a comment → `{ likes, liked }` |
 
 ## Project structure
 

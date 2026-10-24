@@ -344,6 +344,19 @@ def test_feed_mixes_trails_and_sorts_by_hearts(client):
     assert client.get("/reviews/feed?sort=bogus").status_code == 422
 
 
+def test_feed_and_hearts_are_for_written_comments_only(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    silent = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json={**GOOD, "comment": None}).json()
+    assert client.get("/reviews/feed").json() == []
+    assert client.put(f"/reviews/{silent['id']}/like", headers=bob).status_code == 404
+
+    # Removing the text from a hearted review takes it out of the feed and drops its hearts.
+    talky = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD).json()
+    assert client.put(f"/reviews/{talky['id']}/like", headers=bob).json()["likes"] == 1
+    client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json={**GOOD, "comment": "  "})
+    assert client.get("/reviews/feed").json() == [] and db.get_db().likes.count_documents({}) == 0
+
+
 def test_deleting_reviews_and_accounts_removes_their_hearts(client):
     alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
     review = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD).json()

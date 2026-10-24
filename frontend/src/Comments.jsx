@@ -62,7 +62,7 @@ export function CommentItem({ c, showTrail = false, compact = false }) {
         </div>
       )}
       {c.comment && <p className={`mt-1.5 whitespace-pre-wrap text-stone-700 ${compact ? 'line-clamp-3' : ''}`}>{c.comment}</p>}
-      <div className="mt-2"><HeartButton comment={c} size={compact ? 'xs' : 'sm'} /></div>
+      {c.comment && <div className="mt-2"><HeartButton comment={c} size={compact ? 'xs' : 'sm'} /></div>}
     </li>
   )
 }

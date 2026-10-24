@@ -27,12 +27,15 @@ def upsert(user: dict, trail_id: str, scores: dict) -> dict:
     now = _now()
     comment = (scores.get("comment") or "").strip() or None
     fields = {**{k: scores[k] for k in SCORES}, "comment": comment, "author": _author(user), "updated_at": now}
-    return get_db().reviews.find_one_and_update(
+    doc = get_db().reviews.find_one_and_update(
         {"user_id": user["_id"], "trail_id": trail_id},
         {"$set": fields, "$setOnInsert": {"created_at": now}},
         upsert=True,
         return_document=ReturnDocument.AFTER,
     )
+    if comment is None:  # hearts belong to the text; removing it removes them
+        likes.delete_for_targets([str(doc["_id"])])
+    return doc
 
 
 def list_for_trail(trail_id: str, limit: int = 100, skip: int = 0) -> list[dict]:

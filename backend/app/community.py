@@ -60,8 +60,9 @@ def highlights(viewer_id: str | None = None, per_trail: int = 2) -> dict[str, li
 
 
 def feed(viewer_id: str | None, sort: str = "recent", limit: int = 20, skip: int = 0, trail_id: str | None = None) -> list[ReviewOut]:
-    """Hikers' reviews across every trail (tips stay on the trail cards)."""
-    cur = get_db().reviews.find({"trail_id": trail_id} if trail_id else {}).sort([("created_at", DESCENDING), ("_id", DESCENDING)])
+    """Hikers' written comments across every trail; ratings-only reviews and tips are left out."""
+    query = {"comment": {"$ne": None}, **({"trail_id": trail_id} if trail_id else {})}
+    cur = get_db().reviews.find(query).sort([("created_at", DESCENDING), ("_id", DESCENDING)])
     if sort != "top":
         return reviews.to_out_many(list(cur.skip(skip).limit(limit)), viewer_id, with_trail_name=True)
     ranked = reviews.to_out_many(list(cur.limit(TOP_WINDOW)), viewer_id, with_trail_name=True)
@@ -70,10 +71,11 @@ def feed(viewer_id: str | None, sort: str = "recent", limit: int = 20, skip: int
 
 
 def exists(comment_id: str) -> bool:
+    """A tip or a review with a written comment: only text can be hearted."""
     if comment_id in TIPS:
         return True
     oid = to_oid(comment_id)
-    return oid is not None and get_db().reviews.count_documents({"_id": oid}, limit=1) == 1
+    return oid is not None and get_db().reviews.count_documents({"_id": oid, "comment": {"$ne": None}}, limit=1) == 1
 
 
 def set_like(user_id: str, comment_id: str, liked: bool) -> tuple[int, bool]:

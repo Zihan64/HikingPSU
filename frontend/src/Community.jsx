@@ -82,7 +82,7 @@ export default function Community({ trails, onReview, reloadKey }) {
       {!items && !error && <p className="p-6 text-sm text-[#73806e]" role="status">Loading posts…</p>}
       {items?.length === 0 && (
         <div className="rounded-2xl border border-dashed border-[#c9d2c2] p-10 text-center text-sm" role="status">
-          {trailId ? 'No one has reviewed this trail yet.' : 'No hiker reviews yet.'} Be the first to share how it went!
+          {trailId ? 'No one has commented on this trail yet.' : 'No hiker comments yet.'} Be the first to share how it went!
         </div>
       )}
       {items?.length > 0 && <ul className="space-y-2" aria-label="Community posts">{items.map(c => <CommentItem key={c.id} c={c} showTrail />)}</ul>}
