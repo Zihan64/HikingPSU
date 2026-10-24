@@ -38,6 +38,8 @@ export const deleteReview = (id, token) => request(`/trails/${id}/reviews/me`, {
 // ---- profile, hike log and dashboard insights (all need a token) ----
 export const getMe = token => request('/me', { token })
 export const patchMe = (changes, token) => request('/me', { method: 'PATCH', body: changes, token })
+// Deletes the account and every record of it; log out right after.
+export const deleteMe = token => request('/me', { method: 'DELETE', token })
 // Sign-up form shown after the first login; getMe().registered says whether it was saved.
 export const register = (form, token) => request('/me/registration', { method: 'PUT', body: form, token })
 export const getInsights = token => request('/me/insights', { token })

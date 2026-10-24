@@ -219,6 +219,53 @@ def test_delete_account_removes_everything(client):
     assert again["saved_trail_ids"] == [] and client.get("/me/hikes", headers=h).json() == []
 
 
+def test_delete_account_removes_every_record_and_only_mine(client):
+    alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
+    for h in (alice, bob):
+        client.put("/me/registration", headers=h, json=FORM)
+        client.put(f"/me/saved/{TRAIL}", headers=h)
+        client.post("/me/hikes", headers=h, json={"trail_id": TRAIL, "completed_on": "2026-09-01"})
+        client.post("/chat", headers=h, json={"messages": [{"role": "user", "content": "hi"}]})
+        client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json=GOOD)
+    assert client.delete("/me", headers=alice).status_code == 204
+    d = db.get_db()
+    for name in d.list_collection_names():
+        assert d[name].count_documents({"$or": [{"_id": "auth0|alice"}, {"user_id": "auth0|alice"}]}) == 0, name
+    assert d.users.count_documents({}) == d.hike_logs.count_documents({}) == d.chat_sessions.count_documents({}) == d.reviews.count_documents({}) == 1
+    # signing in again (the Auth0 login wasn't deleted here) starts over with the sign-up form
+    assert client.get("/me", headers=alice).json()["registered"] is False
+
+
+def test_delete_account_also_deletes_auth0_login_when_configured(client, monkeypatch):
+    h = signup(client)
+    calls = []
+
+    class Resp:
+        def __init__(self, body=None): self.body = body
+        def raise_for_status(self): pass
+        def json(self): return self.body
+
+    monkeypatch.setenv("AUTH0_MGMT_CLIENT_ID", "mgmt-id")
+    monkeypatch.setenv("AUTH0_MGMT_CLIENT_SECRET", "mgmt-secret")
+    monkeypatch.setattr("app.auth.httpx.post", lambda url, **kw: calls.append(("POST", url, kw["json"])) or Resp({"access_token": "mgmt-token"}))
+    monkeypatch.setattr("app.auth.httpx.delete", lambda url, **kw: calls.append(("DELETE", url, kw["headers"])) or Resp())
+    assert client.delete("/me", headers=h).status_code == 204
+    (_, token_url, body), (_, delete_url, headers) = calls
+    assert token_url.endswith("/oauth/token") and body["client_id"] == "mgmt-id" and body["audience"].endswith("/api/v2/")
+    assert delete_url.endswith("/api/v2/users/auth0%7Ca") and headers["Authorization"] == "Bearer mgmt-token"
+    assert db.get_db().users.count_documents({}) == 0
+
+
+def test_delete_account_still_clears_database_if_auth0_fails(client, monkeypatch):
+    h = signup(client)
+    monkeypatch.setenv("AUTH0_MGMT_CLIENT_ID", "mgmt-id")
+    monkeypatch.setenv("AUTH0_MGMT_CLIENT_SECRET", "mgmt-secret")
+    def boom(*a, **kw): raise RuntimeError("auth0 down")
+    monkeypatch.setattr("app.auth.httpx.post", boom)
+    assert client.delete("/me", headers=h).status_code == 204
+    assert db.get_db().users.count_documents({}) == 0
+
+
 # ---------- trail reviews ----------
 
 GOOD = {"accuracy": 4, "difficulty": 3, "enjoyment": 5, "comment": "  Great ridge views  "}
