@@ -20,7 +20,7 @@
   left: 0;
   right: 0;
   bottom: -1px;
-  height: 36px;
+  height: 20px;
   pointer-events: none;
   container-type: inline-size;
   overflow: hidden;
@@ -37,8 +37,8 @@
   position: absolute;
   left: 0;
   bottom: 0;
-  width: 19px;
-  height: 32px;
+  width: 12px;
+  height: 20px;
   animation: hp-trail-walk 80s linear infinite;
   animation-delay: -12s;
 }

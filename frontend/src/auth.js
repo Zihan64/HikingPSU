@@ -1,5 +1,6 @@
 // Auth0 settings come from Vite env vars (all three are public, not secrets).
-// If they are missing, login is simply hidden and the rest of the app works as before.
+// If missing, browsing remains available and the account control explains why
+// sign-in is unavailable. Authenticated identity always comes from Auth0.
 import { useCallback } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { BASE } from './api'

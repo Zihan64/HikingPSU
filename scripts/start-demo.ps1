@@ -53,7 +53,7 @@ try {
         } catch { Start-Sleep -Milliseconds 250 }
     }
     if (-not $ready) { throw 'Backend startup timed out. Check .tools/demo-backend-error.log.' }
-    Write-Host 'HikingPSU offline demo: http://127.0.0.1:5173'
+    Write-Host 'HikingPSU offline demo: http://localhost:5173'
     Write-Host 'API docs: http://127.0.0.1:8000/docs | Ctrl+C stops the demo.'
     & $node $npm --prefix (Join-Path $projectRoot 'frontend') run dev -- --host 127.0.0.1 --port 5173 --strictPort
     if ($LASTEXITCODE -ne 0) { throw "Frontend exited with code $LASTEXITCODE." }

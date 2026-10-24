@@ -54,7 +54,22 @@ size with `ResizeObserver` when shown again.
 
 ## Device location
 
-Choose **Use my location** above the map to request browser permission. The app
+The Logo and Explore button return to the planner from the library, profile,
+official routes and expanded map. Chats and drafts are preserved; late search
+responses cannot reopen the previous map selection. The compact header reserves
+the same avatar/name/action space for Guest, signed-in, loading and error states;
+long names are truncated and the guest avatar uses the supplied default image.
+The shared header preserves the sky theme, decorative trees and walking hiker,
+with 20px padding above and below its content instead of a fixed height.
+
+Map information is placed beside the map on desktops/tablets, with a compact
+toolbar above the map on narrow phones. Expand in the map's top-right corner
+opens a viewport-filling preview of the same map instance. Back or Escape exits;
+keyboard focus stays inside the preview and background controls are inactive.
+The development-only `/tests/profile-layout.html` fixture checks synthetic
+Guest/short/long/loading/error profiles without an actual sign-in.
+
+Choose **Use my location** in the map controls to request browser permission. The app
 asks for a fresh, high-accuracy fix first, then retries once at standard accuracy
 if it is unavailable or times out. The browser and operating system choose GPS,
 Wi-Fi, cellular or another available location provider; websites cannot select a
@@ -280,6 +295,13 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
 
 ### Sign-in page
+
+For local login, copy `frontend/.env.example` to the Git-ignored
+`frontend/.env.local`, set `VITE_API_BASE` to the configured backend used for
+profiles, and restart Vite. Open **http://localhost:5173**, matching the registered
+Auth0 callback origin. The public Auth0 settings must be present for sign-in;
+without them the account control explains availability when Log in is selected.
+Guest, authenticated user and loading state all use the same fixed-width header.
 
 When the three `VITE_AUTH0_*` values are set, signed-out visitors see the sign-in page first (`frontend/src/landing/`). **Sign in** and **Create an account** open Auth0 in a pop-up; **Browse trails without an account** opens the app as a guest for the rest of the browser session. Without those values the app opens directly, as before.
 

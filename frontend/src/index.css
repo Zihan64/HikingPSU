@@ -15,6 +15,7 @@ button:disabled { cursor: default; opacity: .5; }
 .app-header { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #dde7d8; margin-bottom: 16px; }
 
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+.brand-mark { width: 36px; height: 36px; flex-shrink: 0; }
 .brand-symbol { width: 44px; height: 44px; border-radius: 14px; background: #2f6b47; color: #fff; display: grid; place-items: center; }
 .brand-symbol svg { width: 27px; height: 27px; }
 .brand-name { display: block; font-size: 21px; font-weight: 750; letter-spacing: -.7px; }
@@ -22,8 +23,16 @@ button:disabled { cursor: default; opacity: .5; }
 .location-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4f6466; }
 .location-label > span { width: 7px; height: 7px; border-radius: 100%; background: #f5b83d; }
 .header-actions { display: flex; align-items: center; gap: 16px; min-width: 0; }
-.auth-control { min-width: 0; }
-.auth-control button { min-height: 44px; }
+.auth-control { min-width: 0; width: 256px; flex: 0 0 256px; }
+.account-control { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 72px; align-items: center; gap: 8px; width: 100%; }
+.account-identity { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 8px; position: relative; min-width: 0; }
+.account-identity:disabled { opacity: 1; }
+.account-identity[aria-pressed="true"] { border-radius: 8px; box-shadow: 0 0 0 3px #9cc48a; }
+.account-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #eee; }
+.account-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 12px; font-weight: 550; }
+.account-action { min-height: 38px; width: 72px; border: 1px solid #dde7d8; border-radius: 9px; background: #fff; color: #173a40; padding: 6px; font-size: 12px; white-space: nowrap; }
+.account-status { position: absolute; left: 24px; bottom: -2px; width: 13px; height: 13px; line-height: 13px; text-align: center; border-radius: 50%; background: #9b3e2e; color: #fff; font-size: 10px; }
+.account-notice { position: absolute; right: 0; top: calc(100% + 10px); z-index: 1500; width: 260px; padding: 12px; border: 1px solid #dde7d8; border-radius: 10px; background: #fff; box-shadow: 0 5px 20px #1f3b2829; color: #173a40; font-size: 12px; line-height: 1.6; }
 .workspace { display: grid; grid-template-columns: minmax(330px, .85fr) minmax(0, 1.15fr); gap: 32px; align-items: start; }
 .planner { position: sticky; top: 24px; display: flex; flex-direction: column; height: calc(100dvh - 160px); min-height: 560px; max-height: 960px; min-width: 0; }
 .eyebrow { font-size: 10px; font-weight: 750; letter-spacing: 1.5px; color: #3e7b52; }
@@ -63,7 +72,19 @@ button:disabled { cursor: default; opacity: .5; }
 .send-button svg { width: 18px; height: 18px; }
 .composer-note { font-size: 10px; color: #6f7f78; text-align: center; margin-top: 10px; flex-shrink: 0; }
 .explorer { min-width: 0; }
-.map-panel { position: sticky; top: 16px; z-index: 2; border: 1px solid #dde7d8; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 20px #1f3b2810; }
+.map-panel { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(170px, .33fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; border: 1px solid #dde7d8; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 20px #1f3b2810; }
+.map-info { min-width: 0; min-height: 0; padding: 14px 12px; overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid #dde7d8; scrollbar-width: thin; }
+.map-info .map-heading { padding: 0 0 12px; }
+.map-info .map-heading-title { flex-direction: column; align-items: start; gap: 6px; }
+.map-info .location-control { padding: 0; border: 0; }
+.map-info .location-actions { flex-direction: column; align-items: stretch; gap: 2px; }
+.map-info .location-actions .text-button { align-self: start; text-align: left; min-height: 36px; }
+.map-info .locate-button { width: 100%; padding: 8px; font-size: 11px; }
+.map-info .map-legend { padding: 14px 0 0; gap: 8px; }
+.map-info .map-hint { padding: 12px 0 0; line-height: 1.6; }
+.map-info > .brand { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid #dde7d8; }
+.brand-compact .brand-mark { width: 30px; height: 30px; }
+.brand-compact .brand-name { font-size: 17px; }
 .map-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 11px; color: #6f7f78; gap: 12px; }
 .map-heading-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 1; min-width: 0; }
 @media (width >= 960px) {
@@ -74,7 +95,8 @@ button:disabled { cursor: default; opacity: .5; }
   .map-heading .locate-button { min-height: 38px; padding: 6px 11px; }
   .map-heading .text-button { min-height: 38px; }
 }
-.map-canvas { height: clamp(240px, 35dvh, 400px); position: relative; isolation: isolate; }
+.map-canvas { min-width: 0; min-height: 0; position: relative; isolation: isolate; }
+.map-expand-button { position: absolute; right: 12px; top: 12px; z-index: 1000; display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; padding: 9px; border: 1px solid #b7d1ad; border-radius: 10px; background: #fff; color: #2f6b47; box-shadow: 0 2px 8px #1f3b2829; font-size: 12px; font-weight: 600; }
 .trail-map { width: 100%; height: 100%; background: #e8efe2; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 12px 16px 6px; }
 .map-legend > span { display: flex; align-items: center; gap: 5px; color: #62736c; font-size: 10px; white-space: nowrap; }
@@ -176,7 +198,7 @@ button:disabled { cursor: default; opacity: .5; }
   .workspace-library { overflow-y: auto; overscroll-behavior: contain; }
   .planner { position: static; height: auto; min-height: 0; max-height: none; }
   .explorer { display: flex; flex-direction: column; min-height: 0; overflow: hidden; gap: 20px; }
-  .map-panel { position: relative; top: auto; flex: 0 0 58%; min-height: 0; display: flex; flex-direction: column; }
+  .map-panel { flex: 0 0 58%; }
   .map-heading, .map-legend, .map-hint, .map-footnote { flex-shrink: 0; }
   .map-canvas { flex: 1; height: auto; min-height: 0; }
   .trail-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 4px 12px; scrollbar-width: thin; }
@@ -235,16 +257,22 @@ button:disabled { cursor: default; opacity: .5; }
 @media (width < 960px) {
   html, body, #root { height: 100%; overflow: hidden; }
   .app-shell { height: var(--app-height, 100dvh); padding: 0; display: flex; flex-direction: column; overflow: hidden; }
-  .app-header { min-height: 72px; margin: 0; padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); flex-shrink: 0; gap: 10px; }
+  .app-header { min-height: 0; margin: 0; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 20px max(16px, env(safe-area-inset-left)); flex-shrink: 0; gap: 10px; }
   .brand { gap: 9px; }
   .brand-symbol { width: 36px; height: 36px; border-radius: 11px; }
   .brand-symbol svg { width: 23px; height: 23px; }
   .brand-name { font-size: 18px; }
-  .brand-caption { font-size: 10px; }
+  .brand-caption { display: none; }
+  .brand-mark { width: 32px; height: 32px; }
   .location-label { font-size: 10px; }
   .header-actions:has(.auth-control) .location-label { display: none; }
   .header-actions { max-width: 50%; }
-  .auth-control > div > button:first-child > div { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+  .auth-control { width: 172px; flex-basis: 172px; }
+  .account-control { grid-template-columns: minmax(0, 1fr) 58px; }
+  .account-identity { grid-template-columns: 28px minmax(0, 1fr); gap: 6px; }
+  .account-avatar { width: 28px; height: 28px; }
+  .account-action { width: 58px; min-height: 36px; font-size: 11px; }
+  .account-name { font-size: 11px; }
   .workspace { display: flex; flex: 1; min-height: 0; align-items: stretch; padding: 8px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left)); }
   .planner { position: static; height: auto; min-height: 0; max-height: none; width: 100%; flex: 1; }
   .panel-heading h1 { font-size: 27px; letter-spacing: -.8px; margin-top: 5px; }
@@ -265,7 +293,7 @@ button:disabled { cursor: default; opacity: .5; }
   .trail-card { scroll-margin: 8px; }
   .trail-card > .trail-select { gap: 8px; }
   .trail-card > .trail-select > span { font-size: 10px; padding: 5px 8px; }
-  .map-panel { position: relative; top: auto; display: flex; flex-direction: column; width: 100%; box-shadow: none; }
+  .map-panel { width: 100%; box-shadow: none; }
   .map-canvas { flex: 1; height: auto; min-height: 0; }
   .map-legend { flex-shrink: 0; padding: 10px 12px 5px; gap: 5px 9px; }
   .map-heading { padding: 12px; flex-shrink: 0; }
@@ -281,13 +309,16 @@ button:disabled { cursor: default; opacity: .5; }
 }
 
 @media (max-width: 380px) {
+  .auth-control { width: 152px; flex-basis: 152px; }
+  .account-control { grid-template-columns: minmax(0, 1fr) 56px; }
+  .account-action { width: 56px; }
+  .brand-name { font-size: 17px; }
   .location-label { display: none; }
   .panel-heading h1 { font-size: 24px; }
   .workspace { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
 }
 
 @media (width < 960px) and (max-height: 580px) {
-  .app-header { min-height: 50px; padding-top: 6px; padding-bottom: 6px; }
   .brand-caption, .panel-heading > p, .composer-note { display: none; }
   .workspace { padding-top: 8px; padding-bottom: 6px; }
   .panel-heading .eyebrow { display: none; }
@@ -299,12 +330,21 @@ button:disabled { cursor: default; opacity: .5; }
   .map-selection .primary-button { margin-top: 8px; }
 }
 
-@media (600px <= width < 960px) and (max-height: 580px) {
-  .map-panel:has(.route-reference) { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(0, 1.3fr); grid-template-rows: auto minmax(0, 1fr) auto; }
-  .map-panel:has(.route-reference) .location-route { grid-column: 1; grid-row: 1; max-height: none; border-right: 1px solid #d2e3ca; }
-  .map-panel:has(.route-reference) .route-reference { grid-column: 1; grid-row: 2 / 4; max-height: none; min-height: 0; border-right: 1px solid #d2e3ca; }
-  .map-panel:has(.route-reference) .map-canvas { grid-column: 2; grid-row: 1 / 3; height: auto; min-height: 0; }
-  .map-panel:has(.route-reference) .map-legend { grid-column: 2; grid-row: 3; }
+@media (width < 600px) {
+  .map-panel { display: flex; flex-direction: column; }
+  .map-info { flex-shrink: 0; max-height: 42%; padding: 10px 12px; border-right: 0; border-bottom: 1px solid #dde7d8; }
+  .map-info .location-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 3px 10px; }
+  .map-info .locate-button { width: auto; }
+  .map-info .location-control { max-height: none; overflow: visible; }
+  .map-info .map-legend { padding-top: 8px; }
+  .map-info .map-hint { padding-top: 5px; }
+  .map-info .route-reference { max-height: none; overflow: visible; margin-top: 8px; border-radius: 10px; }
+}
+
+.map-panel.map-expanded { position: fixed; inset: 0; z-index: 3000; width: 100vw; height: 100dvh; margin: 0; border: 0; border-radius: 0; grid-template-columns: 230px minmax(0, 1fr); }
+@media (width < 600px) {
+  .map-panel.map-expanded { display: flex; flex-direction: column; }
+  .map-panel.map-expanded .map-info { max-height: 40%; }
 }
 
 @media (any-pointer: coarse) {
@@ -317,7 +357,6 @@ button:disabled { cursor: default; opacity: .5; }
 
 /* iOS can keep layout media queries tall while the keyboard shrinks only the
    visual viewport. Apply the same compact treatment to that visible height. */
-.app-shell[data-short-viewport] .app-header { min-height: 50px; padding-top: 6px; padding-bottom: 6px; }
 .app-shell[data-short-viewport] :is(.brand-caption, .panel-heading > p, .composer-note, .panel-heading .eyebrow) { display: none; }
 .app-shell[data-short-viewport] .workspace { padding-top: 8px; padding-bottom: 6px; }
 .app-shell[data-short-viewport] .panel-heading h1 { font-size: 21px; margin-top: 0; }
@@ -426,6 +465,8 @@ body { background: #2a4a2c; color: #173a40; }
   text-shadow: 0 1px 2px rgba(4, 22, 38, 0.35), 0 3px 18px rgba(4, 22, 38, 0.35);
 }
 .brand-caption, .panel-heading > p, .library-intro p, .library-intro .library-coverage { color: rgba(255, 255, 255, 0.85); }
+.app-header .account-name { color: #fff; text-shadow: 0 1px 8px rgba(4, 22, 38, 0.5); }
+.map-expanded .brand-name { color: #173a40; text-shadow: none; }
 .panel-heading .text-button, .trail-list-heading .text-button { color: #fff; text-shadow: 0 1px 8px rgba(4, 22, 38, 0.5); }
 .trail-list-heading h2 > span { background: rgba(255, 255, 255, 0.22); color: #fff; }
 .location-label > span { background: #f5b83d; }

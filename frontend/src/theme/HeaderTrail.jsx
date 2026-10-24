@@ -9,6 +9,8 @@ import './theme.css'
 // [left %, height px, kind]
 const TREES = [[6.5, 22, 'spruce'], [7.8, 28, 'spruce'], [9.2, 18, 'maple'], [30.5, 24, 'spruce'], [31.8, 17, 'spruce'],
   [55.5, 29, 'spruce'], [57, 20, 'maple'], [58.3, 23, 'spruce'], [82.5, 21, 'spruce'], [84, 30, 'spruce'], [95.5, 19, 'maple']]
+// Keep the complete artwork inside the header's 20px bottom padding.
+const SCALE = 20 / 32
 
 function Spruce() {
   return (
@@ -34,7 +36,7 @@ export default function HeaderTrail() {
   return (
     <div className="hp-trail" aria-hidden="true">
       {TREES.map(([left, h, kind], i) => (
-        <div key={i} className="hp-trail-tree" style={{ left: `${left}%`, height: h, width: kind === 'spruce' ? h * 0.5 : h * 0.7, animationDelay: `${-i * 0.7}s` }}>
+        <div key={i} className="hp-trail-tree" style={{ left: `${left}%`, height: h * SCALE, width: (kind === 'spruce' ? h * 0.5 : h * 0.7) * SCALE, animationDelay: `${-i * 0.7}s` }}>
           {kind === 'spruce' ? <Spruce /> : <Maple />}
         </div>
       ))}
