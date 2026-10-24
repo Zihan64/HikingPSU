@@ -169,7 +169,7 @@ HikingPSU is a **planning aid, not a navigation tool**. Trail data was compiled 
 ## Team
 
 <!-- Replace with names and links -->
-Built at Penn State by **Zihan Zhao**, **Zikai Shen**, **[teammate]** and **[teammate]**.
+Built at Penn State by **Zihan Zhao**, **Allen Shen**, **Junbo Zhao** and **Jonathan Hsiao**.
 
 ## Acknowledgements
 - [OpenStreetMap](https://www.openstreetmap.org/) contributors for map tiles
