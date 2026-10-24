@@ -40,6 +40,9 @@ export const getInsights = token => request('/me/insights', { token })
 export const listHikes = token => request('/me/hikes?limit=200', { token })
 export const addHike = (hike, token) => request('/me/hikes', { method: 'POST', body: hike, token })
 export const deleteHike = (id, token) => request(`/me/hikes/${id}`, { method: 'DELETE', token })
+export const getRecommendations = (token, k = 5) => request(`/me/recommendations?k=${k}`, { token })
+// Returns suggested preference fields only; nothing is saved until patchMe().
+export const parsePreferences = (text, token) => request('/me/preferences/parse', { method: 'POST', body: { text }, token })
 
 export const getOfficialLibrary = (params = {}, signal) => request(`/official/library?${new URLSearchParams(params)}`, { signal })
 export const getOfficialTrails = (areaId, activity, signal) => request(`/official/trails?${new URLSearchParams({area_id: areaId, activity})}`, { signal })

@@ -26,6 +26,7 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **🌤️ Context-aware.** Checks the forecast and sunset time, and reminds you to wear blaze orange during hunting season on state-forest trails.
 - **🗺️ Map view.** Every trail appears on the map, colored by difficulty. Recommended trails are highlighted.
 - **Official trail library.** Search manager-published routes, overlay original GIS lines, compare your location, and open official PDF/offline maps at the publisher.
+- **⭐ Sorted for you.** For signed-in hikers, the Around Happy Valley list puts the trails that fit them first, ranked by their transport, interests, saved trails and hike log. Ranking is a deterministic score, not the AI: a trail only ranks if you can reach it and it is at most one level above your comfort level, and each ranked card says why it fits. Your comfort level and pace adjust as you log hikes.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
 ## Device-aware interface
@@ -318,6 +319,8 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 | `PUT` `DELETE` | `/me/saved/{trail_id}` | Save / unsave a trail |
 | `GET` `POST` | `/me/hikes` | Hike log: `{ trail_id, completed_on, duration_min?, rating?, felt_difficulty?, notes? }` |
 | `GET` | `/me/hikes/stats` | Total hikes, unique trails, miles, elevation |
+| `GET` | `/me/recommendations?k=5` | "Recommended for you": ranked trails with score breakdown, reasons, reachable transport and time at your pace |
+| `POST` | `/me/preferences/parse` | `{ text }` → suggested preference fields (AI, or a keyword parser offline). Nothing is saved; confirm with `PATCH /me` |
 | `PATCH` `DELETE` | `/me/hikes/{id}` | Edit / remove a log entry |
 | `GET` | `/me/chats`, `/me/chats/{id}` | Saved conversations; `DELETE /me/chats/{id}` removes one |
 
@@ -328,6 +331,8 @@ backend/
   app/
     agent.py        Claude tool-use loop, fallback, guardrail
     difficulty.py   Five-level difficulty model
+    recommend.py    Personalized ranking: hard filters + weighted score (REC_CALIBRATION)
+    preference_parser.py  Free-text preferences → suggested fields (LLM, offline fallback)
     store.py        Trail data and search (with feature synonyms)
     tools.py        search_trails · get_weather · hunting_season_note
     models.py       Pydantic schemas
@@ -362,7 +367,8 @@ HikingPSU is a **planning aid, not a navigation tool**. Trail data was compiled 
 
 - [ ] Grow to 30+ trails, with every entry verified
 - [ ] Calibrate difficulty thresholds against local hikers' ratings and publish the agreement rate
-- [ ] Personalized difficulty that adapts to each hiker's pace
+- [x] Personalized difficulty that adapts to each hiker's pace (`recommend.py`: comfort level drifts with how hard logged hikes felt; time estimates scale with logged durations)
+- [ ] Tune `REC_CALIBRATION` weights against sample profiles reviewed by club hikers
 - [ ] Community trail-condition reports (downed trees, mud, closures)
 - [ ] Live CATA bus times for car-free trips
 

@@ -120,6 +120,13 @@ TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+# Per-user, so it is not in REGISTRY: agent.run() adds it only for signed-in users (see recommend.py).
+RECOMMEND_FOR_ME_TOOL: dict[str, Any] = {
+    "name": "recommend_for_me",
+    "description": "The signed-in user's personal trail ranking from their profile, preferences, saved trails and hike log. Returns trails in rank order with why_recommended reasons and personal_time_min at their pace. Only recommend trails returned here, in this order.",
+    "input_schema": {"type": "object", "properties": {"k": {"type": "integer", "minimum": 1, "maximum": 8, "default": 3}}},
+}
+
 REGISTRY = {
     "search_trails": search_trails,
     "get_weather": get_weather,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { chat, getReviewSummaries, listTrails } from './api'
+import { chat, getRecommendations, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
 import useDeviceLayout from './useDeviceLayout'
@@ -57,7 +57,6 @@ export default function App() {
   const [recommended, setRecommended] = useState([])
   const [hasResult, setHasResult] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
-  const [hasCar, setHasCar] = useState(false)
   const [loading, setLoading] = useState(false)
   const [trailsLoading, setTrailsLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -67,6 +66,7 @@ export default function App() {
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const [sessionId, setSessionId] = useState(null)
   const getToken = useOptionalToken()
+  const [ranking, setRanking] = useState(null)   // signed-in only: trails that fit you, best first
   const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})
   const shellRef = useRef(null)
   const conversationRef = useRef(null)
@@ -91,6 +91,18 @@ export default function App() {
       .finally(() => { if (!cancelled) setTrailsLoading(false) })
     return () => { cancelled = true }
   }, [])
+
+  // Personal order for the trail list. Refetched on login/logout and after leaving the profile,
+  // where preferences and the hike log change.
+  useEffect(() => {
+    if (profileOpen) return
+    let cancelled = false
+    getToken()
+      .then(token => token ? getRecommendations(token, 200) : null)
+      .then(r => { if (!cancelled) setRanking(r?.trails ?? null) })
+      .catch(() => { if (!cancelled) setRanking(null) })
+    return () => { cancelled = true }
+  }, [getToken, profileOpen])
 
   // A phone's keyboard can shrink the visual viewport while 100dvh still
   // describes the area behind it. Keep the composer inside the visible area.
@@ -143,7 +155,7 @@ export default function App() {
     const next = [...messages, { role: 'user', content: text.trim() }]
     setMessages(next); setInput(''); setLoading(true); setError(null)
     try {
-      const res = await chat(next, { has_car: hasCar }, { token: await getToken(), sessionId })
+      const res = await chat(next, {}, { token: await getToken(), sessionId })
       if (res.session_id) setSessionId(res.session_id)
       setMessages([...next, { role: 'assistant', content: res.reply }])
       // Off-topic requests are declined without any tool call: keep the current trail list as it is.
@@ -166,7 +178,14 @@ export default function App() {
 
   const recIds = hasResult ? recommended.map(t => t.id) : []
   const mapTrails = allTrails.length ? allTrails : recommended
-  const cards = hasResult ? recommended : allTrails
+  const fitById = useMemo(() => Object.fromEntries((ranking || []).map(r => [r.trail_id, r])), [ranking])
+  // Trails that fit you come first in rank order; the rest keep the default level/distance order.
+  const sortedTrails = useMemo(() => {
+    if (!ranking) return allTrails
+    const byId = Object.fromEntries(allTrails.map(t => [t.id, t]))
+    return [...ranking.map(r => byId[r.trail_id]).filter(Boolean), ...allTrails.filter(t => !fitById[t.id])]
+  }, [allTrails, ranking, fitById])
+  const cards = hasResult ? recommended : sortedTrails
   const selectedTrail = mapTrails.find(t => t.id === selectedId)
   const mapVisible = !fullPage && (!isCompact || mobileView === 'map')
 
@@ -262,10 +281,6 @@ export default function App() {
             <p>A quick campus walk or a rocky ridge? Let's plan it.</p>
             <button className="text-button official-library-shortcut" onClick={() => openOfficialLibrary()}>Browse official routes & offline map links →</button>
           </div>
-          <label className="transport-option">
-            <input type="checkbox" checked={hasCar} onChange={e => setHasCar(e.target.checked)} />
-            <span>I have a car<span className="transport-hint">{hasCar ? 'Explore a little further' : 'Start with bus & walk options'}</span></span>
-          </label>
 
           <div className="conversation" ref={conversationRef} role="log" aria-label="Hiking planner conversation" aria-live="polite" aria-relevant="additions text" aria-busy={loading}>
             {messages.length === 0 && (
@@ -328,12 +343,12 @@ export default function App() {
           {(isCompact || !officialRoute) && <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
             {officialRoute ? <article className="official-area selected-official-summary"><span className="official-badge">Official manager geometry</span><h2 id="trails-title">{officialRoute.route.name}</h2><p>{officialRoute.route.area} · {officialRoute.route.manager}</p><p>{officialRoute.route.description}</p><p className="source-notice">{officialRoute.source_notice}</p><OfficialLinks resources={officialRoute.route.resources} /><div className="route-reference-actions"><button className="primary-button" onClick={() => { showTrailsOnMap(); setMobileView('map') }}>View official route on map</button><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button></div></article> : <>
             <div className="trail-list-heading">
-              <div><span className="eyebrow">{hasResult ? 'PICKED FOR YOUR PLANS' : 'SOMEWHERE GOOD TO GO'}</span><h2 id="trails-title">{hasResult ? 'Your trail matches' : 'Around Happy Valley'} <span>{cards.length}</span></h2></div>
+              <div><span className="eyebrow">{hasResult ? 'PICKED FOR YOUR PLANS' : ranking ? 'SORTED FOR YOU' : 'SOMEWHERE GOOD TO GO'}</span><h2 id="trails-title">{hasResult ? 'Your trail matches' : 'Around Happy Valley'} <span>{cards.length}</span></h2></div>
               {hasResult && <button className="text-button" onClick={showAll}>Show all trails</button>}
             </div>
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}

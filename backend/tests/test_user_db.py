@@ -17,7 +17,7 @@ TRAIL2 = "millbrook-marsh"
 
 @pytest.fixture
 def client(monkeypatch, fake_auth0):
-    monkeypatch.setattr(agent, "run", lambda messages, profile=None: _fake_run(messages, profile))
+    monkeypatch.setattr(agent, "run", lambda messages, profile=None, **kw: _fake_run(messages, profile))
     db.set_client(mongomock.MongoClient())
     yield TestClient(app)
     db.set_client(None)
@@ -83,7 +83,7 @@ def test_patch_only_changes_sent_fields(client):
     body = r.json()
     assert body["profile"]["fitness"] == 2  # untouched by the second patch
     assert body["preferences"] == {
-        "preferred_features": ["view"], "transit_modes": [], "preferred_seasons": [], "prefers_loop": None,
+        "preferred_features": ["view"], "avoid": [], "transit_modes": [],"preferred_seasons": [], "prefers_loop": None,
         "max_level": 3, "max_time_min": None, "max_drive_min": None, "notes": None,
     }
     assert client.patch("/me", headers=h, json={"profile": {"fitness": 9}}).status_code == 422

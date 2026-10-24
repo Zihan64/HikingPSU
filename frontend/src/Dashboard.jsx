@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { addHike, deleteHike, getInsights, getMe, listHikes, patchMe } from './api'
+import { addHike, deleteHike, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
 import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
 const FEATURES = ['view', 'lake', 'forest', 'stream', 'flat', 'sunset', 'wildlife', 'rocks', 'steep', 'shade', 'campus']
-const TRANSIT = [['walk', 'Walk'], ['bus', 'Bus (CATA)'], ['bike', 'Bike'], ['car', 'Car']]
+const AVOID = ['steep', 'rocks', 'mud', 'crowds']
+const TRANSIT =[['walk', 'Walk'], ['bus', 'Bus (CATA)'], ['bike', 'Bike'], ['car', 'Car']]
 const SEASONS = ['spring', 'summer', 'fall', 'winter']
 const GROUPS = [['solo', 'Solo'], ['friends', 'Friends'], ['family', 'Family'], ['club', 'Club']]
-const inputCls = 'min-h-[40px] rounded-lg border border-[#d8dfd1] bg-white px-2 py-1.5 text-sm'
+const withSaved = (options, saved) => [...new Set([...options, ...saved])]
+const inputCls ='min-h-[40px] rounded-lg border border-[#d8dfd1] bg-white px-2 py-1.5 text-sm'
 const GREEN = '#174e3c'
 
 function Card({ title, hint, children }) {
@@ -182,7 +184,10 @@ export default function Dashboard({ trails }) {
         </Card>
 
         <Card title="What you like" hint="Features you look for in a trail.">
-          <Chips options={FEATURES} value={prefs.preferred_features} onToggle={k => setPref('preferred_features', toggle(prefs.preferred_features, k))} />
+          {/* saved values outside the preset list (e.g. from "Describe what you like") still get a chip so they can be removed */}
+          <Chips options={withSaved(FEATURES, prefs.preferred_features)} value={prefs.preferred_features} onToggle={k => setPref('preferred_features', toggle(prefs.preferred_features, k))} />
+          <div className="mt-3 text-xs text-[#73806e]">Rather avoid</div>
+          <div className="mt-1"><Chips options={withSaved(AVOID, prefs.avoid)} value={prefs.avoid} onToggle={k => setPref('avoid', toggle(prefs.avoid, k))} /></div>
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             <label className="flex flex-col gap-1">Hardest level you want
               <select className={inputCls} value={prefs.max_level ?? ''} onChange={e => setPref('max_level', num(e.target.value, 1, 5))}>
@@ -204,6 +209,7 @@ export default function Dashboard({ trails }) {
         </Card>
 
         <LogHike trails={trails} onAdd={async h => { await addHike(h, await getToken()); await load() }} />
+        <DescribeYourself getToken={getToken} onApply={save} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -254,6 +260,66 @@ export default function Dashboard({ trails }) {
         </ul>
       </Card>
     </div>
+  )
+}
+
+// Free text -> suggested settings. The server only suggests; nothing changes until "Apply".
+function DescribeYourself({ getToken, onApply }) {
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const [suggestion, setSuggestion] = useState(null)
+
+  async function suggest(e) {
+    e.preventDefault()
+    if (!text.trim()) return
+    setBusy(true); setErr(null); setSuggestion(null)
+    try { setSuggestion(await parsePreferences(text.trim(), await getToken())) } catch (e2) { setErr(e2.message) } finally { setBusy(false) }
+  }
+
+  // Only fields the text actually set; transit choices keep has_car in sync like the chips above.
+  const changes = suggestion && Object.fromEntries(
+    ['max_level', 'preferred_features', 'avoid', 'transit_modes', 'max_time_min', 'prefers_loop']
+      .filter(k => suggestion[k] != null && !(Array.isArray(suggestion[k]) && !suggestion[k].length))
+      .map(k => [k, suggestion[k]]))
+  const rows = changes && [
+    changes.max_level && `Hardest level: L${changes.max_level} ${LEVEL_LABELS[changes.max_level]}`,
+    changes.preferred_features && `Likes: ${changes.preferred_features.join(', ')}`,
+    changes.avoid && `Avoids: ${changes.avoid.join(', ')}`,
+    changes.transit_modes && `Gets there by: ${changes.transit_modes.join(', ')}`,
+    changes.max_time_min && `Max hike time: ${changes.max_time_min} min`,
+    changes.prefers_loop != null && (changes.prefers_loop ? 'Prefers loops' : 'Prefers out-and-back'),
+  ].filter(Boolean)
+
+  async function apply() {
+    const body = { preferences: changes }
+    if (changes.transit_modes) body.profile = { has_car: changes.transit_modes.includes('car') }
+    await onApply(body)
+    setSuggestion(null); setText('')
+  }
+
+  return (
+    <Card title="Describe what you like" hint="In your own words. We'll suggest settings for you to check before anything is saved.">
+      <form onSubmit={suggest} className="grid gap-2 text-sm">
+        <textarea className={`${inputCls} min-h-[72px]`} maxLength={500} value={text} onChange={e => setText(e.target.value)}
+          placeholder="e.g. a bit out of shape, love lakes and views, hate mud, no car, 2 hours max" />
+        <button disabled={busy || !text.trim()} className="primary-button">{busy ? 'Thinking…' : 'Suggest settings'}</button>
+      </form>
+      {err && <p className="error-message mt-2" role="alert">{err}</p>}
+      {suggestion && (
+        <div className="mt-3 rounded-xl bg-[#f2f4ee] p-3 text-sm" role="status">
+          {rows.length ? (
+            <>
+              <ul className="list-disc pl-5">{rows.map(r => <li key={r}>{r}</li>)}</ul>
+              <div className="mt-2 flex gap-2">
+                <button type="button" className="primary-button" onClick={apply}>Apply</button>
+                <button type="button" className="text-button" onClick={() => setSuggestion(null)}>Discard</button>
+              </div>
+            </>
+          ) : <p className="text-xs text-[#73806e]">We couldn't pick out any settings from that. Try mentioning difficulty, features, transport or time.</p>}
+        </div>
+      )}
+    </Card>
   )
 }
 

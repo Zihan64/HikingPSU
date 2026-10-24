@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import datetime as dt
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from . import auth, chats, hikes, reviews, store, users
+from . import auth, chats, hikes, preference_parser, ratelimit, recommend, reviews, store, users
 from .user_models import (
     ChatSessionOut,
     ChatSessionSummary,
@@ -15,6 +15,9 @@ from .user_models import (
     HikeUpdate,
     Insights,
     MePatch,
+    ParsedPreferences,
+    PreferenceText,
+    Recommendations,
     UserOut,
 )
 
@@ -48,6 +51,20 @@ def delete_me(user: dict = Depends(auth.current_user)):
 @me_router.get("/insights", response_model=Insights)
 def get_insights(user: dict = Depends(auth.current_user)):
     return hikes.insights(user)
+
+
+# ---------- recommendations ----------
+
+@me_router.get("/recommendations", response_model=Recommendations)
+def get_recommendations(k: int = 5, user: dict = Depends(auth.current_user)):
+    return recommend.for_user(user, k=min(max(k, 1), 200))  # the trail list asks for every trail that fits
+
+
+@me_router.post("/preferences/parse", response_model=ParsedPreferences)
+def parse_preferences(body: PreferenceText, request: Request, user_id: str = Depends(auth.current_user_id)):
+    """Suggest structured preferences from free text. Nothing is saved; the client PATCHes /me after the user confirms."""
+    ratelimit.check(request, user_id)  # may call the Claude API, so it shares the chat budget
+    return preference_parser.parse(body.text)
 
 
 # ---------- saved trails ----------
