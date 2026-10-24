@@ -28,3 +28,21 @@ def test_effort_formula():
 def test_car_free_filter_only_returns_reachable():
     for t in store.search(car_free=True, limit=50):
         assert t.car_free
+
+
+def test_imported_out_and_back_trails_are_rated_on_the_round_trip():
+    # OSM gives the one-way length of a route; hikers walk it there and back.
+    from app import store
+    osm = [t for t in store.load_all() if t.source == "osm"]
+    assert osm, "expected imported OpenStreetMap trails"
+    for t in osm:
+        assert "one-way length" not in t.notes
+        if not t.loop:
+            assert "round trip" in t.notes
+    bald_knob = store.get("bald-knob-ridge-trail-21272894")
+    assert bald_knob.distance_mi == 6.2 and bald_knob.difficulty.level >= 2
+
+
+def test_curated_trails_are_marked_curated():
+    from app import store
+    assert store.get("mt-nittany-mike-lynch").source == "curated"
