@@ -289,7 +289,6 @@ export default function App() {
           <div className="conversation" ref={conversationRef} role="log" aria-label="Hiking planner conversation" aria-live="polite" aria-relevant="additions text" aria-busy={loading}>
             {messages.length === 0 && (
               <div className="welcome">
-                <span className="welcome-icon"><Icon name="plan" /></span>
                 <h2>Where do you want to go?</h2>
                 <p>Tell me your time, transport and who's coming along. Or start here:</p>
                 <div className="suggestions">
@@ -326,8 +325,12 @@ export default function App() {
 
         <section className="explorer" aria-label="Explore local trails" hidden={fullPage || (isCompact && mobileView === 'plan')}>
           <section id="map-panel" className="map-panel" hidden={isCompact && mobileView !== 'map'} aria-label="Trail map">
-            <div className="map-heading"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
-            <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} showStatus={isCompact} />
+            {/* Desktop: location buttons share the heading row so the map gets that height. */}
+            <div className="map-heading">
+              <div className="map-heading-title"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
+              {!isCompact && <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} showStatus={false} />}
+            </div>
+            {isCompact && <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />}
             {officialRoute && isCompact && <RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} />}
             <div className="map-canvas">
               <MapView trails={officialRoute ? [] : mapTrails} recIds={officialRoute ? [] : recIds} selectedId={selectedId} onSelect={selectFromMap} active={mapVisible} touch={isTouch} compact={isCompact} reducedMotion={reducedMotion} userPosition={location.position} mapFocus={mapFocus} officialRoute={officialRoute} />
