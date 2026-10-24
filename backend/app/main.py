@@ -133,7 +133,8 @@ def _recent(messages):
 
 
 # Personal details from the sign-up form stay in the database; the model doesn't need them.
-PRIVATE_PROFILE_FIELDS = {"bio", "full_name", "gender", "gender_custom", "birthday", "phone"}
+PRIVATE_PROFILE_FIELDS = {"bio", "full_name", "gender", "gender_custom", "birthday", "phone", "secondary_email", "address",
+                          "transport"}  # transport: legacy single answer, superseded by preferences.transit_modes
 
 
 def _stored_profile(user_id: str) -> dict:
