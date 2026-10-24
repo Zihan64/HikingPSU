@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.28.2",
+    "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

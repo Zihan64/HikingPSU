@@ -1,0 +1,94 @@
+@import '@fontsource-variable/hanken-grotesk/index.css';
+
+/* Full-bleed sky: soft sun high on the right, Pugh Blue overhead, white haze at the horizon. */
+.lp-sky {
+  background:
+    radial-gradient(circle at 76% 6%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.5) 8%, rgba(255, 255, 255, 0) 30%),
+    linear-gradient(180deg, #a6c9ee 0%, #c9e0f6 38%, #e8f2fb 70%, #f6fafd 100%);
+}
+
+/* index.css sets `html, body, #root { overflow: hidden }` under 960px for the app shell;
+   the sign-in page is taller than a phone screen, so it becomes its own scroll container there. */
+@media (width < 960px) {
+  /* doubled class: must beat Tailwind's `overflow-hidden` on the same element */
+  .lp-scroll.lp-scroll {
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Pointer parallax. Landing sets --mx/--my (-1..1); each layer sets its depth with --px/--py. */
+.lp-par {
+  transform: translate(calc(var(--mx, 0) * var(--px, 0) * 1px), calc(var(--my, 0) * var(--py, 0) * 1px));
+  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Clouds: each wrapper spans the page and slides from off-left to off-right. */
+.lp-cloud {
+  animation: lp-drift var(--dur, 90s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  will-change: transform;
+}
+@keyframes lp-drift {
+  from { transform: translateX(-30%); }
+  to   { transform: translateX(100%); }
+}
+
+/* Page load: ridges rise layer by layer, headline settles. One sequence, then still. */
+.lp-rise {
+  animation: lp-rise 1.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes lp-rise {
+  from { transform: translateY(16%); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.lp-fade {
+  animation: lp-fade 1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes lp-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Badge ring text turns slowly around the mark. */
+.lp-spin {
+  transform-box: view-box;
+  transform-origin: 70px 70px;
+  animation: lp-spin 48s linear infinite;
+}
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+
+/* Primary button: a light sweep answers the hover. */
+.lp-shine { position: relative; overflow: hidden; isolation: isolate; }
+.lp-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(150, 190, 230, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.lp-shine:hover::after { transform: translateX(120%); }
+
+/* Trail card: content cross-fades, a hairline shows time until the next trail. */
+.lp-swap { animation: lp-fade 0.6s ease-out both; }
+.lp-progress {
+  transform-origin: left;
+  animation: lp-progress var(--t, 5s) linear forwards;
+}
+.lp-paused .lp-progress { animation-play-state: paused; }
+@keyframes lp-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cloud, .lp-rise, .lp-fade, .lp-swap, .lp-progress, .lp-spin { animation: none !important; }
+  .lp-par { transform: none !important; transition: none !important; }
+  .lp-shine::after { display: none; }
+}
