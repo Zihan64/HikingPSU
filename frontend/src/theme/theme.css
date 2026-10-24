@@ -1,17 +1,11 @@
-/* App backdrop (AppBackdrop.jsx): the realistic scene fixed behind every panel, never clickable. */
+/* App backdrop (AppBackdrop.jsx): a calm light surface with the sky strip and forest edge, never clickable. */
 .hp-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  background: linear-gradient(180deg, #1f5fae 0%, #4f93d6 30%, #a9cfe8 56%, #8fb27c 70%, #3f6b3f 85%, #2a4a2c 100%);
-}
-/* a light veil over the middle of the scene so the glass panels and the type stay calm */
-.hp-backdrop-shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(6, 26, 44, 0.30) 0%, rgba(6, 26, 44, 0.10) 22%, rgba(255, 255, 255, 0.10) 55%, rgba(6, 26, 44, 0.12) 100%);
+  background: #f3f5f0;
 }
 
 /* Header trail (HeaderTrail.jsx): sits on the header's bottom line. */

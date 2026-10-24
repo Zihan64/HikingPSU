@@ -1,5 +1,5 @@
-import { Hiker } from '../scene/Wildlife'
-import '../scene/scene.css'
+import { Hiker } from '../scenery/Wildlife'
+import '../scenery/scenery.css'
 import './theme.css'
 
 // The header's bottom line becomes a trail: small spruces and autumn maples stand along it, and a

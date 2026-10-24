@@ -1,8 +1,7 @@
-import { useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { RotatingBadge, Wordmark } from './Logo'
 import TrailTicker from './TrailTicker'
-import OutdoorScene from '../scene/OutdoorScene'
-import { Deer, Flocks, Hawk, Hiker } from '../scene/Wildlife'
+import { HeroScenery } from '../scenery/Scenery'
 import './landing.css'
 
 const FEATURES = [
@@ -15,7 +14,7 @@ const FEATURES = [
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trail-forest'
 
 // Land height: about a third of the first screen, never tiny, never overwhelming.
-const landHeight = () => Math.min(420, Math.max(260, window.innerHeight * 0.36))
+const landHeight = () => Math.min(460, Math.max(280, window.innerHeight * 0.42))
 
 // signedInName: set when someone already signed in came back here with the browser Back button.
 // guestReturning: a guest came back here; the guest link then reads "Keep browsing".
@@ -26,12 +25,12 @@ export default function Landing({
   const sceneBox = useRef(null)
   const signedIn = Boolean(signedInName)
 
-  // Called by the scene on every resize (canvas size in CSS px). Shares the land height with the
-  // wildlife through --land, so the deer and the hiker always stand on the rendered meadow.
-  const layout = useCallback((w, h) => {
-    const land = landHeight()
-    sceneBox.current?.style.setProperty('--land', `${land}px`)
-    return { horizon: land / h, sun: [w < 640 ? 0.74 : 0.62, 1 - Math.min(150, window.innerHeight * 0.17) / h] }
+  // The land height is shared with the scenery through --land.
+  useEffect(() => {
+    const set = () => sceneBox.current?.style.setProperty('--land', `${landHeight()}px`)
+    set()
+    window.addEventListener('resize', set)
+    return () => window.removeEventListener('resize', set)
   }, [])
 
   return (
@@ -40,21 +39,9 @@ export default function Landing({
     // the sky stays at the top and the land sits at the very bottom.
     <div className="lp-scroll font-landing text-trail-ink antialiased">
     <div ref={sceneBox} className="lp-sky relative isolate min-h-full overflow-hidden">
-      <OutdoorScene className="absolute inset-0" layout={layout} interactive />
+      <HeroScenery className="absolute inset-0" />
       {/* a soft shade behind the white text keeps it legible against bright cloud */}
       <div className="lp-shade pointer-events-none absolute inset-0" aria-hidden="true" />
-      {/* sky life, first screen */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-screen" aria-hidden="true">
-        <Flocks />
-        <Hawk className="hidden sm:block sm:left-[52%] sm:top-[40%] lg:left-[47%] lg:top-[36%]" size={60} />
-      </div>
-      {/* meadow life, positioned in the land frame shared with the scene */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: 'var(--land, 300px)' }} aria-hidden="true">
-        <Deer className="aspect-square h-[24%]" style={{ left: '49%', bottom: '3%' }} />
-        <div className="hp-trek" style={{ left: '31%', width: '15%', bottom: '1.5%', height: '20%' }}>
-          <div className="hp-trek-walker h-full" style={{ aspectRatio: '60 / 102' }}><Hiker className="h-full w-full" /></div>
-        </div>
-      </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <header className="flex items-center justify-between px-6 pt-6 sm:px-10 lg:px-16 lg:pt-8">
