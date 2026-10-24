@@ -52,6 +52,16 @@ button:disabled { cursor: default; opacity: .5; }
 .message-author { display: block; font-size: 10px; font-weight: 700; letter-spacing: .3px; color: #3e7b52; margin-bottom: 6px; }
 .message p { white-space: pre-wrap; font-size: 13px; line-height: 1.75; }
 .message p a { color: #2c7fbf; text-decoration: underline; overflow-wrap: anywhere; }
+.message-body { font-size: 13px; line-height: 1.75; }
+.message-body > * + * { margin-top: 8px; }
+.message-body :is(ul, ol) { padding-left: 18px; }
+.message-body ul { list-style: disc; }
+.message-body ol { list-style: decimal; }
+.message-body li.nested { margin-left: 16px; list-style: circle; }
+.message-body li::marker { color: #6f8a73; }
+.message-body li a { color: #2c7fbf; text-decoration: underline; overflow-wrap: anywhere; }
+.message-body .message-heading { font-weight: 650; }
+.message-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #e6ece2; border-radius: 4px; padding: 0 4px; }
 .chat-status { color: #4f6466; font-size: 13px; padding: 10px; }
 .error-message { border-radius: 10px; background: #fff1ed; color: #9b3e2e; padding: 12px; font-size: 13px; line-height: 1.6; }
 .composer { display: flex; gap: 8px; margin-top: 12px; flex-shrink: 0; }
