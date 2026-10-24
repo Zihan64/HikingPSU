@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, Tooltip, GeoJSON, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { LEVEL_HEX } from './levels'
 
 const DEFAULT_CENTER = [40.78, -77.85]
 const DEFAULT_ZOOM = 11
+
 // Keep the map within 60 km of State College (square bounds that contain the 60 km circle).
 const MAX_RADIUS_M = 60000
 const MAX_BOUNDS = L.latLng(DEFAULT_CENTER).toBounds(MAX_RADIUS_M * 2)
@@ -13,16 +14,17 @@ const MIN_ZOOM = 9
 // Pin = colored circle with the difficulty level inside.
 // emphasis: 'normal' | 'rec' (recommended by the agent) | 'selected'
 const iconCache = {}
-function levelIcon(level, emphasis) {
-  const key = `${level}-${emphasis}`
+function levelIcon(level, emphasis, largeTargets) {
+  const key = `${level}-${emphasis}-${largeTargets}`
   if (!iconCache[key]) {
     const size = emphasis === 'normal' ? 26 : 34
+    const target = largeTargets ? 44 : size
     const shadow = emphasis === 'selected' ? '0 0 0 3px #1c1917' : '0 1px 4px rgba(0,0,0,.45)'
     iconCache[key] = L.divIcon({
       className: '',
-      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${LEVEL_HEX[level]};border:3px solid #fff;box-shadow:${shadow};color:#fff;font:700 ${size > 30 ? 14 : 12}px system-ui,sans-serif;display:flex;align-items:center;justify-content:center">${level}</div>`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
+      html: `<div style="width:${target}px;height:${target}px;display:grid;place-items:center"><div style="width:${size}px;height:${size}px;border-radius:50%;background:${LEVEL_HEX[level]};border:3px solid #fff;box-shadow:${shadow};color:#fff;font:700 ${size > 30 ? 14 : 12}px system-ui,sans-serif;display:flex;align-items:center;justify-content:center">${level}</div></div>`,
+      iconSize: [target, target],
+      iconAnchor: [target / 2, target / 2],
       popupAnchor: [0, -size / 2],
     })
   }
@@ -52,51 +54,103 @@ function spreadPositions(trails) {
 }
 
 // Moves the camera: fit the recommended trails, else fit everything; fly to a selected one.
-function Camera({ trails, positions, recIds, selectedId }) {
+function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, compact, userPosition, mapFocus, routeBounds }) {
   const map = useMap()
   const recKey = recIds.join(',')
+  const boundsKey = recKey || trails.map(t => t.id).join(',')
+  const fittedKey = useRef(null)
+  const appliedFocus = useRef(null)
+
+  // Preserve the local trail browsing bounds, while allowing a requested user
+  // location outside the region to be shown. Show trails restores the bounds.
+  useEffect(() => {
+    const showingLocation = mapFocus.kind === 'location' && userPosition
+    map.setMaxBounds(showingLocation || routeBounds ? null : MAX_BOUNDS)
+    map.setMinZoom(showingLocation || routeBounds ? 3 : MIN_ZOOM)
+  }, [map, mapFocus.kind, userPosition, routeBounds])
 
   useEffect(() => {
-    const ids = recIds.length ? recIds : trails.map(t => t.id)
-    const pts = ids.map(id => positions[id]).filter(Boolean)
-    if (pts.length === 0) {
-      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
-    } else {
-      map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: recIds.length ? 13 : 12 })
+    if (!active) appliedFocus.current = null
+  }, [active])
+
+  // Closing a desktop popup explicitly prevents an empty Leaflet popup shell
+  // from surviving when its React content unmounts for the mobile detail panel.
+  useEffect(() => {
+    if (compact) map.closePopup()
+  }, [map, compact])
+
+  useEffect(() => {
+    if (!active) return
+    let frame
+    const resize = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => map.invalidateSize({ pan: true, animate: false }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recKey, trails.length])
+    const observer = new ResizeObserver(resize)
+    observer.observe(map.getContainer())
+    resize()
+    return () => { observer.disconnect(); cancelAnimationFrame(frame) }
+  }, [map, active])
 
   useEffect(() => {
-    const p = selectedId && positions[selectedId]
-    if (p) map.flyTo(p, Math.max(map.getZoom(), 13), { duration: 0.6 })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId])
+    if (!active) return
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize({ pan: true, animate: false })
+      const p = selectedId && positions[selectedId]
+      const focusKey = `${mapFocus.kind}-${mapFocus.version}-${mapFocus.kind === 'location' ? userPosition?.id : ''}`
+      const freshFocus = appliedFocus.current !== focusKey
+      if (mapFocus.kind === 'route' && routeBounds?.isValid() && freshFocus) {
+        map.closePopup()
+        map.fitBounds(routeBounds, {padding: [30, 30], maxZoom: 16, animate: false})
+        appliedFocus.current = focusKey
+      } else if (mapFocus.kind === 'location' && userPosition && freshFocus) {
+        const zoom = userPosition.accuracy <= 100 ? 16 : userPosition.accuracy <= 1000 ? 14 : userPosition.accuracy <= 10000 ? 11 : 8
+        map.closePopup()
+        map.setView([userPosition.latitude, userPosition.longitude], zoom, { animate: !reducedMotion, duration: 0.4 })
+        appliedFocus.current = focusKey
+      } else if (mapFocus.kind === 'trail' && p && freshFocus) {
+        map.setView(p, Math.max(map.getZoom(), 13), { animate: !reducedMotion, duration: 0.4 })
+        appliedFocus.current = focusKey
+      } else if (mapFocus.kind === 'trails' && (freshFocus || fittedKey.current !== boundsKey)) {
+        const ids = recKey ? recKey.split(',') : trails.map(t => t.id)
+        const pts = ids.map(id => positions[id]).filter(Boolean)
+        if (pts.length) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: recKey ? 13 : 12, animate: false })
+        else map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+        appliedFocus.current = focusKey
+      }
+      fittedKey.current = boundsKey
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [map, active, boundsKey, recKey, trails, positions, selectedId, reducedMotion, userPosition, mapFocus, routeBounds])
 
   return null
 }
 
-export default function MapView({ trails, recIds = [], selectedId = null, onSelect = () => {} }) {
+export default function MapView({ trails, recIds = [], selectedId = null, onSelect = () => {}, active = true, touch = false, compact = false, reducedMotion = false, userPosition = null, mapFocus = { kind: 'trails', version: 0 }, officialRoute = null }) {
   const positions = useMemo(() => spreadPositions(trails), [trails])
   const markerRefs = useRef({})
+  const routeBounds = useMemo(() => officialRoute ? L.geoJSON(officialRoute.geojson).getBounds() : null, [officialRoute])
 
   useEffect(() => {
-    if (selectedId) markerRefs.current[selectedId]?.openPopup()
-  }, [selectedId])
+    if (active && selectedId && !compact) markerRefs.current[selectedId]?.openPopup()
+  }, [active, selectedId, compact])
 
   const hasRec = recIds.length > 0
 
   return (
-    <MapContainer
-      center={DEFAULT_CENTER}
-      zoom={DEFAULT_ZOOM}
-      minZoom={MIN_ZOOM}
-      maxBounds={MAX_BOUNDS}
-      maxBoundsViscosity={1.0}
-      className="h-80 w-full rounded-xl"
-    >
+    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} minZoom={MIN_ZOOM} maxBounds={MAX_BOUNDS} maxBoundsViscosity={1.0} scrollWheelZoom={false} className="trail-map" aria-label="Interactive map of local trails">
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-      <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} />
+      <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} active={active} reducedMotion={reducedMotion} compact={compact} userPosition={userPosition} mapFocus={mapFocus} routeBounds={routeBounds} />
+      {officialRoute && <>
+        <GeoJSON key={`halo-${officialRoute.retrieved_at}`} data={officialRoute.geojson} style={{color:'#fff',weight:8,opacity:0.9}} interactive={false} />
+        <GeoJSON key={`official-${officialRoute.retrieved_at}`} data={officialRoute.geojson} style={{color:'#0f766e',weight:4,opacity:1}}><Tooltip>{officialRoute.route.name} · {officialRoute.route.manager}</Tooltip></GeoJSON>
+      </>}
+      {userPosition && <>
+        <Circle center={[userPosition.latitude, userPosition.longitude]} radius={userPosition.accuracy} pathOptions={{ color: '#2563eb', weight: 1, fillColor: '#3b82f6', fillOpacity: 0.12 }} interactive={false} />
+        <CircleMarker center={[userPosition.latitude, userPosition.longitude]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }} interactive={false}>
+          <Tooltip permanent direction="top" offset={[0, -10]}>Your location</Tooltip>
+        </CircleMarker>
+      </>}
       {trails.map(t => {
         const isSel = t.id === selectedId
         const isRec = recIds.includes(t.id)
@@ -106,18 +160,20 @@ export default function MapView({ trails, recIds = [], selectedId = null, onSele
             key={t.id}
             ref={el => { markerRefs.current[t.id] = el }}
             position={positions[t.id]}
-            icon={levelIcon(t.difficulty.level, emphasis)}
+            icon={levelIcon(t.difficulty.level, emphasis, touch || compact)}
+            title={`${t.name}, Level ${t.difficulty.level}`}
+            alt={`${t.name}, Level ${t.difficulty.level}`}
             opacity={hasRec && !isRec && !isSel ? 0.4 : 1}
             zIndexOffset={isSel ? 2000 : isRec ? 1000 : 0}
             eventHandlers={{ click: () => onSelect(t.id) }}
           >
-            <Popup>
+            {!compact && <Popup>
               <b>{t.name}</b>
               <br />
               L{t.difficulty.level} {t.difficulty.label} · {t.distance_mi} mi
               <br />
               <span style={{ color: '#78716c' }}>Trailhead: {t.trailhead.address}</span>
-            </Popup>
+            </Popup>}
           </Marker>
         )
       })}

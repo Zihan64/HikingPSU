@@ -2,11 +2,11 @@ export const BASE = import.meta.env.VITE_API_BASE || '/api'
 
 // One fetch helper for every endpoint. Pass `token` (an Auth0 access token) for routes that
 // need or benefit from login; errors carry `.status` so callers can react to 401.
-async function request(path, { method = 'GET', body, token = null } = {}) {
+async function request(path, { method = 'GET', body, token = null, signal } = {}) {
   const headers = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
-  const r = await fetch(`${BASE}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+  const r = await fetch(`${BASE}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal })
   if (!r.ok) {
     let detail = `API ${r.status}`
     try {
@@ -32,3 +32,7 @@ export const getReviewSummaries = () => request('/reviews/summary')
 export const getTrailReviews = (id, token = null) => request(`/trails/${id}/reviews`, { token })
 export const saveReview = (id, review, token) => request(`/trails/${id}/reviews/me`, { method: 'PUT', body: review, token })
 export const deleteReview = (id, token) => request(`/trails/${id}/reviews/me`, { method: 'DELETE', token })
+
+export const getOfficialLibrary = (params = {}, signal) => request(`/official/library?${new URLSearchParams(params)}`, { signal })
+export const getOfficialTrails = (areaId, activity, signal) => request(`/official/trails?${new URLSearchParams({area_id: areaId, activity})}`, { signal })
+export const getOfficialGeometry = (areaId, routeId, activity, signal) => request(`/official/trails/${encodeURIComponent(areaId)}/${encodeURIComponent(routeId)}/geometry?${new URLSearchParams({activity})}`, { signal })
