@@ -142,6 +142,8 @@ export default function App() {
       const res = await chat(next, { has_car: hasCar }, { token: await getToken(), sessionId })
       if (res.session_id) setSessionId(res.session_id)
       setMessages([...next, { role: 'assistant', content: res.reply }])
+      // Off-topic requests are declined without any tool call: keep the current trail list as it is.
+      if (!res.trails.length && !res.tool_log?.length) return
       const resourcesOnly = !res.trails.length && res.tool_log?.some(entry => entry.tool === 'search_official_resources')
       setRecommended(res.trails); setSelectedId(null); setHasResult(!resourcesOnly)
       if (!resourcesOnly) {
@@ -149,8 +151,9 @@ export default function App() {
         setMapFocus(previous => ({ kind: 'trails', version: previous.version + 1 }))
       }
       trailListRef.current?.scrollTo({ top: 0 })
-    } catch {
-      setError("We couldn't get a recommendation. Please try again.")
+    } catch (err) {
+      // 429 = rate limit, 413/422 = message too long: show the server's reason. Anything else stays generic.
+      setError([413, 422, 429].includes(err?.status) ? err.message : "We couldn't get a recommendation. Please try again.")
     } finally {
       sendingRef.current = false
       setLoading(false)
@@ -291,7 +294,7 @@ export default function App() {
           )}
           <form className="composer" onSubmit={e => { e.preventDefault(); send(input) }}>
             <label className="sr-only" htmlFor="hike-input">Describe your hike</label>
-            <input id="hike-input" value={input} onChange={e => setInput(e.target.value)} placeholder="Describe your hike…" enterKeyHint="send" autoComplete="off" />
+            <input id="hike-input" maxLength={500} value={input} onChange={e => setInput(e.target.value)} placeholder="Describe your hike…" enterKeyHint="send" autoComplete="off" />
             <button className="primary-button send-button" disabled={loading || !input.trim()} aria-label="Send message"><Icon name="send" /><span className="send-label">Send</span></button>
           </form>
           <p className="composer-note">Local trails. Clear difficulty. A plan that fits you.</p>

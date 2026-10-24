@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure
 
-from . import agent, auth, chats, hikes, store, users
+from . import agent, auth, chats, hikes, ratelimit, store, users
 from .db import DatabaseUnavailable
-from .models import ChatRequest, ChatResponse, TrailWithDifficulty
+from .models import MAX_USER_MESSAGE_CHARS, ChatRequest, ChatResponse, TrailWithDifficulty
 from .routes_reviews import router as reviews_router
 from .routes_user import me_router
 from .official import router as official_router
@@ -53,9 +53,14 @@ def get_trail(trail_id: str):
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(req: ChatRequest, user_id: str | None = Depends(auth.current_user_id_optional)):
+def chat(req: ChatRequest, request: Request, user_id: str | None = Depends(auth.current_user_id_optional)):
     if not req.messages:
         raise HTTPException(400, "messages required")
+    if req.messages[-1].role != "user" or not req.messages[-1].content.strip():
+        raise HTTPException(400, "last message must be a non-empty user message")
+    if len(req.messages[-1].content) > MAX_USER_MESSAGE_CHARS:
+        raise HTTPException(413, f"Message too long (max {MAX_USER_MESSAGE_CHARS} characters).")
+    ratelimit.check(request, user_id)
     profile = req.profile
     if user_id:
         # Persistence is best-effort: a database outage must never break the chat itself.
@@ -63,13 +68,24 @@ def chat(req: ChatRequest, user_id: str | None = Depends(auth.current_user_id_op
             profile = {**_stored_profile(user_id), **(req.profile or {})}
         except Exception:
             log.exception("could not load user profile; continuing anonymously")
-    res = agent.run(req.messages, profile)
+    res = agent.run(_recent(req.messages), profile)
     if user_id:
         try:
             res.session_id = chats.record_exchange(user_id, req.session_id, req.messages, res.reply, res.recommended_ids)
         except Exception:
             log.exception("could not save chat history")
     return res
+
+
+HISTORY_MESSAGES = 10
+
+
+def _recent(messages):
+    """Only the last few turns go to the model (cost grows with history). Must start with a user turn."""
+    recent = messages[-HISTORY_MESSAGES:]
+    while recent and recent[0].role != "user":
+        recent = recent[1:]
+    return recent
 
 
 def _stored_profile(user_id: str) -> dict:

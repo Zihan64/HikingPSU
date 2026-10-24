@@ -59,13 +59,16 @@ class TrailWithDifficulty(Trail):
     car_free: bool
 
 
+MAX_USER_MESSAGE_CHARS = 500  # the newest user message; older turns may be longer (assistant replies)
+
+
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(max_length=8000)
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+    messages: list[ChatMessage] = Field(max_length=60)
     profile: Optional[dict] = None  # e.g. {"has_car": false, "fitness": 2}; overrides the stored profile
     session_id: Optional[str] = None  # signed-in users: continue this saved chat; omitted starts a new one
 
