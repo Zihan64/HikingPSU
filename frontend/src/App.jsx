@@ -17,6 +17,7 @@ import { useOptionalToken } from './auth'
 import AppBackdrop from './theme/AppBackdrop'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import { parseBlocks, parseInline } from './markdown'
+import { distanceToTrail, sortTrails } from './trailSort'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
@@ -61,6 +62,7 @@ export default function App() {
   const [allTrails, setAllTrails] = useState([])
   const [recommended, setRecommended] = useState([])
   const [hasResult, setHasResult] = useState(false)
+  const [sortMode, setSortMode] = useState('recommended')
   const [selectedId, setSelectedId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [trailsLoading, setTrailsLoading] = useState(true)
@@ -203,7 +205,8 @@ export default function App() {
     const byId = Object.fromEntries(allTrails.map(t => [t.id, t]))
     return [...ranking.map(r => byId[r.trail_id]).filter(Boolean), ...allTrails.filter(t => !fitById[t.id])]
   }, [allTrails, ranking, fitById])
-  const cards = hasResult ? recommended : sortedTrails
+  const cards = useMemo(() => sortTrails(hasResult ? recommended : sortedTrails, sortMode, location.position),
+    [hasResult, recommended, sortedTrails, sortMode, location.position])
   const selectedTrail = mapTrails.find(t => t.id === selectedId)
   const mapVisible = mapExpanded || (!fullPage && (!isCompact || mobileView === 'map'))
 
@@ -214,6 +217,7 @@ export default function App() {
     setMapExpanded(false); setOfficialRoute(null); setReverseReference(false)
     setLibraryTrailId(null); setSelectedId(null); setRecommended([]); setHasResult(false)
     setReviewing(null); setError(null); setMobileView('plan')
+    setSortMode('recommended')
     scrollToSelected.current = false; focusMapSelection.current = false
     setMapFocus(previous => ({kind:'trails', version:previous.version + 1}))
     trailListRef.current?.scrollTo({top:0})
@@ -287,6 +291,14 @@ export default function App() {
   function showAll() {
     setHasResult(false); setSelectedId(null)
     setMapFocus(previous => ({ kind: 'trails', version: previous.version + 1 }))
+  }
+
+  function changeSort(mode) {
+    setSortMode(mode)
+    trailListRef.current?.scrollTo({top:0})
+    // Asking for nearby trails is explicit consent to request browser location.
+    // Keep the list visible and preserve the map camera while requesting a fix.
+    if (mode === 'nearest' && !location.position) location.request()
   }
 
   return (
@@ -371,12 +383,20 @@ export default function App() {
           {(isCompact || !officialRoute) && <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
             {officialRoute ? <article className="official-area selected-official-summary"><span className="official-badge">Official manager geometry</span><h2 id="trails-title">{officialRoute.route.name}</h2><p>{officialRoute.route.area} · {officialRoute.route.manager}</p><p>{officialRoute.route.description}</p><p className="source-notice">{officialRoute.source_notice}</p><OfficialLinks resources={officialRoute.route.resources} /><div className="route-reference-actions"><button className="primary-button" onClick={() => { showTrailsOnMap(); setMobileView('map') }}>View official route on map</button><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button></div></article> : <>
             <div className="trail-list-heading">
-              <div><span className="eyebrow">{hasResult ? 'PICKED FOR YOUR PLANS' : ranking ? 'SORTED FOR YOU' : 'SOMEWHERE GOOD TO GO'}</span><h2 id="trails-title">{hasResult ? 'Your trail matches' : 'Around Happy Valley'} <span>{cards.length}</span></h2></div>
-              {hasResult && <button className="text-button" onClick={showAll}>Show all trails</button>}
+              <h2 id="trails-title">{hasResult ? 'Your trail matches' : 'Around Happy Valley'} <span>{cards.length}</span></h2>
+              <div className="trail-sort" role="group" aria-label="Sort trails">
+                <button type="button" aria-pressed={sortMode === 'nearest'} onClick={() => changeSort('nearest')}>Nearest</button>
+                <button type="button" aria-pressed={sortMode === 'recommended'} onClick={() => changeSort('recommended')}>Recommended</button>
+              </div>
+              <span className="eyebrow trail-sort-label">{sortMode === 'nearest' ? location.position ? 'NEAREST TO YOU' : 'LOCATION NEEDED' : hasResult ? 'PICKED FOR YOUR PLANS' : 'SORTED FOR YOU'}</span>
             </div>
+            {hasResult && <button className="text-button trail-show-all" onClick={showAll}>Show all trails</button>}
+            {sortMode === 'nearest' && !location.position && <div className="trail-sort-status">
+              <p>Location is needed to sort by distance. Keeping recommendation order until a position is available.</p><LocationStatus id="trail-sort-location-status" location={location} showIdle={false} />
+            </div>}
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}
