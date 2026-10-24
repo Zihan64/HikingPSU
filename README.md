@@ -341,7 +341,7 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/auth/config` | `{ enabled }`: whether login is configured on this server |
-| `GET` `PATCH` `DELETE` | `/me` | Profile and preferences (PATCH changes only the fields sent); DELETE erases the account and all its data |
+| `GET` `PATCH` `DELETE` | `/me` | Profile and preferences (PATCH changes only the fields sent); DELETE erases the account and all its data (profile, sign-up details, saved trails, hike log, chats, reviews), plus the Auth0 login when `AUTH0_MGMT_CLIENT_ID`/`AUTH0_MGMT_CLIENT_SECRET` are set. The profile page has a "Delete account" button for it |
 | `PUT` | `/me/registration` | Sign-up form shown after the first login. Required: `gender` (`male`/`female`/`custom` + `gender_custom`), `full_name`, `birthday`, `hiking_experience` (0–5), `transport` (`car`/`bus`/`bike_walk`). Optional: `preferences`, `email`, `phone`. Also fills `age`, `has_car`, `transit_modes` and (if unset) `max_level`/`fitness`. `GET /me` reports `registered` |
 | `PUT` `DELETE` | `/me/saved/{trail_id}` | Save / unsave a trail |
 | `GET` `POST` | `/me/hikes` | Hike log: `{ trail_id, completed_on, duration_min?, rating?, felt_difficulty?, notes? }` |

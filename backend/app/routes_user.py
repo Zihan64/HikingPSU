@@ -46,12 +46,13 @@ def register(body: Registration, user: dict = Depends(auth.current_user)):
 
 
 @me_router.delete("", status_code=204)
-def delete_me(user: dict = Depends(auth.current_user)):
-    uid = str(user["_id"])
-    hikes.delete_all(uid)
-    chats.delete_all(uid)
-    reviews.delete_all(uid)
-    users.delete(uid)
+def delete_me(user_id: str = Depends(auth.current_user_id)):
+    """Delete the account: every database record for this user, then (if configured) the Auth0 login."""
+    hikes.delete_all(user_id)
+    chats.delete_all(user_id)
+    reviews.delete_all(user_id)
+    users.delete(user_id)
+    auth.delete_login(user_id)
     return Response(status_code=204)
 
 

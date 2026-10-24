@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { addHike, deleteHike, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
+import { addHike, deleteHike, deleteMe, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
 import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
@@ -259,7 +259,54 @@ export default function Dashboard({ trails }) {
           ))}
         </ul>
       </Card>
+
+      <DeleteAccount getToken={getToken} />
     </div>
+  )
+}
+
+// Two steps (type DELETE to confirm) because nothing can be recovered afterwards.
+export function DeleteAccount({ getToken }) {
+  const { logout } = useAuth0()
+  const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  async function remove(e) {
+    e.preventDefault()
+    if (typed !== 'DELETE') return
+    setBusy(true); setErr(null)
+    try {
+      await deleteMe(await getToken())
+      // Log out straight away: any further signed-in request would start a new, empty account.
+      logout({ logoutParams: { returnTo: window.location.origin } })
+    } catch (e2) { setErr(e2.message); setBusy(false) }
+  }
+
+  return (
+    <section className="rounded-2xl border border-[#f0c9bf] bg-white p-4">
+      <h2 className="text-sm font-semibold text-[#9b3e2e]">Delete account</h2>
+      <p className="mt-1 text-xs text-[#73806e]">Permanently deletes your profile, sign-up details, saved trails, hike log, chat history and reviews. This can't be undone.</p>
+      {!open ? (
+        <button type="button" className="mt-3 rounded-lg border border-[#9b3e2e] px-3 py-1.5 text-sm font-medium text-[#9b3e2e] hover:bg-[#fbe3dc]" onClick={() => setOpen(true)}>
+          Delete my account…
+        </button>
+      ) : (
+        <form onSubmit={remove} className="mt-3 grid gap-2 text-sm sm:max-w-sm">
+          <label className="flex flex-col gap-1"><span>Type <b>DELETE</b> to confirm</span>
+            <input className={inputCls} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" autoFocus />
+          </label>
+          {err && <p className="error-message" role="alert">{err}</p>}
+          <div className="flex gap-2">
+            <button disabled={busy || typed !== 'DELETE'} className="rounded-lg bg-[#9b3e2e] px-3 py-1.5 font-semibold text-white disabled:opacity-50">
+              {busy ? 'Deleting…' : 'Delete everything'}
+            </button>
+            <button type="button" className="text-button" onClick={() => { setOpen(false); setTyped(''); setErr(null) }}>Cancel</button>
+          </div>
+        </form>
+      )}
+    </section>
   )
 }
 

@@ -16,6 +16,7 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from urllib.parse import quote
 
 import httpx
 import jwt
@@ -88,6 +89,33 @@ def fetch_profile(identity: Identity) -> dict:
         log.warning("could not fetch Auth0 userinfo for %s", identity.id)
         return {}
     return {"email": info.get("email"), "name": info.get("name") or info.get("nickname")}
+
+
+def delete_login(user_id: str) -> bool:
+    """Delete the Auth0 login itself, so the same email can't sign back in to this account.
+
+    Needs a Machine-to-Machine Auth0 app allowed `delete:users` on the Management API
+    (AUTH0_MGMT_CLIENT_ID / AUTH0_MGMT_CLIENT_SECRET). Without them, or if Auth0 fails, returns False
+    and the login stays: signing in again then starts a fresh, empty account.
+    """
+    domain, _ = _settings()
+    client_id, secret = os.getenv("AUTH0_MGMT_CLIENT_ID", "").strip(), os.getenv("AUTH0_MGMT_CLIENT_SECRET", "").strip()
+    if not (domain and client_id and secret):
+        return False
+    try:
+        r = httpx.post(f"https://{domain}/oauth/token", timeout=8, json={
+            "grant_type": "client_credentials", "client_id": client_id, "client_secret": secret,
+            "audience": f"https://{domain}/api/v2/",
+        })
+        r.raise_for_status()
+        token = r.json()["access_token"]
+        r = httpx.delete(f"https://{domain}/api/v2/users/{quote(user_id, safe='')}",
+                         headers={"Authorization": f"Bearer {token}"}, timeout=8)
+        r.raise_for_status()
+        return True
+    except Exception:
+        log.warning("could not delete Auth0 login for %s", user_id)
+        return False
 
 
 # ---------- FastAPI dependencies ----------
