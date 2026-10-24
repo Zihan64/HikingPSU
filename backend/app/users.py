@@ -25,7 +25,10 @@ def normalize_email(email: str | None) -> str | None:
 def get_or_create(user_id: str, email: str | None = None, name: str | None = None) -> dict:
     """Create the user's document on first login; return the existing one otherwise. Safe under races."""
     now = _now()
-    profile = Profile(display_name=(name or None) and name[:60]).model_dump()
+    # Auth0 sets `name` to the email for password signups; reviews show display_name publicly,
+    # so only use names that don't look like an email.
+    safe_name = name.strip()[:60] if name and "@" not in name and name.strip() else None
+    profile = Profile(display_name=safe_name).model_dump()
     return get_db().users.find_one_and_update(
         {"_id": user_id},
         {

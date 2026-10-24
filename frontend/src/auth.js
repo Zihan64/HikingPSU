@@ -42,3 +42,18 @@ export function useAuthFetch() {
     return r.status === 204 ? null : r.json()
   }, [getAccessTokenSilently, isAuthenticated, loginWithRedirect])
 }
+
+/**
+ * Returns an async function that resolves to an access token when the user is logged in,
+ * or null otherwise. Never throws; safe to call when login isn't configured.
+ *
+ *   const getToken = useOptionalToken()
+ *   const data = await getTrailReviews(id, await getToken())
+ */
+export function useOptionalToken() {
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0()
+  return useCallback(async () => {
+    if (!AUTH_ENABLED || !isAuthenticated) return null
+    try { return await getAccessTokenSilently() } catch { return null }
+  }, [isAuthenticated, getAccessTokenSilently])
+}

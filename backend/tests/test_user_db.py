@@ -213,8 +213,9 @@ def test_delete_account_removes_everything(client):
     assert client.delete("/me", headers=h).status_code == 204
     d = db.get_db()
     assert d.users.count_documents({}) == d.hike_logs.count_documents({}) == d.chat_sessions.count_documents({}) == 0
-<<<<<<< HEAD
-    assert client.get("/me", headers=h).status_code == 401
+    # The Auth0 login itself still exists, so logging in again starts a fresh, empty profile.
+    again = client.get("/me", headers=h).json()
+    assert again["saved_trail_ids"] == [] and client.get("/me/hikes", headers=h).json() == []
 
 
 # ---------- trail reviews ----------
@@ -234,6 +235,7 @@ def test_reviews_public_read_needs_account_to_write(client):
 def test_review_create_update_and_summary(client):
     alice, bob = signup(client, "alice@psu.edu"), signup(client, "bob@psu.edu")
     client.patch("/me", headers=alice, json={"profile": {"display_name": "Alice"}})
+    client.patch("/me", headers=bob, json={"profile": {"display_name": None}})
 
     r = client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
     assert r.status_code == 200
@@ -275,8 +277,12 @@ def test_review_delete_is_own_only_and_account_delete_removes_reviews(client):
     client.put(f"/trails/{TRAIL}/reviews/me", headers=alice, json=GOOD)
     client.delete("/me", headers=alice)
     assert db.get_db().reviews.count_documents({}) == 0
-=======
-    # The Auth0 login itself still exists, so logging in again starts a fresh, empty profile.
-    again = client.get("/me", headers=h).json()
-    assert again["saved_trail_ids"] == [] and client.get("/me/hikes", headers=h).json() == []
->>>>>>> 977baf91bd1fd85331ca8dd01797821748ea8323
+
+
+def test_email_like_auth0_name_is_never_shown(client, monkeypatch):
+    # Auth0 password signups get name == email; that must not become the public review author.
+    monkeypatch.setattr("app.auth.fetch_profile", lambda identity: {"email": "c@psu.edu", "name": "c@psu.edu"})
+    h = bearer("auth0|c")
+    assert client.get("/me", headers=h).json()["profile"]["display_name"] is None
+    r = client.put(f"/trails/{TRAIL}/reviews/me", headers=h, json=GOOD).json()
+    assert r["author"] == "Hiker" and "psu.edu" not in client.get(f"/trails/{TRAIL}/reviews").text
