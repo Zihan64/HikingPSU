@@ -42,7 +42,9 @@ def get_db() -> Database:
 
 
 def ensure_indexes(db: Database) -> None:
-    db.users.create_index([("email", ASCENDING)], unique=True)
+    # Older builds made email unique; Auth0 users may share or lack an email, so drop that index.
+    if db.users.index_information().get("email_1", {}).get("unique"):
+        db.users.drop_index("email_1")
     db.hike_logs.create_index([("user_id", ASCENDING), ("completed_on", DESCENDING)])
     db.hike_logs.create_index([("user_id", ASCENDING), ("trail_id", ASCENDING)])
     db.chat_sessions.create_index([("user_id", ASCENDING), ("updated_at", DESCENDING)])

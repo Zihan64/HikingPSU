@@ -1,4 +1,4 @@
-"""User database: accounts, profile/preferences, hike log, chat history. Uses mongomock; no server needed."""
+"""User database: profile/preferences, hike log, chat history, with Auth0 login. Uses mongomock; no server or network needed."""
 import datetime as dt
 
 import mongomock
@@ -9,12 +9,14 @@ from app import agent, db
 from app.main import app
 from app.models import ChatResponse
 
+from tests.conftest import bearer
+
 TRAIL = "mt-nittany-mike-lynch"
 TRAIL2 = "millbrook-marsh"
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, fake_auth0):
     monkeypatch.setattr(agent, "run", lambda messages, profile=None: _fake_run(messages, profile))
     db.set_client(mongomock.MongoClient())
     yield TestClient(app)
@@ -29,34 +31,46 @@ def _fake_run(messages, profile):
     return ChatResponse(reply="hi", recommended_ids=[], trails=[])
 
 
-def signup(client, email="a@psu.edu", password="correct horse"):
-    r = client.post("/auth/register", json={"email": email, "password": password})
-    assert r.status_code == 201, r.text
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+def signup(client, email="a@psu.edu"):
+    """Log in as a fresh Auth0 user; the first /me call creates the user's document."""
+    h = bearer("auth0|" + email.split("@")[0])
+    assert client.get("/me", headers=h).status_code == 200
+    return h
 
 
-# ---------- auth ----------
+# ---------- login (Auth0) ----------
 
-def test_register_login_and_duplicate(client):
-    signup(client)
-    assert client.post("/auth/register", json={"email": "A@PSU.edu", "password": "another pass"}).status_code == 409
-    assert client.post("/auth/login", json={"email": "a@psu.edu", "password": "correct horse"}).status_code == 200
-    assert client.post("/auth/login", json={"email": "a@psu.edu", "password": "wrong password"}).status_code == 401
-    assert client.post("/auth/login", json={"email": "nobody@psu.edu", "password": "correct horse"}).status_code == 401
+def test_first_login_creates_user_once(client):
+    h = bearer("auth0|alice")
+    first = client.get("/me", headers=h).json()
+    assert first["id"] == "auth0|alice" and first["email"] == "alice@psu.edu"
+    assert first["profile"]["display_name"] == "Alice"
+    assert client.get("/me", headers=h).json()["created_at"] == first["created_at"]
+    assert db.get_db().users.count_documents({}) == 1
 
 
-def test_password_is_hashed_and_never_returned(client):
+def test_no_password_data_is_stored(client):
     h = signup(client)
     stored = db.get_db().users.find_one()
-    assert stored["password_hash"].startswith("scrypt$") and "correct horse" not in stored["password_hash"]
+    assert stored["_id"] == "auth0|a"
+    assert not any("password" in k for k in stored)
     assert "password" not in client.get("/me", headers=h).text
 
 
-def test_bad_inputs_and_tokens(client):
-    assert client.post("/auth/register", json={"email": "nope", "password": "correct horse"}).status_code == 422
-    assert client.post("/auth/register", json={"email": "a@b.co", "password": "short"}).status_code == 422
+def test_users_without_email_or_sharing_one_both_work(client, monkeypatch):
+    monkeypatch.setattr("app.auth.fetch_profile", lambda identity: {})  # e.g. /userinfo unreachable
+    assert client.get("/me", headers=bearer("auth0|x")).status_code == 200
+    assert client.get("/me", headers=bearer("google-oauth2|y")).status_code == 200
+    assert db.get_db().users.count_documents({}) == 2
+
+
+def test_bad_or_missing_tokens(client):
     assert client.get("/me").status_code == 401
     assert client.get("/me", headers={"Authorization": "Bearer garbage"}).status_code == 401
+    assert client.get("/me", headers=bearer(aud="https://someone-else")).status_code == 401
+    # a bad token on /chat is a 401 too (an absent one is anonymous)
+    assert client.post("/chat", headers={"Authorization": "Bearer garbage"},
+                       json={"messages": [{"role": "user", "content": "hi"}]}).status_code == 401
 
 
 # ---------- profile & preferences ----------
@@ -182,11 +196,11 @@ def test_chat_survives_database_outage(client, monkeypatch):
     assert r.status_code == 200 and r.json()["reply"] == "hi" and r.json()["session_id"] is None
 
 
-def test_no_database_configured_gives_503_but_trails_still_work(monkeypatch):
+def test_no_database_configured_gives_503_but_trails_still_work(monkeypatch, fake_auth0):
     db.set_client(None)
     monkeypatch.delenv("MONGODB_URI", raising=False)
     c = TestClient(app)
-    assert c.post("/auth/login", json={"email": "a@b.co", "password": "whatever1"}).status_code == 503
+    assert c.get("/me", headers=bearer()).status_code == 503
     assert c.get("/trails").status_code == 200
 
 
@@ -199,4 +213,6 @@ def test_delete_account_removes_everything(client):
     assert client.delete("/me", headers=h).status_code == 204
     d = db.get_db()
     assert d.users.count_documents({}) == d.hike_logs.count_documents({}) == d.chat_sessions.count_documents({}) == 0
-    assert client.get("/me", headers=h).status_code == 401
+    # The Auth0 login itself still exists, so logging in again starts a fresh, empty profile.
+    again = client.get("/me", headers=h).json()
+    assert again["saved_trail_ids"] == [] and client.get("/me/hikes", headers=h).json() == []
