@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { chat, getRecommendations, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
@@ -9,10 +9,11 @@ import OfficialLibrary, { OfficialLinks } from './OfficialLibrary'
 import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
 import ReviewModal from './ReviewModal'
-import AuthButton from './AuthButton'
 import Dashboard from './Dashboard'
-import { Mark } from './landing/Logo'
-import { AUTH_ENABLED, useOptionalToken } from './auth'
+import AppHeader, { HomeLink } from './AppHeader'
+import Icon from './Icon'
+import useMapFullscreen from './useMapFullscreen'
+import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
 const SUGGESTIONS = [
@@ -21,18 +22,6 @@ const SUGGESTIONS = [
   ['A little more adventure', 'I have a car, want something hard with rocks on Sunday'],
 ]
 const VIEWS = [['plan', 'Plan'], ['trails', 'Trails'], ['map', 'Map'], ['library', 'Library']]
-
-function Icon({ name, ...props }) {
-  const paths = {
-    plan: <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" />,
-    trails: <><path d="m3 17 5-10 5 10M11 17l5-13 5 13M2 21h20" /><path d="m6 11 2 2 2-2" /></>,
-    map: <><path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z" /><path d="M9 3v15M15 6v15" /></>,
-    send: <path d="m5 12 7-7 7 7M12 5v15" />,
-    arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
-    library: <><path d="M3 4h6a4 4 0 0 1 3 1 4 4 0 0 1 3-1h6v16h-6a4 4 0 0 0-3 1 4 4 0 0 0-3-1H3Z" /><path d="M12 5v16" /></>,
-  }
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>
-}
 
 function MessageText({ text }) {
   return text.split(/(https:\/\/[^\s<>"\u3002]+)/g).map((part, i) => part.startsWith('https://')
@@ -44,6 +33,8 @@ export default function App() {
   const location = useLocation()
   const [mapFocus, setMapFocus] = useState({ kind: 'trails', version: 0 })
   const [mobileView, setMobileView] = useState('plan')
+  const [mapExpanded, setMapExpanded] = useState(false)
+  const [homeVisit, setHomeVisit] = useState(0)
   const [officialRoute, setOfficialRoute] = useState(null)
   const [reverseReference, setReverseReference] = useState(false)
   const [libraryTrailId, setLibraryTrailId] = useState(null)
@@ -75,6 +66,15 @@ export default function App() {
   const scrollToSelected = useRef(false)
   const focusMapSelection = useRef(false)
   const mapDetailsRef = useRef(null)
+  const mapPanelRef = useRef(null)
+  const mapExpandRef = useRef(null)
+  const homeVersion = useRef(0)
+  const closeMapPreview = useCallback(() => setMapExpanded(false), [])
+  useMapFullscreen(mapExpanded, closeMapPreview, mapPanelRef, mapExpandRef, shellRef)
+
+  useEffect(() => {
+    if (homeVisit) document.getElementById('plan-title')?.focus({preventScroll:true})
+  }, [homeVisit])
 
   useEffect(() => {
     if (isCompact && mobileView !== 'map') location.stopTracking()
@@ -152,6 +152,7 @@ export default function App() {
   async function send(text) {
     if (sendingRef.current || !text.trim()) return
     sendingRef.current = true
+    const version = homeVersion.current
     const next = [...messages, { role: 'user', content: text.trim() }]
     setMessages(next); setInput(''); setLoading(true); setError(null)
     try {
@@ -160,6 +161,8 @@ export default function App() {
       setMessages([...next, { role: 'assistant', content: res.reply }])
       // Off-topic requests are declined without any tool call: keep the current trail list as it is.
       if (!res.trails.length && !res.tool_log?.length) return
+      // Returning home must not reopen a previous search when its reply arrives.
+      if (version !== homeVersion.current) return
       const resourcesOnly = !res.trails.length && res.tool_log?.some(entry => entry.tool === 'search_official_resources')
       setRecommended(res.trails); setSelectedId(null); setHasResult(!resourcesOnly)
       if (!resourcesOnly) {
@@ -169,7 +172,7 @@ export default function App() {
       trailListRef.current?.scrollTo({ top: 0 })
     } catch (err) {
       // 429 = rate limit, 413/422 = message too long: show the server's reason. Anything else stays generic.
-      setError([413, 422, 429].includes(err?.status) ? err.message : "We couldn't get a recommendation. Please try again.")
+      if (version === homeVersion.current) setError([413, 422, 429].includes(err?.status) ? err.message : "We couldn't get a recommendation. Please try again.")
     } finally {
       sendingRef.current = false
       setLoading(false)
@@ -187,9 +190,23 @@ export default function App() {
   }, [allTrails, ranking, fitById])
   const cards = hasResult ? recommended : sortedTrails
   const selectedTrail = mapTrails.find(t => t.id === selectedId)
-  const mapVisible = !fullPage && (!isCompact || mobileView === 'map')
+  const mapVisible = mapExpanded || (!fullPage && (!isCompact || mobileView === 'map'))
+
+  function goHome() {
+    homeVersion.current++
+    if (location.status === 'locating' || location.status === 'fallback') location.cancel()
+    else location.stopTracking()
+    setMapExpanded(false); setOfficialRoute(null); setReverseReference(false)
+    setLibraryTrailId(null); setSelectedId(null); setRecommended([]); setHasResult(false)
+    setReviewing(null); setError(null); setMobileView('plan')
+    scrollToSelected.current = false; focusMapSelection.current = false
+    setMapFocus(previous => ({kind:'trails', version:previous.version + 1}))
+    trailListRef.current?.scrollTo({top:0})
+    setHomeVisit(v => v + 1)
+  }
 
   function changeView(view) {
+    setMapExpanded(false)
     if (view === 'library' || view === 'profile' || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
   }
@@ -246,6 +263,7 @@ export default function App() {
   }
 
   function showSelectedDetails() {
+    setMapExpanded(false)
     if (!cards.some(t => t.id === selectedId)) setHasResult(false)
     scrollToSelected.current = true
     setMobileView('trails')
@@ -258,17 +276,7 @@ export default function App() {
 
   return (
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
-      <header className="app-header">
-        <a className="brand" href="#" aria-label="HikingPSU home" onClick={e => { e.preventDefault(); changeView('plan') }}>
-          <Mark className="h-11 w-11 shrink-0 max-[959px]:h-9 max-[959px]:w-9" />
-          <span><span className="brand-name">HikingPSU</span><span className="brand-caption">A little closer to the outdoors.</span></span>
-        </a>
-        <div className="header-actions">
-          <nav className="desktop-navigation" aria-label="Workspace"><button onClick={() => changeView('plan')} aria-pressed={!fullPage}>Explore</button><button onClick={() => openOfficialLibrary()} aria-pressed={libraryOpen}>Official library</button></nav>
-          <span className="location-label"><span />Happy Valley, PA</span>
-          {AUTH_ENABLED && <div className="auth-control"><AuthButton onProfile={() => changeView('profile')} profileActive={profileOpen} /></div>}
-        </div>
-      </header>
+      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
         <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} onOpenRoute={openOfficialRoute} /></div>
@@ -277,7 +285,7 @@ export default function App() {
         <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
           <div className="panel-heading">
             <span className="eyebrow">YOUR NEXT OUTING</span>
-            <h1 id="plan-title">Find your kind of trail.</h1>
+            <h1 id="plan-title" tabIndex={-1}>Find your kind of trail.</h1>
             <p>A quick campus walk or a rocky ridge? Let's plan it.</p>
             <button className="text-button official-library-shortcut" onClick={() => openOfficialLibrary()}>Browse official routes & offline map links →</button>
           </div>
@@ -321,12 +329,20 @@ export default function App() {
         </section>
 
         <section className="explorer" aria-label="Explore local trails" hidden={fullPage || (isCompact && mobileView === 'plan')}>
-          <section id="map-panel" className="map-panel" hidden={isCompact && mobileView !== 'map'} aria-label="Trail map">
+          <section id="map-panel" ref={mapPanelRef} className={`map-panel ${mapExpanded ? 'map-expanded' : ''}`} hidden={!mapExpanded && isCompact && mobileView !== 'map'} role={mapExpanded ? 'dialog' : undefined} aria-modal={mapExpanded ? 'true' : undefined} aria-label={mapExpanded ? 'Full-screen trail map' : 'Trail map'} tabIndex={-1}>
+            <div className="map-info">
+            {mapExpanded && <HomeLink compact onHome={goHome} />}
             <div className="map-heading"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
             <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />
             {officialRoute && isCompact && <RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} />}
+            <div className="map-legend" aria-label={officialRoute ? 'Official route legend' : 'Trail difficulty legend'}>
+              {officialRoute ? <><span><i style={{background: '#0f766e'}} />Manager-published route</span><span><i style={{background: '#2563eb'}} />Your location (when enabled)</span></> : [1, 2, 3, 4, 5].map(l => <span key={l}><i style={{ background: LEVEL_HEX[l] }} />L{l} {LEVEL_LABELS[l]}</span>)}
+            </div>
+            <p className="map-hint">{officialRoute ? 'Original geometry · check current manager notices and trail signs' : isTouch ? 'Drag to explore · pinch to zoom · tap a trail' : 'Select a pin or trail card to explore'}</p>
+            </div>
             <div className="map-canvas">
               <MapView trails={officialRoute ? [] : mapTrails} recIds={officialRoute ? [] : recIds} selectedId={selectedId} onSelect={selectFromMap} active={mapVisible} touch={isTouch} compact={isCompact} reducedMotion={reducedMotion} userPosition={location.position} mapFocus={mapFocus} officialRoute={officialRoute} />
+              <button ref={mapExpandRef} className={`map-expand-button ${mapExpanded ? 'is-exit' : ''}`} onClick={() => setMapExpanded(v => !v)} aria-label={mapExpanded ? 'Exit full-screen map' : 'Expand map'} aria-haspopup={mapExpanded ? undefined : 'dialog'} aria-expanded={mapExpanded} title={mapExpanded ? 'Back to page (Esc)' : 'Expand map'}><Icon name={mapExpanded ? 'back' : 'expand'} />{mapExpanded && <span>Back</span>}</button>
               {isCompact && selectedTrail && (
                 <div className="map-selection">
                   <div><span className="eyebrow">SELECTED TRAIL · L{selectedTrail.difficulty.level}</span><h2>{selectedTrail.name}</h2><p>{selectedTrail.distance_mi} mi · {selectedTrail.difficulty.est_time_min} min hiking</p></div>
@@ -334,10 +350,6 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="map-legend" aria-label={officialRoute ? 'Official route legend' : 'Trail difficulty legend'}>
-              {officialRoute ? <><span><i style={{background: '#0f766e'}} />Manager-published route</span><span><i style={{background: '#2563eb'}} />Your location (when enabled)</span></> : [1, 2, 3, 4, 5].map(l => <span key={l}><i style={{ background: LEVEL_HEX[l] }} />L{l} {LEVEL_LABELS[l]}</span>)}
-            </div>
-            <p className="map-hint">{officialRoute ? 'Original geometry · check current manager notices and trail signs' : isTouch ? 'Drag to explore · pinch to zoom · tap a trail' : 'Select a pin or trail card to explore'}</p>
           </section>
 
           {(isCompact || !officialRoute) && <section id="trails-panel" className="trail-list" ref={trailListRef} hidden={isCompact && mobileView !== 'trails'} aria-labelledby="trails-title">
