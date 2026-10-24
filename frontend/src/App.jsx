@@ -16,6 +16,7 @@ import AppBackdrop from './theme/AppBackdrop'
 import HeaderTrail from './theme/HeaderTrail'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
+import { parseBlocks, parseInline } from './markdown'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
@@ -36,9 +37,21 @@ function Icon({ name, ...props }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>
 }
 
+function Inline({ tokens }) {
+  return tokens.map((tok, i) => tok.t === 'link' ? <a key={i} href={tok.v} target="_blank" rel="noopener noreferrer">{tok.v}</a>
+    : tok.t === 'bold' ? <strong key={i}><Inline tokens={tok.children} /></strong>
+      : tok.t === 'em' ? <em key={i}><Inline tokens={tok.children} /></em>
+        : tok.t === 'code' ? <code key={i}>{tok.v}</code> : tok.v)
+}
+
+// Assistant replies may use light Markdown; render it instead of showing raw ** and - markers.
 function MessageText({ text }) {
-  return text.split(/(https:\/\/[^\s<>"\u3002]+)/g).map((part, i) => part.startsWith('https://')
-    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer">{part}</a> : part)
+  return <div className="message-body">{parseBlocks(text).map((b, i) => {
+    if (b.type === 'h') return <p key={i} className="message-heading"><Inline tokens={parseInline(b.text)} /></p>
+    if (b.type === 'p') return <p key={i}><Inline tokens={parseInline(b.text)} /></p>
+    const List = b.ordered ? 'ol' : 'ul'
+    return <List key={i}>{b.items.map((it, j) => <li key={j} className={it.level ? 'nested' : undefined}><Inline tokens={parseInline(it.text)} /></li>)}</List>
+  })}</div>
 }
 
 export default function App() {
@@ -304,7 +317,7 @@ export default function App() {
             {messages.map((m, i) => (
               <div key={i} className={`message message-${m.role}`}>
                 <span className="message-author">{m.role === 'user' ? 'You' : 'HikingPSU'}</span>
-                <p>{m.role === 'assistant' ? <MessageText text={m.content} /> : m.content}</p>
+                {m.role === 'assistant' ? <MessageText text={m.content} /> : <p>{m.content}</p>}
               </div>
             ))}
             {loading && <p className="chat-status" role="status">Finding matching trails<span className="loading-dots">…</span></p>}
