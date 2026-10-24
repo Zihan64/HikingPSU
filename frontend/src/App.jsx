@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
 import { chat, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
+import AuthButton from './AuthButton'
+import { AUTH_ENABLED } from './auth'
 
 const SUGGESTIONS = [
   'Saturday afternoon, two of us, no car, ~3 hours, want a view',
@@ -20,6 +23,9 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  const [sessionId, setSessionId] = useState(null)   // saved chat (logged-in users only)
+  // Outside <Auth0Provider> (login not configured) this returns a logged-out stub.
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 
   useEffect(() => {
     listTrails()
@@ -32,7 +38,13 @@ export default function App() {
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next); setInput(''); setLoading(true); setError(null)
     try {
-      const res = await chat(next, { has_car: hasCar })
+      // Logged in: send the token so the server uses the saved profile/hike history and saves this chat.
+      let token = null
+      if (AUTH_ENABLED && isAuthenticated) {
+        try { token = await getAccessTokenSilently() } catch { token = null }  // fall back to anonymous
+      }
+      const res = await chat(next, { has_car: hasCar }, { token, sessionId })
+      if (res.session_id) setSessionId(res.session_id)
       setMessages([...next, { role: 'assistant', content: res.reply }])
       setRecommended(res.trails); setSelectedId(null)
     } catch (e) {
@@ -47,9 +59,12 @@ export default function App() {
   return (
     <div className="mx-auto grid max-w-6xl gap-6 p-4 md:grid-cols-[1fr_1.1fr]">
       <section className="flex flex-col">
-        <header className="mb-3">
-          <h1 className="text-2xl font-bold">HikingPSU</h1>
-          <p className="text-sm text-stone-500">Hikes around Happy Valley, rated for real people.</p>
+        <header className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">HikingPSU</h1>
+            <p className="text-sm text-stone-500">Hikes around Happy Valley, rated for real people.</p>
+          </div>
+          {AUTH_ENABLED && <AuthButton />}
         </header>
 
         <label className="mb-3 flex items-center gap-2 text-sm">

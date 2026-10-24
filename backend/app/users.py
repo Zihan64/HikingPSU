@@ -1,84 +1,72 @@
-"""users collection: account, profile, preferences, saved trails.
+"""users collection: profile, preferences, saved trails.
 
-One document per user; profile and preferences are embedded because they are always read with the user.
+One document per user. `_id` is the Auth0 user id (e.g. "auth0|65f1...", "google-oauth2|1098...").
+Auth0 owns the account itself (email, password, social logins); nothing password-related is stored here.
+Profile and preferences are embedded because they are always read with the user.
 """
 from __future__ import annotations
 
 import datetime as dt
 
 from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
 
-from .db import get_db, to_oid
+from .db import get_db
 from .user_models import Preferences, Profile, UserOut
-
-
-class EmailTaken(Exception):
-    pass
 
 
 def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
-def normalize_email(email: str) -> str:
-    return email.strip().lower()
+def normalize_email(email: str | None) -> str | None:
+    return email.strip().lower() if email else None
 
 
-def create(email: str, password_hash: str) -> dict:
+def get_or_create(user_id: str, email: str | None = None, name: str | None = None) -> dict:
+    """Create the user's document on first login; return the existing one otherwise. Safe under races."""
     now = _now()
-    doc = {
-        "email": normalize_email(email),
-        "password_hash": password_hash,
-        "profile": Profile().model_dump(),
-        "preferences": Preferences().model_dump(),
-        "saved_trail_ids": [],
-        "created_at": now,
-        "updated_at": now,
-    }
-    try:
-        doc["_id"] = get_db().users.insert_one(doc).inserted_id
-    except DuplicateKeyError:
-        raise EmailTaken(email)
-    return doc
-
-
-def get_by_email(email: str) -> dict | None:
-    return get_db().users.find_one({"email": normalize_email(email)})
+    profile = Profile(display_name=(name or None) and name[:60]).model_dump()
+    return get_db().users.find_one_and_update(
+        {"_id": user_id},
+        {
+            "$setOnInsert": {
+                "email": normalize_email(email),
+                "profile": profile,
+                "preferences": Preferences().model_dump(),
+                "saved_trail_ids": [],
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
 
 
 def get(user_id: str) -> dict | None:
-    oid = to_oid(user_id)
-    return get_db().users.find_one({"_id": oid}) if oid else None
+    return get_db().users.find_one({"_id": user_id}) if user_id else None
 
 
 def patch(user_id: str, changes: dict) -> dict | None:
     """changes: {"profile": {...}, "preferences": {...}} holding only the fields to set."""
-    oid = to_oid(user_id)
-    if oid is None:
-        return None
     sets = {f"{section}.{k}": v for section, fields in changes.items() for k, v in (fields or {}).items()}
     sets["updated_at"] = _now()
-    return get_db().users.find_one_and_update({"_id": oid}, {"$set": sets}, return_document=ReturnDocument.AFTER)
+    return get_db().users.find_one_and_update({"_id": user_id}, {"$set": sets}, return_document=ReturnDocument.AFTER)
 
 
 def set_saved(user_id: str, trail_id: str, saved: bool) -> dict | None:
-    oid = to_oid(user_id)
-    if oid is None:
-        return None
     op = {"$addToSet" if saved else "$pull": {"saved_trail_ids": trail_id}, "$set": {"updated_at": _now()}}
-    return get_db().users.find_one_and_update({"_id": oid}, op, return_document=ReturnDocument.AFTER)
+    return get_db().users.find_one_and_update({"_id": user_id}, op, return_document=ReturnDocument.AFTER)
 
 
 def delete(user_id: str) -> bool:
-    oid = to_oid(user_id)
-    return bool(oid) and get_db().users.delete_one({"_id": oid}).deleted_count == 1
+    return get_db().users.delete_one({"_id": user_id}).deleted_count == 1
 
 
 def to_out(doc: dict) -> UserOut:
     return UserOut(
         id=str(doc["_id"]),
-        email=doc["email"],
+        email=doc.get("email"),
         profile=doc["profile"],
         preferences=doc["preferences"],
         saved_trail_ids=doc.get("saved_trail_ids", []),

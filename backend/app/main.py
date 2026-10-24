@@ -8,13 +8,12 @@ from pymongo.errors import ConnectionFailure
 from . import agent, auth, chats, hikes, store, users
 from .db import DatabaseUnavailable
 from .models import ChatRequest, ChatResponse, TrailWithDifficulty
-from .routes_user import auth_router, me_router
+from .routes_user import me_router
 
 log = logging.getLogger("hikingpsu.main")
 
 app = FastAPI(title="HikingPSU API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.include_router(auth_router)
 app.include_router(me_router)
 
 
@@ -28,6 +27,12 @@ def _db_down(request: Request, exc: Exception):
 @app.get("/health")
 def health():
     return {"ok": True, "trails": len(store.load_all())}
+
+
+@app.get("/auth/config")
+def auth_config():
+    """Whether login (Auth0) is configured on this server."""
+    return {"enabled": auth.auth_configured()}
 
 
 @app.get("/trails", response_model=list[TrailWithDifficulty])
