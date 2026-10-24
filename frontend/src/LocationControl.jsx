@@ -20,12 +20,12 @@ export default function LocationControl({ location, onRequest, onClear, onShowTr
   )
 }
 
-export function LocationStatus({ location, routeActive = false, className = '', showIdle = true }) {
+export function LocationStatus({ location, routeActive = false, className = '', showIdle = true, id = 'location-status' }) {
   // Sidebar callers can omit the idle sentence, while existing callers keep the
   // main branch's status API and default message unchanged.
   if (!showIdle && !location.position && !location.error && !['locating', 'fallback'].includes(location.status)) return null
   return (
-    <p id="location-status" className={`location-status ${className} ${location.error ? 'location-error' : ''}`} role="status" aria-live="polite" aria-atomic="true">
+    <p id={id} className={`location-status ${className} ${location.error ? 'location-error' : ''}`} role="status" aria-live="polite" aria-atomic="true">
       {location.status === 'locating' ? 'Allow location when your browser asks. Requesting a high-accuracy position.'
         : location.status === 'fallback' ? 'High accuracy is unavailable. Trying a standard-accuracy position…'
           : location.position ? routeActive ? `Accuracy ±${formatAccuracy(location.position.accuracy)} · ${location.tracking ? 'Live updates while this page is visible.' : 'One-time fix; update as you move.'}` : `Location found · reported accuracy ±${formatAccuracy(location.position.accuracy)}. ${location.tracking ? 'Live updates while this page is visible; stop at any time.' : 'One-time fix; use Update as you move.'} Blue shading shows estimated accuracy.`

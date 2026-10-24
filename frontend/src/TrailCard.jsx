@@ -13,7 +13,7 @@ const LEVEL_COLORS = {
 
 // fit: this trail's entry from /me/recommendations, when it is in the signed-in user's ranking.
 // highlights: the trail's top community comments (most hearted first).
-export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, highlights = [] }) {
+export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, proximityMeters = null, highlights = [] }) {
   const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
@@ -53,6 +53,7 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
         </section>
       )}
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        {proximityMeters !== null && <span className="rounded bg-sky-100 px-2 py-0.5 text-sky-800">≈ {(proximityMeters / 1609.344).toFixed(1)} mi to trailhead · straight line</span>}
         <span className={`rounded px-2 py-0.5 ${t.car_free ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-600'}`}>
           {t.car_free ? '🚌 ' : '🚗 '}{access}
         </span>
