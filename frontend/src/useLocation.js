@@ -9,6 +9,11 @@ export default function useLocation() {
     policyAllowed: (document.permissionsPolicy || document.featurePolicy)?.allowsFeature('geolocation') ?? true,
   }))
   useEffect(() => controller.connect(), [controller])
+  useEffect(() => {
+    const pause = () => { if (document.hidden) controller.stopTracking() }
+    document.addEventListener('visibilitychange', pause)
+    return () => document.removeEventListener('visibilitychange', pause)
+  }, [controller])
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot)
-  return { ...state, request: controller.request, cancel: controller.cancel, clear: controller.clear }
+  return { ...state, request: controller.request, cancel: controller.cancel, clear: controller.clear, startTracking: controller.startTracking, stopTracking: controller.stopTracking }
 }

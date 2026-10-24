@@ -1,4 +1,5 @@
-// A cancellable, one-fix location request. No network requests or storage here.
+// Cancellable one-fix or explicitly enabled foreground live location.
+// No network requests or storage here.
 // The browser chooses the actual provider; high accuracy is a preference, not
 // a guarantee that GPS hardware was used.
 export function createLocationController({ geolocation, permissions, secureContext, policyAllowed = true }) {
@@ -9,7 +10,7 @@ export function createLocationController({ geolocation, permissions, secureConte
       : !policyAllowed
         ? 'Location is blocked by this page. Open the site directly in your browser and try again.'
         : null
-  let state = { status: unavailable ? 'unavailable' : 'idle', permission: 'unknown', position: null, error: unavailable }
+  let state = { status: unavailable ? 'unavailable' : 'idle', permission: 'unknown', position: null, error: unavailable, tracking: false }
   const listeners = new Set()
   let watchId = null
   let requestVersion = 0
@@ -33,19 +34,26 @@ export function createLocationController({ geolocation, permissions, secureConte
   function cancel() {
     requestVersion++
     stopWatch()
-    update({ status: unavailable ? 'unavailable' : 'idle', position: null, error: unavailable })
+    update({ status: unavailable ? 'unavailable' : 'idle', position: null, error: unavailable, tracking: false })
   }
 
-  function request() {
+  function stopTracking() {
+    if (!state.tracking) return
+    requestVersion++
+    stopWatch()
+    update({ tracking: false, status: state.position ? 'ready' : 'idle' })
+  }
+
+  function request({ continuous = false } = {}) {
     if (unavailable) return
-    if (state.status === 'locating' || state.status === 'fallback') return
+    if (state.status === 'locating' || state.status === 'fallback' || state.tracking) return
     if (state.permission === 'denied' && (!permissionStatus || permissionStatus.state === 'denied')) {
       update({ status: 'denied', error: 'Location access is blocked. Allow location for this site in your browser settings and check that device Location Services are on, then try again.' })
       return
     }
     const version = ++requestVersion
     stopWatch()
-    update({ status: 'locating', position: null, error: null, permission: permissionStatus?.state || state.permission })
+    update({ status: 'locating', position: null, error: null, permission: permissionStatus?.state || state.permission, tracking: continuous })
 
     function attempt(highAccuracy) {
       if (version !== requestVersion) return
@@ -60,10 +68,9 @@ export function createLocationController({ geolocation, permissions, secureConte
           failure({ code: 2 })
           return
         }
-        completed = true
-        stopWatch()
+        if (!continuous) { completed = true; stopWatch() }
         update({
-          status: 'ready', permission: 'granted', error: null,
+          status: 'ready', permission: 'granted', error: null, tracking: continuous,
           position: { latitude, longitude, accuracy, timestamp: result.timestamp, id: ++fixId },
         })
       }
@@ -72,13 +79,13 @@ export function createLocationController({ geolocation, permissions, secureConte
         completed = true
         stopWatch()
         if (error.code === 1) {
-          update({ status: 'denied', permission: 'denied', position: null, error: 'Location was not allowed. Allow location for this site in your browser settings and check that device Location Services are on, then try again.' })
+          update({ status: 'denied', permission: 'denied', position: null, tracking: false, error: 'Location was not allowed. Allow location for this site in your browser settings and check that device Location Services are on, then try again.' })
         } else if (highAccuracy && (error.code === 2 || error.code === 3)) {
           update({ status: 'fallback' })
           attempt(false)
         } else {
           update({
-            status: 'error', position: null,
+            status: 'error', position: null, tracking: false,
             error: error.code === 3
               ? 'Location timed out. Check your connection and device Location Services, or try again outdoors.'
               : 'Your location is unavailable. Check your connection and device Location Services, then try again.',
@@ -112,11 +119,11 @@ export function createLocationController({ geolocation, permissions, secureConte
           if (status.state === 'denied') {
             requestVersion++
             stopWatch()
-            update({ permission: 'denied', status: 'denied', position: null, error: 'Location access is blocked. Allow location for this site in your browser settings to use your location.' })
+            update({ permission: 'denied', status: 'denied', position: null, tracking: false, error: 'Location access is blocked. Allow location for this site in your browser settings to use your location.' })
           } else {
             const revoked = status.state === 'prompt' && state.permission === 'granted'
             if (revoked) { requestVersion++; stopWatch() }
-            update({ permission: status.state, ...(revoked ? { status: 'idle', position: null, error: null } : state.status === 'denied' ? { status: 'idle', error: null } : {}) })
+            update({ permission: status.state, ...(revoked ? { status: 'idle', position: null, error: null, tracking: false } : state.status === 'denied' ? { status: 'idle', error: null } : {}) })
           }
         }
         status.addEventListener?.('change', permissionListener)
@@ -135,7 +142,7 @@ export function createLocationController({ geolocation, permissions, secureConte
   return {
     getSnapshot: () => state,
     subscribe: listener => { listeners.add(listener); return () => listeners.delete(listener) },
-    connect, request, cancel, clear: cancel,
+    connect, request, cancel, clear: cancel, startTracking: () => request({ continuous: true }), stopTracking,
   }
 }
 

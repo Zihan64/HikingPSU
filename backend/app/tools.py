@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from . import store
+from .official import search_resources, seed_sources
 
 STATE_COLLEGE = (40.7934, -77.8600)
 
@@ -39,6 +40,8 @@ def search_trails(**kw) -> dict[str, Any]:
                 "hunting_zone": t.hunting_zone,
                 "cell_signal": t.cell_signal,
                 "notes": t.notes,
+                "official_resources": seed_sources(t.id),
+                "data_note": "Local seed distances and loops are estimates. Use the official library's manager data for mapped routes; no seed is a verified navigation itinerary.",
             }
             for t in trails
         ],
@@ -122,3 +125,12 @@ REGISTRY = {
     "get_weather": get_weather,
     "hunting_season_note": hunting_season_note,
 }
+
+
+def search_official_resources(query: str = "", activity: str | None = None) -> dict:
+    return {"areas": search_resources(query[:120], activity), "note": "Official external links only. Download documents from the publisher. Geometry and live permissions are available in the website's Official library."}
+
+
+TOOLS.append({"name": "search_official_resources", "description": "Find indexed official manager pages and PDF map links around State College/Rothrock. Call for official maps, offline PDFs, regulations, or requests for authoritative trail sources. Never invent a document URL.",
+              "input_schema": {"type": "object", "properties": {"query": {"type": "string"}, "activity": {"type": "string", "enum": ["hiking", "cycling"]}}}})
+REGISTRY["search_official_resources"] = search_official_resources

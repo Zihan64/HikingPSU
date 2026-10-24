@@ -25,6 +25,7 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **🚌 Car-free first.** Each trail is tagged with bus, walking, biking or driving access. Say "no car" and only reachable trails are returned.
 - **🌤️ Context-aware.** Checks the forecast and sunset time, and reminds you to wear blaze orange during hunting season on state-forest trails.
 - **🗺️ Map view.** Every trail appears on the map, colored by difficulty. Recommended trails are highlighted.
+- **Official trail library.** Search manager-published routes, overlay original GIS lines, compare your location, and open official PDF/offline maps at the publisher.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
 ## Device-aware interface
@@ -35,7 +36,7 @@ including changes while resizing a window or rotating a device:
 - **960px and wider:** chat, map and trail cards are available together. The chat
   and map stay visible as the trail list scrolls. Card selection also works with
   Enter or Space; mouse-wheel scrolling moves the page without zooming the map.
-- **Below 960px:** bottom navigation switches between Plan, Trails and Map.
+- **Below 960px:** bottom navigation switches between Plan, Trails, Map and Library.
   Recommendations have a shortcut to the results. Selecting a trail opens the
   map, and Trail details returns to the selected card.
 - **Touch input:** map pins and zoom buttons have larger hit areas. The mobile
@@ -59,7 +60,8 @@ particular radio or guarantee that GPS was used. See the [Geolocation API](https
 
 - A blue point shows the reported location; the blue circle shows the reported
   accuracy radius. Approximate results are displayed with their actual accuracy.
-- This is a **one-time fix**, not continuous tracking. Use **Update my location**
+- This requests a **one-time fix** by default. Official route references also offer
+  **Follow my position** for explicitly enabled foreground updates. Use **Update my location**
   to request another fix, **Cancel** to stop a pending request, **Clear location**
   to remove it from the page, or **Show trails** to return to the trail map.
 - Coordinates stay in page memory and are not sent to our API, AI agent or
@@ -82,6 +84,59 @@ It is not an entry point in the production build. Real GPS/provider accuracy and
 OS permission prompts still need physical-device testing.
 
 ## How it works
+
+### Official trail library and mapped-route reference
+
+Open **Official library** in the desktop header or **Library** in the phone's
+bottom navigation. Search areas, activities and PDF/offline map resources, then
+load a manager-listed route onto the OpenStreetMap basemap.
+The AI has an official-resource lookup tool; offline demo mode also recognizes
+named-area PDF/map requests and returns clickable original publisher links.
+
+The initial source index covers Whipple Dam, Greenwood Furnace, Black Moshannon,
+Rothrock State Forest and Mount Nittany. The first three have on-demand DCNR GIS
+overlays. Rothrock and Mount Nittany currently have original manager links only;
+the app does not infer lines from trailhead pins, wayfinding coordinates or PDFs.
+This is a regional pilot, not a worldwide trail search service.
+
+`backend/data/official_sources.json` stores titles, manager identity, coverage,
+activity metadata, checked dates and official URLs. **No PDF, GPX or route data
+files are hosted.** GIS geometry is read from the fixed public DCNR endpoint
+on demand, size/coordinate checked, returned with `Cache-Control: no-store`, and
+discarded from server memory after the response. The browser holds an active
+overlay in memory only. Upstream failures leave the original map links usable.
+
+Routes are grouped before checking public visibility, ownership and activity;
+every included source segment must explicitly permit the selected activity.
+Cycling includes ordinary bicycles/mountain bikes where permitted, not e-bikes.
+These checks do not establish current opening status: source data may lag closures.
+The interface links to manager notices and labels the GIS as a planning reference,
+consistent with the [DCNR source metadata](https://www.gis.dcnr.state.pa.us/agsprod/rest/services/Parks/StateParksTrailsSimplifiedPortal/MapServer/0).
+
+**Use my location** shows a one-time fix. **Follow my position** explicitly enables
+foreground live updates; Stop, Clear, changing routes, leaving the mobile map,
+opening the library, hiding the page and unmounting stop the watch. Position is
+never sent to our API, AI or database. The map provider receives tile requests for
+the area displayed. Location permissions and device services are still required.
+
+`frontend/src/trailGeometry.js` is independent of React, Leaflet and device APIs.
+It matches positions to the actual source lines and orders only endpoint-connected,
+non-branching geometry. Disconnected/branched data is overlay-only: no straight
+connectors or shortcuts are invented. Reference segment names and distances are
+not official junction/turn instructions. Poor accuracy (>60 m), uncertain,
+off-route or stale (>45 s) positions suppress along-route progress; a loop start
+is never an arrival signal. Reference direction can be reversed. A future native
+app can reuse this logic and the HTTP/source contracts, with its own location and
+map integrations; background GPS and full turn-by-turn routing remain separate work.
+
+Tests: run `npm test --prefix frontend` and, from `backend`,
+`.venv/Scripts/python.exe -m pytest -q`. The dev-only location
+fixture also supports `?scenario=on-route` using a public Whipple Lake test point.
+No real device location is requested by the fixture. Actual outdoor GPS and
+background behavior still require physical-device testing.
+
+The Vite dev proxy normally targets port 8000. Set `HIKINGPSU_DEV_API` before
+starting Vite to test against another backend port; production uses `VITE_API_BASE`.
 
 ```mermaid
 flowchart LR
@@ -225,6 +280,9 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `GET` | `/health` | Liveness check and trail count |
 | `GET` | `/trails?max_level=&car_free=&max_time_min=` | Filtered list of trails with difficulty |
 | `GET` | `/trails/{id}` | One trail |
+| `GET` | `/official/library?q=&activity=&kind=` | Search curated manager pages and PDF/offline map links |
+| `GET` | `/official/trails?area_id=&activity=&q=` | Live manager-listed route names with complete-segment activity checks |
+| `GET` | `/official/trails/{area_id}/{route_id}/geometry?activity=` | Validated original manager line geometry, provenance and planning notice; not persisted |
 | `POST` | `/chat` | `{ messages: [{role, content}], profile: {has_car} }` → reply, recommended trails, tool log. Send `Authorization: Bearer <token>` to use your saved profile and save the chat (optional `session_id` continues one) |
 
 ### User database (MongoDB)
@@ -256,12 +314,14 @@ backend/
     tools.py        search_trails · get_weather · hunting_season_note
     models.py       Pydantic schemas
     main.py         FastAPI routes
+    official.py     Official link index and bounded, non-persistent GIS adapter
     db.py           MongoDB connection and indexes
     auth.py         Auth0 token verification, auth dependencies
     users.py · hikes.py · chats.py   Per-collection data access
     user_models.py  Schemas for profile, preferences, hikes, chats
     routes_user.py  /me routes
   data/trails.json  Trail database
+  data/official_sources.json  Official manager metadata and external links only
   scripts/          Calibration against hiker ratings
   tests/            Model, search, guardrail and agent tests (no network needed)
 frontend/

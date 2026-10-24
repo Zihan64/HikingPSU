@@ -11,6 +11,7 @@ import anthropic
 
 from . import store
 from .models import ChatMessage, ChatResponse
+from .official import search_resources
 from .tools import REGISTRY, TOOLS
 
 log = logging.getLogger("hikingpsu.agent")
@@ -22,6 +23,8 @@ MAX_TURNS = 6
 SYSTEM = """You are HikingPSU, a hiking guide for the Penn State / State College community.
 
 Rules:
+- For official maps, offline PDFs, trail rules or authoritative sources, call search_official_resources and link only URLs it returns. Say when this pilot does not index the requested area.
+- Local seed distances and loops are estimates, not verified navigation itineraries. Use the Official library for manager-sourced geometry and activity permissions. Never invent route geometry, shortcuts, turn instructions, current opening status, or cycling permission from a hiking listing.
 - ALWAYS call search_trails before recommending anything. Recommend only trail ids it returned.
 - If search_trails returns 0 trails, call it again with fewer filters (drop features first, then loosen max_level or max_time_min). If the database truly has nothing, say so; never name a trail that was not returned.
 - Use the difficulty_level and difficulty_reasons from the tool; never make up your own difficulty.
@@ -120,6 +123,24 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
 def _demo(messages: list[ChatMessage], profile: dict | None = None) -> ChatResponse:
     """Offline fallback so the demo never dies. Picks by crude keyword match."""
     last = messages[-1].content.lower()
+    if any(word in last for word in ("pdf", "offline map", "official map", "地图", "离线", "官方资料")):
+        indexed = search_resources()
+        areas = []
+        for area in indexed:
+            short_name = re.sub(r" state park| state forest| conservancy trails", "", area["name"].lower())
+            aliases = [short_name, area["id"].replace("-", " "), *area["keywords"]]
+            if any(alias.lower() in last for alias in aliases if alias not in {"离线地图", "州立学院"}):
+                areas.append(area)
+        lines = ["Official map links (offline demo mode; documents stay with the publisher):"]
+        for area in areas:
+            lines.append(f"• {area['name']} — {area['manager']}")
+            lines.extend(f"  {r['title']}: {r['url']}" for r in area["resources"] if r["kind"] == "pdf")
+        if not areas:
+            lines.append("No indexed area name matched this request. This pilot covers State College/Rothrock and nearby parks only. Open Official library to browse the available managers and maps.")
+        else:
+            lines.append("Open Official library for manager-listed route overlays and activity checks. Check current manager notices before visiting.")
+        return ChatResponse(reply="\n".join(lines), recommended_ids=[], trails=[],
+                            tool_log=[{"tool": "search_official_resources", "input": {"query": last[:120]}, "output": {"areas": areas}}])
     car_free = (profile or {}).get("has_car") is False
     # Preserve transport preferences through follow-up questions. Explicit text wins.
     for message in messages:

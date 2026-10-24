@@ -10,7 +10,7 @@ const LEVEL_COLORS = {
   5: 'bg-red-100 text-red-800',
 }
 
-export default function TrailCard({ t, selected = false, onSelect, summary, onReview, reviewsVersion = 0 }) {
+export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0 }) {
   const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
@@ -65,6 +65,8 @@ export default function TrailCard({ t, selected = false, onSelect, summary, onRe
           {showReviews && <div className="mt-3"><Reviews trailId={t.id} reloadKey={reviewsVersion} /></div>}
         </div>
       )}
+      {!t.verified && <p className="seed-data-note">Planning estimate · not an official navigation itinerary.</p>}
+      {onOfficialResources && <button className="text-button" onClick={e => { e.stopPropagation(); onOfficialResources() }}>Official maps & route sources →</button>}
     </article>
   )
 }

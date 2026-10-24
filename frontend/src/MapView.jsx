@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, Tooltip, GeoJSON, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { LEVEL_HEX } from './levels'
 
@@ -54,7 +54,7 @@ function spreadPositions(trails) {
 }
 
 // Moves the camera: fit the recommended trails, else fit everything; fly to a selected one.
-function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, compact, userPosition, mapFocus }) {
+function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, compact, userPosition, mapFocus, routeBounds }) {
   const map = useMap()
   const recKey = recIds.join(',')
   const boundsKey = recKey || trails.map(t => t.id).join(',')
@@ -65,9 +65,9 @@ function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, 
   // location outside the region to be shown. Show trails restores the bounds.
   useEffect(() => {
     const showingLocation = mapFocus.kind === 'location' && userPosition
-    map.setMaxBounds(showingLocation ? null : MAX_BOUNDS)
-    map.setMinZoom(showingLocation ? Math.min(8, MIN_ZOOM) : MIN_ZOOM)
-  }, [map, mapFocus.kind, userPosition])
+    map.setMaxBounds(showingLocation || routeBounds ? null : MAX_BOUNDS)
+    map.setMinZoom(showingLocation || routeBounds ? 3 : MIN_ZOOM)
+  }, [map, mapFocus.kind, userPosition, routeBounds])
 
   useEffect(() => {
     if (!active) appliedFocus.current = null
@@ -99,7 +99,11 @@ function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, 
       const p = selectedId && positions[selectedId]
       const focusKey = `${mapFocus.kind}-${mapFocus.version}-${mapFocus.kind === 'location' ? userPosition?.id : ''}`
       const freshFocus = appliedFocus.current !== focusKey
-      if (mapFocus.kind === 'location' && userPosition && freshFocus) {
+      if (mapFocus.kind === 'route' && routeBounds?.isValid() && freshFocus) {
+        map.closePopup()
+        map.fitBounds(routeBounds, {padding: [30, 30], maxZoom: 16, animate: false})
+        appliedFocus.current = focusKey
+      } else if (mapFocus.kind === 'location' && userPosition && freshFocus) {
         const zoom = userPosition.accuracy <= 100 ? 16 : userPosition.accuracy <= 1000 ? 14 : userPosition.accuracy <= 10000 ? 11 : 8
         map.closePopup()
         map.setView([userPosition.latitude, userPosition.longitude], zoom, { animate: !reducedMotion, duration: 0.4 })
@@ -117,14 +121,15 @@ function Camera({ trails, positions, recIds, selectedId, active, reducedMotion, 
       fittedKey.current = boundsKey
     })
     return () => cancelAnimationFrame(frame)
-  }, [map, active, boundsKey, recKey, trails, positions, selectedId, reducedMotion, userPosition, mapFocus])
+  }, [map, active, boundsKey, recKey, trails, positions, selectedId, reducedMotion, userPosition, mapFocus, routeBounds])
 
   return null
 }
 
-export default function MapView({ trails, recIds = [], selectedId = null, onSelect = () => {}, active = true, touch = false, compact = false, reducedMotion = false, userPosition = null, mapFocus = { kind: 'trails', version: 0 } }) {
+export default function MapView({ trails, recIds = [], selectedId = null, onSelect = () => {}, active = true, touch = false, compact = false, reducedMotion = false, userPosition = null, mapFocus = { kind: 'trails', version: 0 }, officialRoute = null }) {
   const positions = useMemo(() => spreadPositions(trails), [trails])
   const markerRefs = useRef({})
+  const routeBounds = useMemo(() => officialRoute ? L.geoJSON(officialRoute.geojson).getBounds() : null, [officialRoute])
 
   useEffect(() => {
     if (active && selectedId && !compact) markerRefs.current[selectedId]?.openPopup()
@@ -135,7 +140,11 @@ export default function MapView({ trails, recIds = [], selectedId = null, onSele
   return (
     <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} minZoom={MIN_ZOOM} maxBounds={MAX_BOUNDS} maxBoundsViscosity={1.0} scrollWheelZoom={false} className="trail-map" aria-label="Interactive map of local trails">
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-      <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} active={active} reducedMotion={reducedMotion} compact={compact} userPosition={userPosition} mapFocus={mapFocus} />
+      <Camera trails={trails} positions={positions} recIds={recIds} selectedId={selectedId} active={active} reducedMotion={reducedMotion} compact={compact} userPosition={userPosition} mapFocus={mapFocus} routeBounds={routeBounds} />
+      {officialRoute && <>
+        <GeoJSON key={`halo-${officialRoute.retrieved_at}`} data={officialRoute.geojson} style={{color:'#fff',weight:8,opacity:0.9}} interactive={false} />
+        <GeoJSON key={`official-${officialRoute.retrieved_at}`} data={officialRoute.geojson} style={{color:'#0f766e',weight:4,opacity:1}}><Tooltip>{officialRoute.route.name} · {officialRoute.route.manager}</Tooltip></GeoJSON>
+      </>}
       {userPosition && <>
         <Circle center={[userPosition.latitude, userPosition.longitude]} radius={userPosition.accuracy} pathOptions={{ color: '#2563eb', weight: 1, fillColor: '#3b82f6', fillOpacity: 0.12 }} interactive={false} />
         <CircleMarker center={[userPosition.latitude, userPosition.longitude]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }} interactive={false}>

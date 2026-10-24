@@ -10,6 +10,7 @@ from .db import DatabaseUnavailable
 from .models import ChatRequest, ChatResponse, TrailWithDifficulty
 from .routes_reviews import router as reviews_router
 from .routes_user import me_router
+from .official import router as official_router
 
 log = logging.getLogger("hikingpsu.main")
 
@@ -17,6 +18,7 @@ app = FastAPI(title="HikingPSU API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(me_router)
 app.include_router(reviews_router)
+app.include_router(official_router)
 
 
 @app.exception_handler(DatabaseUnavailable)

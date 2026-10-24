@@ -1,0 +1,59 @@
+[
+  {
+    "id": "whipple-dam", "name": "Whipple Dam State Park", "region": "State College / Huntingdon County, Pennsylvania",
+    "manager": "PA DCNR, Bureau of State Parks", "checked_on": "2026-10-24",
+    "keywords": ["Whipple", "Whipple Lake", "Rothrock", "州立学院", "离线地图"], "trail_ids": ["whipple-dam-loop"],
+    "activities": ["hiking", "cycling"], "gis_park_name": "Whipple Dam State Park",
+    "manager_url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/whipple-dam-state-park",
+    "resources": [
+      {"title": "Whipple Dam official maps and guides", "kind": "manager_page", "url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/whipple-dam-state-park/maps"},
+      {"title": "Whipple Dam park map (official PDF viewer / download)", "kind": "pdf", "url": "https://elibrary.dcnr.pa.gov/GetDocument?DocName=WHIP_ParkMap.pdf&docId=1737196"}
+    ],
+    "route_groups": [{"name": "Whipple Lake", "source_names": ["Whipple Lake", "Whipple Lake (On Beidler Rd.)", "Whipple Lake (On Park Roads)"]}]
+  },
+  {
+    "id": "greenwood-furnace", "name": "Greenwood Furnace State Park", "region": "Rothrock / Huntingdon County, Pennsylvania",
+    "manager": "PA DCNR, Bureau of State Parks", "checked_on": "2026-10-24",
+    "keywords": ["Rothrock", "Standing Stone", "State College", "离线地图"], "trail_ids": [],
+    "activities": ["hiking", "cycling"], "gis_park_name": "Greenwood Furnace State Park",
+    "manager_url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/greenwood-furnace-state-park",
+    "resources": [
+      {"title": "Greenwood Furnace official maps and guides", "kind": "manager_page", "url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/greenwood-furnace-state-park/maps"},
+      {"title": "Greenwood Furnace park map (official PDF viewer / download)", "kind": "pdf", "url": "https://elibrary.dcnr.pa.gov/GetDocument?DocName=GRFU_ParkMap.pdf&docId=1737646"}
+    ]
+  },
+  {
+    "id": "black-moshannon", "name": "Black Moshannon State Park", "region": "State College / Centre County, Pennsylvania",
+    "manager": "PA DCNR, Bureau of State Parks", "checked_on": "2026-10-24",
+    "keywords": ["Bog Trail", "Moss Hanne", "Allegheny Front", "州立学院", "离线地图"], "trail_ids": [],
+    "activities": ["hiking", "cycling"], "gis_park_name": "Black Moshannon State Park",
+    "manager_url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/black-moshannon-state-park",
+    "resources": [
+      {"title": "Black Moshannon official maps, park PDF and recreational guide", "kind": "manager_page", "url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-parks/find-a-park/black-moshannon-state-park/maps"},
+      {"title": "Black Moshannon park map (official PDF viewer / download)", "kind": "pdf", "url": "https://elibrary.dcnr.pa.gov/GetDocument?DocName=BLMO_ParkMap.pdf&docId=1737764"}
+    ]
+  },
+  {
+    "id": "rothrock", "name": "Rothrock State Forest", "region": "State College / Centre, Huntingdon and Mifflin counties, Pennsylvania",
+    "manager": "PA DCNR, Bureau of Forestry", "checked_on": "2026-10-24",
+    "keywords": ["Musser Gap", "Shingletown Gap", "Galbraith Gap", "Tussey Mountain", "Jo Hays", "Indian Steps", "Mid State Trail", "罗思罗克", "离线地图"],
+    "trail_ids": ["musser-gap", "shingletown-gap", "shingletown-ridge-loop", "jo-hays-vista", "indian-steps"], "activities": ["hiking", "cycling"],
+    "manager_url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock",
+    "resources": [
+      {"title": "Rothrock official public-use and recreation trail maps", "kind": "manager_page", "url": "https://www.pa.gov/agencies/dcnr/recreation/where-to-go/state-forests/find-a-forest/rothrock/maps"},
+      {"title": "Galbraith Gap, Shingletown Gap and Tussey Mountain trail map (official PDF viewer / download)", "kind": "pdf", "url": "https://elibrary.dcnr.pa.gov/GetDocument?DocName=sf-d05_RecTrailsMap_2013.pdf&docId=1741629"},
+      {"title": "Musser Gap Recreation Area trail guide (official PDF viewer / download)", "kind": "pdf", "url": "https://elibrary.dcnr.pa.gov/GetDocument?DocName=Forestry+Trail+Guide+8-5x14++MusserGap.pdf&docId=1742805"}
+    ]
+  },
+  {
+    "id": "mount-nittany", "name": "Mount Nittany Conservancy Trails", "region": "Lemont / State College / Centre County, Pennsylvania",
+    "manager": "Mount Nittany Conservancy", "checked_on": "2026-10-24",
+    "keywords": ["Blue Trail", "White Trail", "Mike Lynch", "Nittany Mountain", "离线地图"],
+    "trail_ids": ["mt-nittany-mike-lynch", "mt-nittany-full-loop"], "activities": ["hiking"],
+    "manager_url": "https://nittany.org/trails/", "activity_note": "The manager specifies foot travel only. Bicycles, horses and motorized vehicles are prohibited; discontinued trails should not be used.",
+    "resources": [
+      {"title": "Mount Nittany official trails, regulations and wayfinding stations", "kind": "manager_page", "url": "https://nittany.org/trails/"},
+      {"title": "Mount Nittany Conservancy trail brochure and map (official PDF)", "kind": "pdf", "url": "https://nittany.org/wp-content/uploads/2023/05/2023-MNC-Brochure.pdf"}
+    ]
+  }
+]

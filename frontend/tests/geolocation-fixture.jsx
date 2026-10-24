@@ -26,7 +26,7 @@ Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
       else if (scenario === 'unavailable') error({ code: 2 })
       else if (scenario === 'fallback' && options.enableHighAccuracy) error({ code: 2 })
       else success({
-        coords: { latitude: scenario === 'outside' ? 40.4406 : 40.7934, longitude: scenario === 'outside' ? -79.9959 : -77.86, accuracy: scenario === 'fallback' ? 2500 : 24 },
+        coords: { latitude: scenario === 'outside' ? 40.4406 : scenario === 'on-route' ? 40.682666821650713 : 40.7934, longitude: scenario === 'outside' ? -79.9959 : scenario === 'on-route' ? -77.865863318553352 : -77.86, accuracy: scenario === 'fallback' ? 2500 : 24 },
         timestamp: Date.now(),
       })
     }, scenario === 'pending' ? 10000 : 300)
