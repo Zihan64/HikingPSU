@@ -103,8 +103,22 @@ button:disabled { cursor: default; opacity: .5; }
 .map-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
 .map-hint { font-size: 10px; color: #7c8a80; padding: 0 16px 12px; }
 .trail-list { padding-top: 24px; }
+.trail-list { container-type: inline-size; container-name: trail-results; }
 .trail-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.trail-list-heading h2 { font-size: 19px; letter-spacing: -.6px; font-weight: 650; margin-top: 4px; }
+.trail-list-heading h2 { font-size: 19px; letter-spacing: -.6px; font-weight: 650; margin: 0; white-space: nowrap; }
+.trail-sort { display: flex; align-items: center; justify-content: center; gap: 3px; margin-inline: auto; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, .82); }
+.trail-sort button { min-height: 36px; padding: 6px 9px; border-radius: 7px; font-size: 11px; color: #173a40; white-space: nowrap; }
+.trail-sort button[aria-pressed="true"] { background: #2f6b47; color: #fff; }
+.trail-sort-label { white-space: nowrap; text-align: right; }
+.trail-sort-status { margin: -6px 0 12px; color: #fff; font-size: 11px; line-height: 1.6; }
+.trail-sort-status .location-status { color: inherit; }
+.trail-sort-status .location-error { padding: 8px; border-radius: 8px; background: #fff1ed; color: #9b3e2e; }
+.trail-show-all { display: block; margin-top: -12px; margin-bottom: 8px; }
+@container trail-results (max-width: 590px) {
+  .trail-list-heading { flex-wrap: wrap; }
+  .trail-sort { order: 3; flex-basis: 100%; margin: 0; }
+  .trail-sort-label { margin-left: auto; }
+}
 .trail-list-heading h2 > span { display: inline-block; font-size: 11px; vertical-align: middle; border-radius: 20px; background: #e6efde; color: #3e7b52; padding: 2px 7px; margin-left: 4px; }
 .text-button { font-size: 12px; color: #2c7fbf; text-decoration: underline; min-height: 44px; padding: 6px 3px; flex-shrink: 0; }
 .trail-card { margin-bottom: 12px; scroll-margin: 24px; transition: border-color .15s, box-shadow .15s; }
