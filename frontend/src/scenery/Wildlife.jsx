@@ -60,9 +60,9 @@ export function Flocks({ className = '' }) {
 // Side view facing left, hooves on y = 92, standing in a tuft of meadow grass. One continuous
 // silhouette (the rim light is a filter on the whole shape, so no seams show). The neck is rooted
 // deep in the shoulders and pivots at the withers, so lowering the head never opens a gap.
-export function Deer({ className = '', style }) {
+export function Deer({ className = '', style, ...svgProps }) {
   return (
-    <svg className={`hp-deer ${className}`} style={style} viewBox="0 -8 100 100" aria-hidden="true">
+    <svg className={`hp-deer ${className}`} style={style} viewBox="0 -8 100 100" aria-hidden="true" {...svgProps}>
       <g fill="#33251a">
         {/* far legs, a shade darker */}
         <path fill="#271c13" d="M40 56 L 39.5 72 L 41.5 91 L 44 91 L 43.4 72 L 44.6 57 Z" />
@@ -109,9 +109,9 @@ export function Deer({ className = '', style }) {
 /* ---------------- fully equipped hiker ---------------- */
 // Side view walking right, boots on y = 100: wide-brim hat, softshell, big pack with sleeping-pad roll
 // and side bottle, trekking poles, boots. Legs and poles swing in opposition.
-export function Hiker({ className = '', style }) {
+export function Hiker({ className = '', style, ...svgProps }) {
   return (
-    <svg className={`hp-hiker ${className}`} style={style} viewBox="0 0 60 102" aria-hidden="true">
+    <svg className={`hp-hiker ${className}`} style={style} viewBox="0 0 60 102" aria-hidden="true" {...svgProps}>
       <g strokeLinecap="round" strokeLinejoin="round">
         {/* back pole + back arm */}
         <g className="hp-pole-b">
