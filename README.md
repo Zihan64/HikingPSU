@@ -350,6 +350,10 @@ frontend/
 
 Add a trail to `backend/data/trails.json`. Each entry needs distance, elevation gain, terrain scores (rocky 0–3; scramble, water crossings and navigation 0–2 each), trailhead coordinates, and access options (bus, walk, bike, drive). Set `"verified": true` only after someone has hiked the trail or checked it against an official map.
 
+### Importing trails from OpenStreetMap
+
+`python backend/scripts/fetch_osm_trails.py` pulls hiking route relations around State College from OpenStreetMap (the data behind [OpenTrailMap](https://opentrailmap.us)) through the Overpass API and writes `backend/data/trails_osm.json`, which the backend merges with `trails.json` at startup. Hand-curated trails win on duplicates. Imported entries are always `verified: false`: distance comes from OSM geometry (one-way for non-loops), elevation gain from a coarse ~90 m elevation model, and drive/walk times are straight-line estimates. Re-run it any time; it takes a few minutes.
+
 ## ⚠️ Safety and data disclaimer
 
 HikingPSU is a **planning aid, not a navigation tool**. Trail data was compiled by hand from public sources and may be inaccurate or out of date. Entries marked `verified: false` have not been checked in the field. The hunting-season flag is a rough approximation of the Pennsylvania calendar. Always check official sources such as [PA DCNR](https://www.dcnr.pa.gov/) and the [PA Game Commission](https://www.pgc.pa.gov/), carry a map, tell someone your plans, and turn back if conditions are worse than expected.

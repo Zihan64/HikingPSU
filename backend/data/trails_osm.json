@@ -1,0 +1,1446 @@
+[
+  {
+    "id": "bald-knob-ridge-trail-21272894",
+    "name": "Bald Knob Ridge Trail",
+    "area": "Boalsburg",
+    "distance_mi": 3.1,
+    "elevation_gain_ft": 458,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75483,
+      "lon": -77.80645,
+      "address": "Near Boalsburg, PA (OSM relation 21272894)"
+    },
+    "access": {
+      "drive_min": 13,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 32
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272894. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "bear-meadows-loop-1024488",
+    "name": "Bear Meadows Loop",
+    "area": "Boalsburg",
+    "distance_mi": 3.5,
+    "elevation_gain_ft": 130,
+    "loop": true,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 0
+    },
+    "trailhead": {
+      "lat": 40.73289,
+      "lon": -77.75445,
+      "address": "Near Boalsburg, PA (OSM relation 1024488)"
+    },
+    "access": {
+      "drive_min": 20,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 56
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [
+      "loop"
+    ],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 1024488. Distance from OSM geometry; elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "bluebird-5694641",
+    "name": "Bluebird",
+    "area": "Pine Grove Mills",
+    "distance_mi": 1.1,
+    "elevation_gain_ft": 20,
+    "loop": true,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.6704,
+      "lon": -77.91209,
+      "address": "Near Pine Grove Mills, PA (OSM relation 5694641)"
+    },
+    "access": {
+      "drive_min": 25,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [
+      "loop"
+    ],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 5694641. Distance from OSM geometry; elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "bog-loop-trail-21374050",
+    "name": "Bog Loop Trail",
+    "area": "Centre Hall",
+    "distance_mi": 0.9,
+    "elevation_gain_ft": 20,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78277,
+      "lon": -77.5619,
+      "address": "Near Centre Hall, PA (OSM relation 21374050)"
+    },
+    "access": {
+      "drive_min": 41,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21374050. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "charcoal-flats-trail-21272896",
+    "name": "Charcoal Flats Trail",
+    "area": "Boalsburg",
+    "distance_mi": 1.3,
+    "elevation_gain_ft": 74,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75149,
+      "lon": -77.80735,
+      "address": "Near Boalsburg, PA (OSM relation 21272896)"
+    },
+    "access": {
+      "drive_min": 13,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 33
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272896. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "decker-path-21376012",
+    "name": "Decker Path",
+    "area": "Centre Hall",
+    "distance_mi": 0.9,
+    "elevation_gain_ft": 81,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.7851,
+      "lon": -77.57537,
+      "address": "Near Centre Hall, PA (OSM relation 21376012)"
+    },
+    "access": {
+      "drive_min": 39,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21376012. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "faust-valley-trail-21374046",
+    "name": "Faust Valley Trail",
+    "area": "Centre Hall",
+    "distance_mi": 1.2,
+    "elevation_gain_ft": 106,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.77564,
+      "lon": -77.57716,
+      "address": "Near Centre Hall, PA (OSM relation 21374046)"
+    },
+    "access": {
+      "drive_min": 39,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21374046. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "fern-winder-trail-21272886",
+    "name": "Fern Winder Trail",
+    "area": "State College",
+    "distance_mi": 2.5,
+    "elevation_gain_ft": 480,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.7492,
+      "lon": -77.84695,
+      "address": "Near State College, PA (OSM relation 21272886)"
+    },
+    "access": {
+      "drive_min": 11,
+      "bus": null,
+      "walk_from_campus_min": 90,
+      "bike_min": 27
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272886. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "forest-leaves-trail-21272870",
+    "name": "Forest Leaves Trail",
+    "area": "Pine Grove Mills",
+    "distance_mi": 2.8,
+    "elevation_gain_ft": 41,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.71191,
+      "lon": -77.83698,
+      "address": "Near Pine Grove Mills, PA (OSM relation 21272870)"
+    },
+    "access": {
+      "drive_min": 18,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 47
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272870. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "greenshoot-trail-21272893",
+    "name": "Greenshoot Trail",
+    "area": "Boalsburg",
+    "distance_mi": 1.5,
+    "elevation_gain_ft": 25,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.76146,
+      "lon": -77.77784,
+      "address": "Near Boalsburg, PA (OSM relation 21272893)"
+    },
+    "access": {
+      "drive_min": 15,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 39
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272893. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "greenwood-spur-1024489",
+    "name": "Greenwood Spur",
+    "area": "Boalsburg",
+    "distance_mi": 7.0,
+    "elevation_gain_ft": 1454,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.71518,
+      "lon": -77.75101,
+      "address": "Near Boalsburg, PA (OSM relation 1024489)"
+    },
+    "access": {
+      "drive_min": 22,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 1024489. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "hobie-s-trail-hiking-18086376",
+    "name": "Hobie's Trail hiking",
+    "area": "Boalsburg",
+    "distance_mi": 2.9,
+    "elevation_gain_ft": 60,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.77798,
+      "lon": -77.68418,
+      "address": "Near Boalsburg, PA (OSM relation 18086376)"
+    },
+    "access": {
+      "drive_min": 25,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 18086376. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "horse-path-trail-21374048",
+    "name": "Horse Path Trail",
+    "area": "Centre Hall",
+    "distance_mi": 1.1,
+    "elevation_gain_ft": 45,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78483,
+      "lon": -77.5678,
+      "address": "Near Centre Hall, PA (OSM relation 21374048)"
+    },
+    "access": {
+      "drive_min": 40,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21374048. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "hubler-gap-trail-21272871",
+    "name": "Hubler Gap Trail",
+    "area": "Boalsburg",
+    "distance_mi": 0.9,
+    "elevation_gain_ft": 187,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.73604,
+      "lon": -77.81306,
+      "address": "Near Boalsburg, PA (OSM relation 21272871)"
+    },
+    "access": {
+      "drive_min": 15,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 39
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272871. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "ironstone-trail-5694643",
+    "name": "Ironstone Trail",
+    "area": "Pine Grove Mills",
+    "distance_mi": 9.9,
+    "elevation_gain_ft": 1225,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.71052,
+      "lon": -77.88317,
+      "address": "Near Pine Grove Mills, PA (OSM relation 5694643)"
+    },
+    "access": {
+      "drive_min": 18,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 48
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 5694643. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "lake-trail-5694644",
+    "name": "Lake Trail",
+    "area": "Pine Grove Mills",
+    "distance_mi": 2.7,
+    "elevation_gain_ft": 188,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.66915,
+      "lon": -77.91097,
+      "address": "Near Pine Grove Mills, PA (OSM relation 5694644)"
+    },
+    "access": {
+      "drive_min": 25,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 5694644. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "logging-railroad-grade-20510448",
+    "name": "Logging Railroad Grade",
+    "area": "Boalsburg",
+    "distance_mi": 1.2,
+    "elevation_gain_ft": 249,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.74331,
+      "lon": -77.71042,
+      "address": "Near Boalsburg, PA (OSM relation 20510448)"
+    },
+    "access": {
+      "drive_min": 24,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 20510448. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "lone-pine-trail-21272889",
+    "name": "Lone Pine Trail",
+    "area": "Boalsburg",
+    "distance_mi": 0.8,
+    "elevation_gain_ft": 96,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.74926,
+      "lon": -77.82342,
+      "address": "Near Boalsburg, PA (OSM relation 21272889)"
+    },
+    "access": {
+      "drive_min": 12,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 30
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272889. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "lower-trail-21272892",
+    "name": "Lower Trail",
+    "area": "Boalsburg",
+    "distance_mi": 2.8,
+    "elevation_gain_ft": 489,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75308,
+      "lon": -77.8177,
+      "address": "Near Boalsburg, PA (OSM relation 21272892)"
+    },
+    "access": {
+      "drive_min": 12,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 30
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272892. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "maguire-trail-21272897",
+    "name": "Maguire Trail",
+    "area": "Boalsburg",
+    "distance_mi": 0.8,
+    "elevation_gain_ft": 183,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75808,
+      "lon": -77.80155,
+      "address": "Near Boalsburg, PA (OSM relation 21272897)"
+    },
+    "access": {
+      "drive_min": 13,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 32
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272897. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "moss-hanne-trail-17233610",
+    "name": "Moss-Hanne Trail",
+    "area": "Julian",
+    "distance_mi": 7.4,
+    "elevation_gain_ft": 414,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.89103,
+      "lon": -78.04144,
+      "address": "Near Julian, PA (OSM relation 17233610)"
+    },
+    "access": {
+      "drive_min": 30,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 17233610. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "mount-nittany-blue-trail-17408207",
+    "name": "Mount Nittany Blue Trail",
+    "area": "Lemont",
+    "distance_mi": 4.3,
+    "elevation_gain_ft": 215,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.81142,
+      "lon": -77.80582,
+      "address": "Near Lemont, PA (OSM relation 17408207)"
+    },
+    "access": {
+      "drive_min": 10,
+      "bus": null,
+      "walk_from_campus_min": 77,
+      "bike_min": 23
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 17408207. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "mount-nittany-blue-and-white-trails-17408263",
+    "name": "Mount Nittany Blue and White Trails",
+    "area": "Lemont",
+    "distance_mi": 7.0,
+    "elevation_gain_ft": 1044,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.81151,
+      "lon": -77.80699,
+      "address": "Near Lemont, PA (OSM relation 17408263)"
+    },
+    "access": {
+      "drive_min": 10,
+      "bus": null,
+      "walk_from_campus_min": 76,
+      "bike_min": 23
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 17408263. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "mount-nittany-white-trail-17408208",
+    "name": "Mount Nittany White Trail",
+    "area": "Lemont",
+    "distance_mi": 3.1,
+    "elevation_gain_ft": 829,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.81151,
+      "lon": -77.80699,
+      "address": "Near Lemont, PA (OSM relation 17408208)"
+    },
+    "access": {
+      "drive_min": 10,
+      "bus": null,
+      "walk_from_campus_min": 76,
+      "bike_min": 23
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 17408208. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "mountain-mist-trail-21272887",
+    "name": "Mountain Mist Trail",
+    "area": "Boalsburg",
+    "distance_mi": 4.5,
+    "elevation_gain_ft": 403,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.74742,
+      "lon": -77.83383,
+      "address": "Near Boalsburg, PA (OSM relation 21272887)"
+    },
+    "access": {
+      "drive_min": 12,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 29
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272887. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "musser-gap-trail-21272885",
+    "name": "Musser Gap Trail",
+    "area": "State College",
+    "distance_mi": 1.4,
+    "elevation_gain_ft": 382,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75457,
+      "lon": -77.85261,
+      "address": "Near State College, PA (OSM relation 21272885)"
+    },
+    "access": {
+      "drive_min": 10,
+      "bus": null,
+      "walk_from_campus_min": 79,
+      "bike_min": 24
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272885. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "north-sand-mountain-trail-13655344",
+    "name": "North Sand Mountain Trail",
+    "area": "Centre Hall",
+    "distance_mi": 8.7,
+    "elevation_gain_ft": 672,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.77753,
+      "lon": -77.57713,
+      "address": "Near Centre Hall, PA (OSM relation 13655344)"
+    },
+    "access": {
+      "drive_min": 39,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 13655344. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "north-sand-mountain-trail-21376013",
+    "name": "North Sand Mountain Trail",
+    "area": "Centre Hall",
+    "distance_mi": 1.1,
+    "elevation_gain_ft": 77,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78532,
+      "lon": -77.57221,
+      "address": "Near Centre Hall, PA (OSM relation 21376013)"
+    },
+    "access": {
+      "drive_min": 39,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21376013. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-a-21058523",
+    "name": "PA SGL 176 Trail A",
+    "area": "Stormstown",
+    "distance_mi": 2.2,
+    "elevation_gain_ft": 194,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.7759,
+      "lon": -77.94616,
+      "address": "Near Stormstown, PA (OSM relation 21058523)"
+    },
+    "access": {
+      "drive_min": 14,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 37
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058523. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-b-21058524",
+    "name": "PA SGL 176 Trail B",
+    "area": "Stormstown",
+    "distance_mi": 1.5,
+    "elevation_gain_ft": 0,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.7905,
+      "lon": -77.92641,
+      "address": "Near Stormstown, PA (OSM relation 21058524)"
+    },
+    "access": {
+      "drive_min": 11,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 27
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058524. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-c-21058525",
+    "name": "PA SGL 176 Trail C",
+    "area": "Stormstown",
+    "distance_mi": 1.9,
+    "elevation_gain_ft": 202,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78063,
+      "lon": -77.95198,
+      "address": "Near Stormstown, PA (OSM relation 21058525)"
+    },
+    "access": {
+      "drive_min": 15,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 39
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058525. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-d-21058526",
+    "name": "PA SGL 176 Trail D",
+    "area": "Stormstown",
+    "distance_mi": 2.3,
+    "elevation_gain_ft": 164,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78556,
+      "lon": -77.99233,
+      "address": "Near Stormstown, PA (OSM relation 21058526)"
+    },
+    "access": {
+      "drive_min": 20,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 54
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058526. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-e-21058527",
+    "name": "PA SGL 176 Trail E",
+    "area": "Stormstown",
+    "distance_mi": 1.8,
+    "elevation_gain_ft": 184,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.78633,
+      "lon": -77.97728,
+      "address": "Near Stormstown, PA (OSM relation 21058527)"
+    },
+    "access": {
+      "drive_min": 18,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 48
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058527. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "pa-sgl-176-trail-f-21058528",
+    "name": "PA SGL 176 Trail F",
+    "area": "Stormstown",
+    "distance_mi": 2.3,
+    "elevation_gain_ft": 160,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.76584,
+      "lon": -77.97096,
+      "address": "Near Stormstown, PA (OSM relation 21058528)"
+    },
+    "access": {
+      "drive_min": 18,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 49
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21058528. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "rudy-ridge-loop-21272869",
+    "name": "Rudy Ridge Loop",
+    "area": "Pine Grove Mills",
+    "distance_mi": 5.9,
+    "elevation_gain_ft": 237,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.72782,
+      "lon": -77.84735,
+      "address": "Near Pine Grove Mills, PA (OSM relation 21272869)"
+    },
+    "access": {
+      "drive_min": 15,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 38
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272869. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "shingletown-gap-trail-21272898",
+    "name": "Shingletown Gap Trail",
+    "area": "Boalsburg",
+    "distance_mi": 1.0,
+    "elevation_gain_ft": 0,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.75345,
+      "lon": -77.79085,
+      "address": "Near Boalsburg, PA (OSM relation 21272898)"
+    },
+    "access": {
+      "drive_min": 14,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 37
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272898. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "south-sand-mountain-trail-21374040",
+    "name": "South Sand Mountain Trail",
+    "area": "Centre Hall",
+    "distance_mi": 1.2,
+    "elevation_gain_ft": 188,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.77284,
+      "lon": -77.59176,
+      "address": "Near Centre Hall, PA (OSM relation 21374040)"
+    },
+    "access": {
+      "drive_min": 37,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": null
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21374040. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "tussey-pond-park-hiking-14356206",
+    "name": "Tussey Pond Park Hiking",
+    "area": "Boalsburg",
+    "distance_mi": 3.4,
+    "elevation_gain_ft": 265,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.77522,
+      "lon": -77.77363,
+      "address": "Near Boalsburg, PA (OSM relation 14356206)"
+    },
+    "access": {
+      "drive_min": 14,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 37
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 14356206. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "up-and-over-trail-21272884",
+    "name": "Up and Over Trail",
+    "area": "Boalsburg",
+    "distance_mi": 2.9,
+    "elevation_gain_ft": 305,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.74604,
+      "lon": -77.83691,
+      "address": "Near Boalsburg, PA (OSM relation 21272884)"
+    },
+    "access": {
+      "drive_min": 12,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 30
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21272884. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  },
+  {
+    "id": "whipple-lake-trail-21279199",
+    "name": "Whipple Lake Trail",
+    "area": "Pine Grove Mills",
+    "distance_mi": 2.2,
+    "elevation_gain_ft": 163,
+    "loop": false,
+    "terrain": {
+      "rocky": 1,
+      "scramble": 0,
+      "water_crossing": 0,
+      "navigation": 1
+    },
+    "trailhead": {
+      "lat": 40.69394,
+      "lon": -77.85708,
+      "address": "Near Pine Grove Mills, PA (OSM relation 21279199)"
+    },
+    "access": {
+      "drive_min": 20,
+      "bus": null,
+      "walk_from_campus_min": null,
+      "bike_min": 56
+    },
+    "parking": "",
+    "cell_signal": "fair",
+    "hunting_zone": true,
+    "features": [],
+    "best_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ],
+    "notes": "Imported from OpenStreetMap relation 21279199. Distance from OSM geometry (one-way length; an out-and-back is roughly double); elevation from a ~90 m DEM; drive/walk times are straight-line estimates. Unchecked in the field.",
+    "verified": false
+  }
+]

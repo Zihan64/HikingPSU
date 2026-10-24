@@ -16,7 +16,7 @@ def test_health_and_trail_details(client):
     health = client.get("/health")
     assert health.status_code == 200
     trails = client.get("/trails").json()
-    assert health.json()["trails"] == len(trails) == 12
+    assert health.json()["trails"] == len(trails) >= 12
     assert "Mount Nittany –" in client.get("/trails/mt-nittany-mike-lynch").json()["name"]
     assert client.get("/trails/missing").status_code == 404
 

@@ -9,6 +9,7 @@ from .difficulty import rate
 from .models import Trail, TrailWithDifficulty
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "trails.json"
+OSM_PATH = DATA_PATH.with_name("trails_osm.json")
 
 
 # The model asks for "view"; the data says "overlook" / "ridge views" / "7 overlooks".
@@ -59,6 +60,9 @@ def _is_car_free(trail: Trail) -> bool:
 @lru_cache(maxsize=1)
 def load_all() -> list[TrailWithDifficulty]:
     raw = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    if OSM_PATH.exists():  # imported by scripts/fetch_osm_trails.py; curated ids win on clashes
+        known = {r["id"] for r in raw}
+        raw += [r for r in json.loads(OSM_PATH.read_text(encoding="utf-8")) if r["id"] not in known]
     out = []
     for item in raw:
         t = Trail(**item)
