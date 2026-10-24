@@ -33,9 +33,10 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 The interface adapts automatically to the available viewport and input capabilities,
 including changes while resizing a window or rotating a device:
 
-- **960px and wider:** chat, map and trail cards are available together. The chat
-  and map stay visible as the trail list scrolls. Card selection also works with
-  Enter or Space; mouse-wheel scrolling moves the page without zooming the map.
+- **960px and wider:** chat, map and trail cards are available together. The trail
+  list scrolls only inside the area below the map and is clipped at that area's
+  boundary. Official route details and resources appear once in the left sidebar;
+  the right pane contains the map. Card selection also works with Enter or Space.
 - **Below 960px:** bottom navigation switches between Plan, Trails, Map and Library.
   Recommendations have a shortcut to the results. Selecting a trail opens the
   map, and Trail details returns to the selected card.
