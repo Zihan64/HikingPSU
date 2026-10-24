@@ -27,6 +27,60 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **🗺️ Map view.** Every trail appears on the map, colored by difficulty. Recommended trails are highlighted.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
+## Device-aware interface
+
+The interface adapts automatically to the available viewport and input capabilities,
+including changes while resizing a window or rotating a device:
+
+- **960px and wider:** chat, map and trail cards are available together. The chat
+  and map stay visible as the trail list scrolls. Card selection also works with
+  Enter or Space; mouse-wheel scrolling moves the page without zooming the map.
+- **Below 960px:** bottom navigation switches between Plan, Trails and Map.
+  Recommendations have a shortcut to the results. Selecting a trail opens the
+  map, and Trail details returns to the selected card.
+- **Touch input:** map pins and zoom buttons have larger hit areas. The mobile
+  composer follows the visual viewport when the keyboard opens; safe-area padding
+  accommodates device cutouts and the home indicator.
+- Conversations, drafts, recommendations and selected trails stay in memory
+  across view and layout changes. A full reload starts a fresh anonymous session.
+- Reduced-motion preferences disable map and scroll animations.
+
+Layout uses CSS media queries and `matchMedia`, rather than browser-name or
+user-agent checks. Hidden map panels retain their map instance and refresh its
+size with `ResizeObserver` when shown again.
+
+## Device location
+
+Choose **Use my location** above the map to request browser permission. The app
+asks for a fresh, high-accuracy fix first, then retries once at standard accuracy
+if it is unavailable or times out. The browser and operating system choose GPS,
+Wi-Fi, cellular or another available location provider; websites cannot select a
+particular radio or guarantee that GPS was used. See the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API).
+
+- A blue point shows the reported location; the blue circle shows the reported
+  accuracy radius. Approximate results are displayed with their actual accuracy.
+- This is a **one-time fix**, not continuous tracking. Use **Update my location**
+  to request another fix, **Cancel** to stop a pending request, **Clear location**
+  to remove it from the page, or **Show trails** to return to the trail map.
+- Coordinates stay in page memory and are not sent to our API, AI agent or
+  browser storage. Viewing the location on the map loads OpenStreetMap tiles for
+  that area. The browser/OS location provider follows its own privacy policy.
+- Production needs **HTTPS**; localhost is supported for development. Ordinary
+  HTTP on a LAN IP is insufficient for phone testing. Browser and device Location
+  Services must be enabled. Embedded pages also need a policy allowing geolocation.
+- A denial is respected; the app explains how to change the site's permission
+  and continues to work without location. Clearing the marker does not revoke
+  the browser permission, which is controlled in the browser's site settings.
+
+Run the location state-machine tests with `npm test --prefix frontend`. For local
+UI checks, open `/tests/geolocation.html?scenario=success` on the Vite dev server.
+The fixture is visibly labelled **SIMULATED LOCATION** and uses public State College
+test coordinates without requesting actual device location. Other scenarios:
+`fallback`, `denied`, `timeout`, `unavailable`, `pending` (for cancellation), and
+`outside` (a valid location beyond the local trail browsing bounds).
+It is not an entry point in the production build. Real GPS/provider accuracy and
+OS permission prompts still need physical-device testing.
+
 ## How it works
 
 ```mermaid
