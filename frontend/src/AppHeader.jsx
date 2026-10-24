@@ -1,5 +1,6 @@
 import AuthButton from './AuthButton'
 import { Mark } from './landing/Logo'
+import HeaderTrail from './theme/HeaderTrail'
 
 export function HomeLink({ onHome, compact = false }) {
   return <a className={`brand ${compact ? 'brand-compact' : ''}`} href="#" aria-label="HikingPSU home" onClick={e => { e.preventDefault(); onHome() }}>
@@ -16,5 +17,6 @@ export default function AppHeader({ onHome, onLibrary, libraryOpen, onProfile, p
       <span className="location-label"><span />Happy Valley, PA</span>
       <div className="auth-control">{account ?? <AuthButton onProfile={onProfile} profileActive={profileOpen} />}</div>
     </div>
+    <HeaderTrail />
   </header>
 }

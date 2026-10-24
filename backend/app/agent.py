@@ -57,9 +57,14 @@ def _client() -> anthropic.Anthropic:
     return anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
 
 
-def run(messages: list[ChatMessage], profile: dict | None = None, recommender: Recommender | None = None) -> ChatResponse:
+def run(messages: list[ChatMessage], profile: dict | None = None, recommender: Recommender | None = None,
+        offline: bool = False) -> ChatResponse:
     if os.getenv("DEMO_MODE") == "1":
         return _demo(messages, profile, recommender)
+    if offline:  # today's global AI budget is spent (see ratelimit.take_live_call)
+        res = _demo(messages, profile, recommender)
+        res.reply = "(The AI planner is at today's limit, showing a simple offline match.)\n" + res.reply
+        return res
 
     try:
         return _run_live(messages, profile, recommender)

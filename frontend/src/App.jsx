@@ -4,7 +4,7 @@ import TrailCard from './TrailCard'
 import MapView from './MapView'
 import useDeviceLayout from './useDeviceLayout'
 import useLocation from './useLocation'
-import LocationControl from './LocationControl'
+import LocationControl, { LocationStatus } from './LocationControl'
 import OfficialLibrary, { OfficialLinks } from './OfficialLibrary'
 import RouteReference from './RouteReference'
 import { prepareRouteReference } from './trailGeometry'
@@ -14,6 +14,7 @@ import AppHeader, { HomeLink } from './AppHeader'
 import Icon from './Icon'
 import useMapFullscreen from './useMapFullscreen'
 import { useOptionalToken } from './auth'
+import AppBackdrop from './theme/AppBackdrop'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
 const SUGGESTIONS = [
@@ -158,7 +159,8 @@ export default function App() {
     try {
       const res = await chat(next, {}, { token: await getToken(), sessionId })
       if (res.session_id) setSessionId(res.session_id)
-      setMessages([...next, { role: 'assistant', content: res.reply }])
+      // sig proves the reply came from the server; unsigned assistant turns are dropped from the AI's context.
+      setMessages([...next, { role: 'assistant', content: res.reply, sig: res.reply_sig }])
       // Off-topic requests are declined without any tool call: keep the current trail list as it is.
       if (!res.trails.length && !res.tool_log?.length) return
       // Returning home must not reopen a previous search when its reply arrives.
@@ -276,6 +278,7 @@ export default function App() {
 
   return (
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
+      <AppBackdrop />
       <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
@@ -293,7 +296,6 @@ export default function App() {
           <div className="conversation" ref={conversationRef} role="log" aria-label="Hiking planner conversation" aria-live="polite" aria-relevant="additions text" aria-busy={loading}>
             {messages.length === 0 && (
               <div className="welcome">
-                <span className="welcome-icon"><Icon name="plan" /></span>
                 <h2>Where do you want to go?</h2>
                 <p>Tell me your time, transport and who's coming along. Or start here:</p>
                 <div className="suggestions">
@@ -332,8 +334,9 @@ export default function App() {
           <section id="map-panel" ref={mapPanelRef} className={`map-panel ${mapExpanded ? 'map-expanded' : ''}`} hidden={!mapExpanded && isCompact && mobileView !== 'map'} role={mapExpanded ? 'dialog' : undefined} aria-modal={mapExpanded ? 'true' : undefined} aria-label={mapExpanded ? 'Full-screen trail map' : 'Trail map'} tabIndex={-1}>
             <div className="map-info">
             {mapExpanded && <HomeLink compact onHome={goHome} />}
-            <div className="map-heading"><span className="eyebrow">{officialRoute ? 'MANAGER-PUBLISHED ROUTE' : 'EXPLORE HAPPY VALLEY'}</span><span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div>
-            <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} />
+            <div className="map-heading"><div className="map-heading-title">{officialRoute && <span className="eyebrow">MANAGER-PUBLISHED ROUTE</span>}<span>{officialRoute ? officialRoute.route.area : `${mapTrails.length} local trails`}</span></div></div>
+            <LocationControl location={location} onRequest={requestLocation} onClear={clearLocation} onShowTrails={showTrailsOnMap} routeActive={!!officialRoute} showStatus={false} />
+            <LocationStatus location={location} routeActive={!!officialRoute} showIdle={false} className="map-location-status" />
             {officialRoute && isCompact && <RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} />}
             <div className="map-legend" aria-label={officialRoute ? 'Official route legend' : 'Trail difficulty legend'}>
               {officialRoute ? <><span><i style={{background: '#0f766e'}} />Manager-published route</span><span><i style={{background: '#2563eb'}} />Your location (when enabled)</span></> : [1, 2, 3, 4, 5].map(l => <span key={l}><i style={{ background: LEVEL_HEX[l] }} />L{l} {LEVEL_LABELS[l]}</span>)}

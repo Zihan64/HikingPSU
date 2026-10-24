@@ -41,40 +41,40 @@ export default function TrailTicker({ className = '' }) {
 
   return (
     <div
-      className={`${className} ${paused ? 'lp-paused' : ''} overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-[0_20px_50px_-20px_rgba(0,30,68,0.6)] backdrop-blur-xl`}
+      className={`${className} ${paused ? 'lp-paused' : ''} overflow-hidden rounded-2xl border border-white/60 bg-white/70 shadow-[0_20px_50px_-20px_rgba(23,58,64,0.6)] backdrop-blur-xl`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-live="polite"
     >
       <div className="px-5 pb-4 pt-4">
-        <p className="text-xs text-psu-slate">
+        <p className="text-xs text-trail-slate">
           {trails.length} trails near campus, {carFree} without a car
         </p>
         <div key={t.id} className="lp-swap">
-          <h3 className="mt-2 text-lg font-medium leading-snug text-psu-navy">{t.name}</h3>
-          <p className="text-sm text-psu-slate">{t.area}</p>
-          <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-psu-navy/10 pt-3">
+          <h3 className="mt-2 text-lg font-medium leading-snug text-trail-ink">{t.name}</h3>
+          <p className="text-sm text-trail-slate">{t.area}</p>
+          <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-trail-ink/10 pt-3">
             <div>
-              <dt className="text-xs text-psu-slate">Difficulty</dt>
-              <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-psu-navy">
+              <dt className="text-xs text-trail-slate">Difficulty</dt>
+              <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-trail-ink">
                 <span className="inline-block h-2 w-2 rounded-full" style={{ background: LEVEL_HEX[d.level] }} />
                 L{d.level} {LEVEL_LABELS[d.level]}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-psu-slate">Distance</dt>
-              <dd className="mt-0.5 text-sm font-medium tabular-nums text-psu-navy">{t.distance_mi} mi</dd>
+              <dt className="text-xs text-trail-slate">Distance</dt>
+              <dd className="mt-0.5 text-sm font-medium tabular-nums text-trail-ink">{t.distance_mi} mi</dd>
             </div>
             <div>
-              <dt className="text-xs text-psu-slate">Climbing</dt>
-              <dd className="mt-0.5 text-sm font-medium tabular-nums text-psu-navy">{t.elevation_gain_ft} ft</dd>
+              <dt className="text-xs text-trail-slate">Climbing</dt>
+              <dd className="mt-0.5 text-sm font-medium tabular-nums text-trail-ink">{t.elevation_gain_ft} ft</dd>
             </div>
           </dl>
         </div>
       </div>
       {!still && trails.length > 1 && (
-        <div className="h-0.5 bg-psu-navy/10">
-          <div key={`${t.id}-p`} className="lp-progress h-full bg-psu-navy/60" style={{ '--t': `${STEP_MS}ms` }} />
+        <div className="h-0.5 bg-trail-ink/10">
+          <div key={`${t.id}-p`} className="lp-progress h-full bg-trail-forest/80" style={{ '--t': `${STEP_MS}ms` }} />
         </div>
       )}
     </div>

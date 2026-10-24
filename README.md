@@ -59,6 +59,8 @@ official routes and expanded map. Chats and drafts are preserved; late search
 responses cannot reopen the previous map selection. The compact header reserves
 the same avatar/name/action space for Guest, signed-in, loading and error states;
 long names are truncated and the guest avatar uses the supplied default image.
+The shared header preserves the sky theme, decorative trees and walking hiker,
+with 20px padding above and below its content instead of a fixed height.
 
 Map information is placed beside the map on desktops/tablets, with a compact
 toolbar above the map on narrow phones. Expand in the map's top-right corner
@@ -67,7 +69,7 @@ keyboard focus stays inside the preview and background controls are inactive.
 The development-only `/tests/profile-layout.html` fixture checks synthetic
 Guest/short/long/loading/error profiles without an actual sign-in.
 
-Choose **Use my location** above the map to request browser permission. The app
+Choose **Use my location** in the map controls to request browser permission. The app
 asks for a fresh, high-accuracy fix first, then retries once at standard accuracy
 if it is unavailable or times out. The browser and operating system choose GPS,
 Wi-Fi, cellular or another available location provider; websites cannot select a
@@ -285,6 +287,10 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `ANTHROPIC_API_KEY` | — | Claude API key |
 | `HIKINGPSU_MODEL` | see `agent.py` | Which Claude model the agent uses |
 | `DEMO_MODE` | `0` | `1` = no API calls, offline keyword matching |
+| `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `20` | Chat limits per anonymous IP |
+| `CHAT_LIMIT_USER_PER_MIN` / `_PER_DAY` | `6` / `60` | Chat limits per signed-in user |
+| `CHAT_LIMIT_GLOBAL_PER_DAY` | `1000` | Live AI calls per day across everyone; after that, chat answers offline |
+| `CHAT_SIGNING_KEY` | random per start | Signs assistant replies so clients can't forge them. Set it if you run several workers |
 
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
 

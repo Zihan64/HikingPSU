@@ -121,3 +121,13 @@ test('profile API failure does not erase the signed-in user or disable Profile',
   assert.equal(tree.root.findByProps({className:'account-identity'}).props.disabled, false)
   assert.equal(button('Log out').props.disabled, false)
 })
+
+test('the shared header retains main theme trees and hiker inside the 20px decoration area', async () => {
+  await mount(session())
+  const trail = tree.root.findByProps({className:'hp-trail'})
+  assert.equal(trail.props['aria-hidden'], 'true')
+  const trees = trail.findAllByProps({className:'hp-trail-tree'})
+  assert.equal(trees.length, 11)
+  assert.ok(trees.every(node => node.props.style.height > 0 && node.props.style.height <= 20))
+  assert.ok(trail.findByProps({className:'hp-trail-walker'}).children.length > 0)
+})

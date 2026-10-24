@@ -1,0 +1,53 @@
+/* App backdrop (AppBackdrop.jsx): the realistic scene fixed behind every panel, never clickable. */
+.hp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1f5fae 0%, #4f93d6 30%, #a9cfe8 56%, #8fb27c 70%, #3f6b3f 85%, #2a4a2c 100%);
+}
+/* a light veil over the middle of the scene so the glass panels and the type stay calm */
+.hp-backdrop-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 26, 44, 0.30) 0%, rgba(6, 26, 44, 0.10) 22%, rgba(255, 255, 255, 0.10) 55%, rgba(6, 26, 44, 0.12) 100%);
+}
+
+/* Header trail (HeaderTrail.jsx): sits on the header's bottom line. */
+.hp-trail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 20px;
+  pointer-events: none;
+  container-type: inline-size;
+  overflow: hidden;
+}
+.hp-trail-tree {
+  position: absolute;
+  bottom: 0;
+  transform-origin: 50% 100%;
+  animation: hp-trail-sway 6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 1px 1px rgba(4, 22, 38, 0.25));
+}
+@keyframes hp-trail-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+.hp-trail-walker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 12px;
+  height: 20px;
+  animation: hp-trail-walk 80s linear infinite;
+  animation-delay: -12s;
+}
+@keyframes hp-trail-walk {
+  from { transform: translateX(-24px); }
+  to   { transform: translateX(calc(100cqw + 24px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-trail-tree, .hp-trail-walker { animation: none !important; }
+  .hp-trail-walker { transform: translateX(22cqw); }
+}
