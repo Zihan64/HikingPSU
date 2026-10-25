@@ -109,6 +109,7 @@ def _run_gemini(messages: list[ChatMessage], system: str, tools: list[dict], rec
         ])],
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),  # we run tools ourselves
         max_output_tokens=4096,  # includes the model's thinking
+        thinking_config=llm.gemini_thinking(),
     )
     convo = [types.Content(role="user" if m.role == "user" else "model", parts=[types.Part(text=m.content)]) for m in messages]
     tool_log: list[dict] = []

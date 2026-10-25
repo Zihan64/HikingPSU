@@ -71,6 +71,7 @@ def parse(text: str) -> ParsedPreferences:
                     system_instruction=SYSTEM,
                     response_mime_type="application/json",
                     response_json_schema=_Extracted.model_json_schema(),
+                    thinking_config=llm.gemini_thinking(),
                 ),
             )
             if not resp.text:

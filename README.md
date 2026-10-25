@@ -305,6 +305,7 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `LLM_PROVIDER` | `gemini` | Which LLM runs the chat agent and preference parser: `gemini` or `claude`. `/health` shows the active one |
 | `GEMINI_API_KEY` | — | Gemini API key (Google AI Studio); used when `LLM_PROVIDER=gemini` |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | Which Gemini model to use |
+| `GEMINI_THINKING_LEVEL` | `low` | How long Gemini thinks before answering (`minimal`/`low`/`medium`/`high`, empty = model default). Lower is faster; 3.8 Flash doesn't accept `minimal` |
 | `GEMINI_TIMEOUT_S` / `CHAT_DEADLINE_S` | `20` / `40` | Seconds per Gemini call (no retries) and for the whole chat tool loop; past either, chat answers offline |
 | `ANTHROPIC_API_KEY` | — | Claude API key; used when `LLM_PROVIDER=claude` |
 | `HIKINGPSU_MODEL` | see `llm.py` | Which Claude model to use |

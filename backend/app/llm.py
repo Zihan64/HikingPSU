@@ -19,6 +19,9 @@ CLAUDE_MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "cla
 # reply left the chat spinning for minutes. Fail fast instead; callers then answer offline.
 GEMINI_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "20"))  # per API call
 CHAT_DEADLINE_S = float(os.getenv("CHAT_DEADLINE_S", "40"))    # whole tool-use loop
+# How long Gemini thinks before answering: minimal | low | medium | high, or "" for the model's default
+# (medium on 3.8 Flash). Low keeps chat responsive; 3.8 Flash rejects minimal (Flash-Lite allows it).
+GEMINI_THINKING_LEVEL = os.getenv("GEMINI_THINKING_LEVEL", "low").strip().lower()
 
 
 def provider() -> str:
@@ -29,6 +32,10 @@ def provider() -> str:
 
 def model() -> str:
     return GEMINI_MODEL if provider() == "gemini" else CLAUDE_MODEL
+
+
+def gemini_thinking() -> types.ThinkingConfig | None:
+    return types.ThinkingConfig(thinking_level=GEMINI_THINKING_LEVEL.upper()) if GEMINI_THINKING_LEVEL else None
 
 
 def gemini_client() -> genai.Client:
