@@ -232,6 +232,7 @@ class ReviewOut(BaseModel):
     likes: int = 0
     liked: bool = Field(False, description="The viewer has hearted this comment")
     tip: bool = Field(False, description="A HikingPSU starter tip rather than a hiker's review")
+    badge: Optional[str] = Field(None, description="The author's highest trail medal (community feed only)")
 
 
 class LikeState(BaseModel):
@@ -268,3 +269,23 @@ class ChatSessionSummary(BaseModel):
 
 class ChatSessionOut(ChatSessionSummary):
     messages: list[StoredMessage]
+
+
+class BadgeOut(BaseModel):
+    """One trail medal and how far the hiker is toward it."""
+
+    id: str
+    name: str
+    tagline: str
+    how: str
+    rank: int
+    progress: int
+    goal: int
+    earned: bool
+    earned_on: Optional[dt.date] = None
+
+
+class BadgesOut(BaseModel):
+    badges: list[BadgeOut]
+    top: Optional[str] = Field(None, description="Id of the highest medal earned, if any")
+    earned: int = 0

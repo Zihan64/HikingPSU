@@ -5,7 +5,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from . import auth, chats, hikes, preference_parser, ratelimit, recommend, reviews, store, users
+from . import auth, badges, chats, hikes, preference_parser, ratelimit, recommend, reviews, store, users
 from .user_models import (
     ChatSessionOut,
     ChatSessionSummary,
@@ -18,6 +18,7 @@ from .user_models import (
     ParsedPreferences,
     PreferenceText,
     Recommendations,
+    BadgesOut,
     Registration,
     UserOut,
 )
@@ -59,6 +60,12 @@ def delete_me(user_id: str = Depends(auth.current_user_id)):
 @me_router.get("/insights", response_model=Insights)
 def get_insights(user: dict = Depends(auth.current_user)):
     return hikes.insights(user)
+
+
+@me_router.get("/badges", response_model=BadgesOut)
+def get_badges(user_id: str = Depends(auth.current_user_id)):
+    """Trail medals with progress, computed from the hike log and reviews."""
+    return badges.compute(user_id)
 
 
 # ---------- recommendations ----------

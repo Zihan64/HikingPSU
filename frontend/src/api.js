@@ -52,6 +52,8 @@ export const getInsights = token => request('/me/insights', { token })
 export const listHikes = token => request('/me/hikes?limit=200', { token })
 export const addHike = (hike, token) => request('/me/hikes', { method: 'POST', body: hike, token })
 export const deleteHike = (id, token) => request(`/me/hikes/${id}`, { method: 'DELETE', token })
+// Trail medals with progress; computed by the server from the hike log and reviews.
+export const getBadges = token => request('/me/badges', { token })
 export const getRecommendations = (token, k = 5) => request(`/me/recommendations?k=${k}`, { token })
 // Returns suggested preference fields only; nothing is saved until patchMe().
 export const parsePreferences = (text, token) => request('/me/preferences/parse', { method: 'POST', body: { text }, token })

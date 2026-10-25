@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { Auth0Provider } from '@auth0/auth0-react'
 import App from './App'
 import AuthGate from './AuthGate'
+import { MedalProvider } from './badges/MedalContext'
 import { AUTH_ENABLED, AUTH0_AUDIENCE, AUTH0_CLIENT_ID, AUTH0_DOMAIN } from './auth'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
@@ -20,7 +21,7 @@ const app = AUTH_ENABLED ? (
     cacheLocation="localstorage"
   >
     <AuthGate>
-      <App />
+      <MedalProvider><App /></MedalProvider>
     </AuthGate>
   </Auth0Provider>
 ) : (

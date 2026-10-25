@@ -12,7 +12,7 @@ from pathlib import Path
 from pymongo import DESCENDING
 from pymongo.errors import ConnectionFailure
 
-from . import likes, reviews, store
+from . import badges, likes, reviews, store
 from .db import DatabaseUnavailable, get_db, to_oid
 from .user_models import ReviewOut
 
@@ -64,10 +64,21 @@ def feed(viewer_id: str | None, sort: str = "recent", limit: int = 20, skip: int
     query = {"comment": {"$ne": None}, **({"trail_id": trail_id} if trail_id else {})}
     cur = get_db().reviews.find(query).sort([("created_at", DESCENDING), ("_id", DESCENDING)])
     if sort != "top":
-        return reviews.to_out_many(list(cur.skip(skip).limit(limit)), viewer_id, with_trail_name=True)
-    ranked = reviews.to_out_many(list(cur.limit(TOP_WINDOW)), viewer_id, with_trail_name=True)
-    ranked.sort(key=lambda r: -r.likes)  # stable: newest first among equal hearts
-    return ranked[skip:skip + limit]
+        docs = list(cur.skip(skip).limit(limit))
+        return _with_badges(reviews.to_out_many(docs, viewer_id, with_trail_name=True), docs)
+    docs = list(cur.limit(TOP_WINDOW))
+    ranked = list(zip(reviews.to_out_many(docs, viewer_id, with_trail_name=True), docs))
+    ranked.sort(key=lambda pair: -pair[0].likes)  # stable: newest first among equal hearts
+    page = ranked[skip:skip + limit]
+    return _with_badges([r for r, _ in page], [d for _, d in page])
+
+
+def _with_badges(items: list[ReviewOut], docs: list[dict]) -> list[ReviewOut]:
+    """Each author's highest trail medal, shown beside their name."""
+    tops = badges.top_for([d.get("user_id") for d in docs])
+    for item, doc in zip(items, docs):
+        item.badge = tops.get(str(doc.get("user_id")))
+    return items
 
 
 def exists(comment_id: str) -> bool:

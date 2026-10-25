@@ -1,0 +1,117 @@
+/* Trail medals (Medal.jsx). The light that moves is a separate layer, transform/opacity only. */
+.md { position: relative; display: inline-block; flex-shrink: 0; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.2, .7, .2, 1), filter .3s; }
+.md > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.md-earned { filter: drop-shadow(0 10px 14px rgba(20, 40, 28, .22)); }
+.md-locked .md-base { filter: grayscale(1) brightness(1.08) contrast(.72); opacity: .42; }
+.md-mini.md-earned { filter: drop-shadow(0 1px 1.5px rgba(20, 40, 28, .35)); }
+
+.md-lock {
+  position: absolute; left: 50%; top: 45.5%; width: 30%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  display: grid; place-items: center; border-radius: 50%; color: #fff;
+  background: radial-gradient(circle at 35% 30%, #6d7a74, #3a4540); box-shadow: 0 4px 10px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.md-lock svg { width: 46%; height: 46%; }
+
+/* light sweeping across the metal, then resting */
+.md-sheen { animation: md-sheen 5.5s cubic-bezier(.45, 0, .2, 1) infinite; }
+@keyframes md-sheen { 0% { transform: translateX(-40px) rotate(22deg); } 28%, 100% { transform: translateX(300px) rotate(22deg); } }
+.md-fx svg, .md-fx { mix-blend-mode: screen; }
+.md-spark { transform-box: fill-box; transform-origin: center; animation: md-spark 3.6s ease-in-out infinite; opacity: 0; }
+@keyframes md-spark { 0%, 70%, 100% { opacity: 0; transform: scale(.2) rotate(0deg); } 82% { opacity: 1; transform: scale(1.15) rotate(45deg); } }
+.md-rays { transform-box: view-box; transform-origin: 100px 100px; animation: md-spin 60s linear infinite; }
+@keyframes md-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .md-sheen, .md-spark, .md-rays { animation: none !important; }
+  .md { transition: none; }
+}
+
+/* ---------------- medal case (MedalWall.jsx): a dark velvet case so the metal glows ---------------- */
+.mw {
+  position: relative; overflow: hidden; border-radius: 22px; padding: 22px; color: #eef3ea;
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgba(245, 192, 74, .16), transparent 55%),
+    radial-gradient(90% 70% at 100% 100%, rgba(44, 127, 191, .18), transparent 60%),
+    linear-gradient(160deg, #163a2a 0%, #0f2a24 45%, #0b1d2b 100%);
+  box-shadow: 0 24px 60px -30px rgba(9, 30, 22, .7), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.mw::before { /* faint velvet grain */
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.mw > * { position: relative; }
+.mw .eyebrow { color: #f5c04a; font-size: 11px; letter-spacing: .16em; }
+.mw-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.mw-head h2 { font-size: 22px; font-weight: 650; letter-spacing: -.02em; margin-top: 4px; color: #fff; }
+.mw-count { font-size: 12px; color: #b9c9bf; white-space: nowrap; }
+.mw-count b { font-size: 20px; color: #f5c04a; margin-right: 2px; }
+
+.mw-hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; margin-bottom: 22px; }
+.mw-feature, .mw-next { border-radius: 16px; padding: 16px; background: rgba(255, 255, 255, .05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.mw-feature { display: flex; align-items: center; gap: 18px; }
+.mw-feature h3 { font-size: 24px; font-weight: 650; letter-spacing: -.02em; color: #fff; margin: 2px 0 4px; }
+.mw-feature p, .mw-next p { font-size: 13px; line-height: 1.5; color: #c3d2c8; }
+.mw-label { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fb7a9; }
+.mw-next-row { display: flex; gap: 14px; align-items: center; margin-top: 10px; }
+.mw-next h3 { font-size: 15px; font-weight: 650; color: #fff; }
+.mw-date { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 600; color: #f5c04a; }
+
+.mw-group { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fb7a9; margin: 4px 0 10px; }
+.mw-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.mw-grid-side { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.mw-tile { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 14px 8px 12px; border-radius: 14px; background: rgba(0, 0, 0, .18); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .05); }
+.mw-tile.is-earned { background: radial-gradient(circle at 50% 30%, rgba(255, 236, 170, .14), rgba(0, 0, 0, .14) 70%); }
+.mw-tile.is-honour.is-earned { box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(245, 192, 74, .35); }
+.mw-tile h3 { font-size: 13px; font-weight: 650; color: #fff; margin-top: 6px; }
+.mw-tile p { font-size: 11px; line-height: 1.45; color: #a9bdb1; margin-top: 3px; min-height: 32px; }
+.mw-tile:not(.is-earned) h3 { color: #c9d6ce; }
+.mw-medal { display: inline-block; transition: transform .45s cubic-bezier(.2, .7, .2, 1); transform-style: preserve-3d; will-change: transform; }
+.mw-medal-lg { flex-shrink: 0; }
+.mw-tile.is-earned .mw-medal { animation: mw-float 6s ease-in-out infinite; }
+.mw-tile:nth-child(2n).is-earned .mw-medal { animation-delay: -2s; }
+.mw-tile:nth-child(3n).is-earned .mw-medal { animation-delay: -4s; }
+@keyframes mw-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+.mw-progress { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 140px; margin-top: 8px; }
+.mw-progress > span { flex: 1; height: 5px; border-radius: 9px; background: rgba(255, 255, 255, .12); position: relative; overflow: hidden; }
+.mw-progress > span::after { content: none; }
+.mw-progress > span { background: linear-gradient(90deg, #f5c04a, #ffe7a0) 0 0 / var(--w, 0) 100% no-repeat, rgba(255, 255, 255, .12); }
+.mw-progress b { font-size: 11px; color: #e8efe9; font-variant-numeric: tabular-nums; }
+.mw-note { font-size: 11px; line-height: 1.6; color: #9fb7a9; }
+
+@media (width < 960px) {
+  .mw { padding: 16px; border-radius: 18px; }
+  .mw-hero { grid-template-columns: 1fr; }
+  .mw-feature { gap: 12px; }
+  .mw-grid, .mw-grid-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (width >= 960px) and (width < 1200px) { .mw-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* medal chip beside a hiker's name */
+.md-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 1px 2px; border-radius: 999px; background: linear-gradient(180deg, #fffaf0, #f4ead2); box-shadow: inset 0 0 0 1px rgba(154, 106, 31, .25); font-size: 10px; font-weight: 700; color: #7a5434; white-space: nowrap; }
+.md-chip .md { margin: -2px 0; }
+
+/* ---------------- unlock moment (MedalUnlocked.jsx) ---------------- */
+.mu-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(8, 22, 18, .62); backdrop-filter: blur(6px); animation: mu-fade .3s ease-out; }
+.mu-card { position: relative; width: min(380px, 100%); border-radius: 26px; padding: 0 26px 24px; text-align: center; color: #fff; overflow: hidden;
+  background: radial-gradient(100% 70% at 50% 18%, rgba(255, 220, 130, .28), transparent 60%), linear-gradient(170deg, #17402e, #0b1d2b);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .1); animation: mu-pop .55s cubic-bezier(.2, 1.3, .3, 1); }
+.mu-stage { position: relative; height: 230px; display: grid; place-items: center; }
+.mu-glow { position: absolute; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 233, 160, .55), rgba(255, 200, 90, .12) 45%, transparent 70%); animation: mu-breathe 2.6s ease-in-out infinite alternate; }
+.mu-rays { position: absolute; width: 420px; height: 420px; background: repeating-conic-gradient(from 0deg, rgba(255, 236, 170, .2) 0deg 6deg, transparent 6deg 18deg); -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 62%); mask-image: radial-gradient(circle, #000 20%, transparent 62%); animation: md-spin 30s linear infinite; }
+.mu-medal { position: relative; margin-top: 26px; animation: mu-rise .9s cubic-bezier(.2, 1.2, .3, 1) .1s both; }
+.mu-confetti { position: absolute; top: -10px; width: 7px; height: 11px; border-radius: 2px; opacity: 0; animation: mu-fall 2.4s cubic-bezier(.2, .6, .4, 1) forwards; }
+.mu-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f5c04a; }
+.mu-card h2 { font-size: 28px; font-weight: 650; letter-spacing: -.02em; margin: 4px 0 6px; }
+.mu-tagline { font-size: 14px; color: #c9d8cf; }
+.mu-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px; }
+.mu-actions .primary-button { min-width: 200px; background: linear-gradient(180deg, #f7cf63, #d99a22); color: #2a1a04; box-shadow: 0 8px 20px -8px rgba(245, 192, 74, .7); }
+.mu-actions .text-button { color: #cfe0d6; }
+@keyframes mu-fade { from { opacity: 0; } }
+@keyframes mu-pop { from { opacity: 0; transform: translateY(18px) scale(.94); } }
+@keyframes mu-rise { from { opacity: 0; transform: translateY(30px) scale(.6) rotate(-12deg); } }
+@keyframes mu-breathe { from { transform: scale(.9); opacity: .8; } to { transform: scale(1.08); opacity: 1; } }
+@keyframes mu-fall { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(var(--r)); } }
+@media (prefers-reduced-motion: reduce) {
+  .mu-backdrop, .mu-card, .mu-medal, .mu-glow, .mu-rays, .mu-confetti, .mw-tile .mw-medal { animation: none !important; }
+  .mu-confetti { display: none; }
+}

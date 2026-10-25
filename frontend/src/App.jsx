@@ -22,6 +22,7 @@ import { parseBlocks, parseInline } from './markdown'
 import { distanceToTrail, sortTrails } from './trailSort'
 import TrailCatalog from './TrailCatalog'
 import ScenicDrives from './drives/ScenicDrives'
+import { useMedals } from './badges/MedalContext'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
@@ -246,6 +247,10 @@ export default function App() {
     setHomeVisit(v => v + 1)
   }
 
+  // Medals: refreshed after a review is saved; "See all medals" opens the profile page.
+  const { refreshMedals, setWallOpener } = useMedals()
+  useEffect(() => { setWallOpener(() => changeView('profile')) })
+
   function changeView(view) {
     setMapExpanded(false)
     if (view === 'library' || view === 'profile' || view === 'catalog' || view === 'drives' || view === 'community' || (isCompact && view !== 'map')) location.stopTracking()
@@ -428,7 +433,7 @@ export default function App() {
         </section>
       </main>
       <Onboarding onSaved={() => setProfileVersion(v => v + 1)} />
-      {reviewing && <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />}
+      {reviewing && <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1); refreshMedals() }} />}
 
       {isCompact && (
         <nav className="mobile-navigation" aria-label="Workspace views">

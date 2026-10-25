@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import Medal from './badges/Medal'
+import { MEDAL_NAMES } from './badges/MedalContext'
 import { useAuth0 } from '@auth0/auth0-react'
 import { setCommentLike } from './api'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
@@ -51,6 +53,7 @@ export function CommentItem({ c, showTrail = false, compact = false }) {
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-stone-500">
         <span className="flex flex-wrap items-center gap-x-2">
           <span className="font-semibold text-stone-700">{c.author}{c.mine && ' (you)'}</span>
+          {c.badge && <span className="md-chip" title={`${MEDAL_NAMES[c.badge] || 'Trail'} medal`}><Medal id={c.badge} size={18} mini title={`${MEDAL_NAMES[c.badge]} medal`} />{MEDAL_NAMES[c.badge]}</span>}
           {c.tip && <span className="rounded-full bg-[#e6f1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#2f6b47]">Trail tip</span>}
           {showTrail && c.trail_name && <span>on <span className="font-medium text-stone-700">{c.trail_name}</span></span>}
         </span>

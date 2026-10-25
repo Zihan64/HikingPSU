@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { addHike, deleteHike, deleteMe, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
+import MedalWall from './badges/MedalWall'
+import { useMedals } from './badges/MedalContext'
 import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 
@@ -75,6 +77,7 @@ export default function Dashboard({ trails }) {
   const [hikes, setHikes] = useState([])
   const [error, setError] = useState(null)
   const [saved, setSaved] = useState(false)
+  const { medals, refreshMedals } = useMedals()
 
   const load = useCallback(async () => {
     const token = await getToken()
@@ -139,6 +142,8 @@ export default function Dashboard({ trails }) {
         <Stat label="miles hiked" value={s.total_distance_mi} />
         <Stat label="ft climbed" value={s.total_elevation_gain_ft.toLocaleString()} />
       </div>
+
+      <MedalWall data={medals} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="About you">
@@ -208,7 +213,7 @@ export default function Dashboard({ trails }) {
           <div className="mt-1"><Chips options={SEASONS} value={prefs.preferred_seasons} onToggle={k => setPref('preferred_seasons', toggle(prefs.preferred_seasons, k))} /></div>
         </Card>
 
-        <LogHike trails={trails} onAdd={async h => { await addHike(h, await getToken()); await load() }} />
+        <LogHike trails={trails} onAdd={async h => { await addHike(h, await getToken()); await load(); refreshMedals() }} />
         <DescribeYourself getToken={getToken} onApply={save} />
       </div>
 
@@ -253,7 +258,7 @@ export default function Dashboard({ trails }) {
               </div>
               <button className="text-button" onClick={async () => {
                 if (!confirm(`Remove "${h.trail_name}" from your log?`)) return
-                await deleteHike(h.id, await getToken()); load()
+                await deleteHike(h.id, await getToken()); load(); refreshMedals({ celebrate: false })
               }}>Remove</button>
             </li>
           ))}
