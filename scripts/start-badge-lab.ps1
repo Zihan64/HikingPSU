@@ -4,7 +4,7 @@ $badgeRoot = Split-Path -Parent $PSScriptRoot
 $badgePython = Join-Path $badgeRoot 'backend/.venv/Scripts/python.exe'
 $badgeNode = Join-Path $badgeRoot '.tools/node-v24.22.1-win-x64/node.exe'
 $badgeConfig = Join-Path $badgeRoot 'backend/.env.devtools.local'
-if (!(Test-Path -LiteralPath $badgeConfig)) { throw 'Configure backend/.env.devtools.local and backend/.devtools/allowlist.json first. See docs/devtools-access.md. No unauthenticated test server will be started.' }
+if (!(Test-Path -LiteralPath $badgeConfig)) { throw 'Configure backend/.env.devtools.local first; the checked-in contributor policy is backend/devtools.allowlist.json. See docs/devtools-access.md. No unauthenticated test server will be started.' }
 if (!(Test-Path -LiteralPath $badgeNode)) { $badgeNode = (Get-Command node -ErrorAction Stop).Source }
 if (!(Test-Path -LiteralPath $badgePython)) { throw 'Install backend/requirements-devtools.txt in backend/.venv first.' }
 if (Get-NetTCPConnection -LocalPort 5176 -State Listen -ErrorAction SilentlyContinue) { throw 'Port 5176 is already in use. Stop the previous developer service first.' }

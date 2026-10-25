@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-实现默认关闭。没有完整配置和授权名单时，不会启动可用的开发服务。仓库不预设任何真实的获准人员，也没有免登录后门。首次启用需要项目管理员在 Auth0 创建独立应用/API，并配置明确的用户 ID 名单。
+实现默认关闭。仓库中的 `backend/devtools.allowlist.json` 已包含项目负责人明确授权的四个 Auth0 用户 ID，供开发服务使用；名单与代码一起版本管理，内容不包含密码或令牌。即使在名单中，仍必须通过真实登录并持有对应 API 权限，没有免登录后门。首次启用仍需要管理员配置独立 Auth0 应用/API、密钥和开发 origin。
 
 ## 配置 Auth0（由管理员一次性完成）
 
@@ -30,8 +30,6 @@
 cd backend
 .venv/Scripts/python.exe -m pip install -r requirements-devtools.txt
 Copy-Item .env.devtools.example .env.devtools.local
-New-Item -ItemType Directory -Force .devtools
-Copy-Item devtools.allowlist.example.json .devtools/allowlist.json
 ```
 
 填写 `.env.devtools.local`，不要在聊天、PR 或 `VITE_*` 变量里放 Client Secret/Session Secret。
@@ -45,10 +43,10 @@ Copy-Item devtools.allowlist.example.json .devtools/allowlist.json
 | `DEVTOOLS_AUTH0_AUDIENCE` | 新建开发 API 的 Identifier |
 | `DEVTOOLS_PRODUCTION_AUDIENCE` / `_CLIENT_ID` | 正式 API Identifier 和 SPA Client ID，用于拒绝混用 |
 | `DEVTOOLS_SESSION_SECRET` | 至少 32 个随机字符，仅用于服务端签名预登录会话 |
-| `DEVTOOLS_ALLOWLIST_FILE` | 允许名单文件路径；默认 `.devtools/allowlist.json` |
+| `DEVTOOLS_ALLOWLIST_FILE` | 允许名单文件路径；模板使用版本管理的 `devtools.allowlist.json` |
 | `DEVTOOLS_ASSET_DIR` | 私有构建路径；默认 `../frontend/.devtools-dist` |
 
-允许名单格式（下面的 ID 只是示例，必须换成真实获准人员；仓库模板是空名单）：
+当前版本管理的名单只授权赵子瀚、沈子凯、赵俊波、蕭于甯，三项权限均已列入。以下是格式示例；`devtools.allowlist.example.json` 仍保留空名单，便于其他环境从零配置：
 
 ```json
 {
@@ -61,7 +59,7 @@ Copy-Item devtools.allowlist.example.json .devtools/allowlist.json
 }
 ```
 
-实际配置 `.env.devtools.local`、`backend/.devtools/` 和私有构建均被 Git 忽略。生产数据库地址、Auth0 Management 凭据和真实 LLM key 不需要提供给开发服务。
+实际密钥配置 `.env.devtools.local`、本地覆盖目录 `backend/.devtools/` 和私有构建均被 Git 忽略。之前已配置本地 `.devtools/allowlist.json` 的环境可继续使用；如要使用此次随代码更新的四人名单，将 `DEVTOOLS_ALLOWLIST_FILE` 改为 `devtools.allowlist.json`。新拉取代码不会自动覆盖自定义策略。生产数据库地址、Auth0 Management 凭据和真实 LLM key 不需要提供给开发服务。
 
 回到项目根目录启动：
 
@@ -77,7 +75,7 @@ powershell -ExecutionPolicy Bypass -File scripts/start-badge-lab.ps1
 
 - 使用独立服务/origin。不要把私有产物上传到公开 Amplify 分支或公开对象存储。
 - 构建：在 `frontend` 执行 `npm ci` 和 `npm run build:devtools`，保留 `.devtools-dist`；服务端安装 `backend/requirements-devtools.txt`。
-- 服务端填写完整 `DEVTOOLS_*` 环境配置，并挂载允许名单文件；设置资产目录为私有构建目录的实际绝对路径。
+- 服务端填写完整 `DEVTOOLS_*` 环境配置；从 `backend` 启动时，设置 `DEVTOOLS_ALLOWLIST_FILE=devtools.allowlist.json` 使用本次四人名单，或指向独立挂载的策略文件；设置资产目录为私有构建目录的实际绝对路径。
 - 在 `backend` 启动：`uvicorn dev.badge_lab:create_app --factory --host 0.0.0.0 --port $PORT --no-access-log`。通过平台 HTTPS 入口访问，Host 必须与 `DEVTOOLS_ORIGIN` 相符。
 - 关闭普通 access log 是为了避免把 OAuth callback 的短期 code/state 放入 URL 日志；应用自行记录经过哈希处理的操作者、请求路径、方法和结果，不记录密码、令牌、cookie 或查询参数。
 - 目前会话、测试库和模拟时间保存在内存中，部署**一个 worker/实例**。重启即清空，不能直接横向扩容；将来如需持久化/多实例，应接入独立的开发会话库和数据库，不能复用正式连接或凭据。

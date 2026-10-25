@@ -3,6 +3,8 @@ import hashlib
 import importlib
 import json
 import time
+from dataclasses import replace
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -113,6 +115,24 @@ def test_expired_sessions_do_not_serve_assets(portal):
     login(client,app)
     app.state.devtools.sessions[client.cookies.get(app.state.devtools.cookie)]['expires']=time.time()-1
     assert client.get('/assets/private.js').status_code==401
+
+
+def test_shipped_contributor_policy_authorizes_only_listed_signed_identities(portal,monkeypatch):
+    client,app,_=portal
+    gateway=app.state.devtools
+    policy=Path(__file__).resolve().parents[1]/'devtools.allowlist.json'
+    monkeypatch.setattr(gateway,'settings',replace(gateway.settings,allowlist=policy))
+    users=gateway.settings.policy()
+    assert len(users)==4
+    for sub in users:
+        login(client,app,sub)
+        assert client.get('/assets/private.js').status_code==200
+        with pytest.raises(HTTPException) as denied:
+            login(client,app,sub,permissions=[])
+        assert denied.value.status_code==403
+    with pytest.raises(HTTPException) as denied:
+        login(client,app,'google-oauth2|not-on-the-contributor-list')
+    assert denied.value.status_code==403
 
 
 def test_empty_or_missing_policy_cannot_reuse_an_existing_session(portal):

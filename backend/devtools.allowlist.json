@@ -1,0 +1,20 @@
+{
+  "users": {
+    "google-oauth2|106953303680786178656": {
+      "enabled": true,
+      "permissions": ["devtools:access", "simulation:use", "testdata:reset"]
+    },
+    "google-oauth2|106679933698540576223": {
+      "enabled": true,
+      "permissions": ["devtools:access", "simulation:use", "testdata:reset"]
+    },
+    "google-oauth2|115907673177408147271": {
+      "enabled": true,
+      "permissions": ["devtools:access", "simulation:use", "testdata:reset"]
+    },
+    "google-oauth2|111884565105672121979": {
+      "enabled": true,
+      "permissions": ["devtools:access", "simulation:use", "testdata:reset"]
+    }
+  }
+}
