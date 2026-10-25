@@ -56,6 +56,10 @@ def ensure_indexes(db: Database) -> None:
     db.checkins.create_index([("user_id", ASCENDING), ("status", ASCENDING), ("completed_at", ASCENDING)])
     db.badges.create_index([("user_id", ASCENDING), ("key", ASCENDING)], unique=True)
     db.hike_logs.create_index([("user_id", ASCENDING), ("checkin_id", ASCENDING)])
+    db.follows.create_index([("follower_id", ASCENDING), ("followee_id", ASCENDING)], unique=True)
+    db.follows.create_index([("followee_id", ASCENDING), ("created_at", DESCENDING)])
+    db.handles.create_index([("user_id", ASCENDING)])
+    db.users.create_index([("handle", ASCENDING)])
 
 
 def to_oid(value: str) -> ObjectId | None:
