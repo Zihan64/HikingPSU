@@ -4,7 +4,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from app import agent, store, tools
+from google.genai import types
+
+from app import agent, llm, store, tools
 from app.main import app
 
 
@@ -112,6 +114,7 @@ class FakeClient:
 
 def test_live_loop_recovers_from_a_bad_tool_call(monkeypatch):
     monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "claude")
     fake = FakeClient()
     monkeypatch.setattr(agent, "_client", lambda: fake)
     res = agent.run([agent.ChatMessage(role="user", content="view, no car")])
@@ -121,6 +124,85 @@ def test_live_loop_recovers_from_a_bad_tool_call(monkeypatch):
     # the failed call was reported back to the model flagged as an error
     sent = fake.calls[1]["messages"][-1]["content"][0]
     assert sent["is_error"] is True
+
+
+class FakeGemini:
+    """Stands in for google.genai.Client: a bad tool call, a good one, then the final answer."""
+
+    def __init__(self):
+        self.calls = []
+        self.models = self
+
+    def generate_content(self, *, model, contents, config):
+        self.calls.append({"model": model, "contents": list(contents), "config": config})
+        n = len(self.calls)
+        if n == 1:
+            return _gemini_reply(calls=[types.FunctionCall(id="c1", name="search_trails", args={"bogus": 1})])
+        if n == 2:
+            return _gemini_reply(calls=[types.FunctionCall(id="c2", name="search_trails", args={"features": ["view"], "car_free": True})])
+        return _gemini_reply(text="Mike Lynch is great.\nRECOMMENDED: mt-nittany-mike-lynch, not-in-db")
+
+
+def _gemini_reply(text=None, calls=()):
+    parts = [types.Part(text=text)] if text else [types.Part(function_call=c, thought_signature=b"sig") for c in calls]
+    return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(role="model", parts=parts))])
+
+
+def test_gemini_is_the_default_provider(monkeypatch):
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    assert llm.provider() == "gemini" and llm.model() == llm.GEMINI_MODEL
+    monkeypatch.setenv("LLM_PROVIDER", " Claude ")
+    assert llm.provider() == "claude" and llm.model() == llm.CLAUDE_MODEL
+    monkeypatch.setenv("LLM_PROVIDER", "typo")
+    assert llm.provider() == "gemini"
+
+
+def test_gemini_loop_runs_tools_and_keeps_the_guardrail(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    fake = FakeGemini()
+    monkeypatch.setattr(llm, "gemini_client", lambda: fake)
+    res = agent.run([agent.ChatMessage(role="user", content="view, no car"), agent.ChatMessage(role="assistant", content="ok"),
+                     agent.ChatMessage(role="user", content="and close to campus")])
+    assert res.recommended_ids == ["mt-nittany-mike-lynch"]  # an id the search never returned is dropped
+    assert [e["tool"] for e in res.tool_log] == ["search_trails", "search_trails"]
+
+    first = fake.calls[0]
+    assert [c.role for c in first["contents"]] == ["user", "model", "user"]
+    assert {d.name for d in first["config"].tools[0].function_declarations} >= {"search_trails", "get_weather"}
+    assert first["config"].automatic_function_calling.disable is True
+    # the bad call went back as an error, answering the call's id, after the model turn with its signature intact
+    model_turn, answer = fake.calls[1]["contents"][-2:]
+    assert model_turn.parts[0].thought_signature == b"sig"
+    fr = answer.parts[0].function_response
+    assert fr.id == "c1" and fr.name == "search_trails" and "error" in fr.response
+    assert "output" in fake.calls[2]["contents"][-1].parts[0].function_response.response
+
+
+def test_gemini_failure_falls_back_to_offline(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    def no_key():
+        raise ValueError("Missing key inputs argument!")
+
+    monkeypatch.setattr(llm, "gemini_client", no_key)
+    res = agent.run([agent.ChatMessage(role="user", content="easy hike, no car")])
+    assert res.trails and "offline" in res.reply.lower()
+
+
+def test_empty_gemini_reply_falls_back_to_offline(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    class Empty:
+        def __init__(self): self.models = self
+        def generate_content(self, **kw):
+            return types.GenerateContentResponse(candidates=[types.Candidate(content=types.Content(role="model", parts=[]), finish_reason="MAX_TOKENS")])
+
+    monkeypatch.setattr(llm, "gemini_client", Empty)
+    res = agent.run([agent.ChatMessage(role="user", content="easy hike, no car")])
+    assert res.trails and "offline" in res.reply.lower()
 
 
 def test_run_falls_back_to_offline_when_the_live_agent_crashes(monkeypatch):
