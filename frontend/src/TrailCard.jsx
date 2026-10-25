@@ -13,7 +13,8 @@ const LEVEL_COLORS = {
 
 // fit: this trail's entry from /me/recommendations, when it is in the signed-in user's ranking.
 // highlights: the trail's top community comments (most hearted first).
-export default function TrailCard({ t, selected = false, onSelect, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, proximityMeters = null, highlights = [] }) {
+// onOpenDetails: opens the trail's detail page (Trails tab).
+export default function TrailCard({ t, selected = false, onSelect, onOpenDetails, onOfficialResources, summary, onReview, reviewsVersion = 0, fit = null, proximityMeters = null, highlights = [] }) {
   const [showReviews, setShowReviews] = useState(false)
   const d = t.difficulty
   const access = t.access.bus || (t.access.walk_from_campus_min != null ? `${t.access.walk_from_campus_min} min walk` : `${t.access.drive_min} min drive`)
@@ -60,6 +61,13 @@ export default function TrailCard({ t, selected = false, onSelect, onOfficialRes
         {t.hunting_zone && <span className="rounded bg-orange-100 px-2 py-0.5 text-orange-800">🟠 hunting zone</span>}
         {t.cell_signal !== 'good' && <span className="rounded bg-stone-100 px-2 py-0.5 text-stone-600">📶 {t.cell_signal}</span>}
       </div>
+      {onOpenDetails && (
+        <button type="button" onClick={e => { e.stopPropagation(); onOpenDetails() }}
+          aria-label={`Open trail details for ${t.name}`}
+          className="mt-3 inline-flex items-center gap-1 rounded-lg bg-trail-forest px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
+          View trail details →
+        </button>
+      )}
       {onReview && (
         <div className="mt-3 border-t border-stone-100 pt-3" onClick={e => e.stopPropagation()}>
           <div className="flex flex-wrap items-center justify-between gap-2">

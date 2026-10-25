@@ -73,7 +73,7 @@ def put_my_review(trail_id: str, body: ReviewIn, user: dict = Depends(auth.curre
     """Create the caller's review of this trail, or replace it if they already left one."""
     _require_trail(trail_id)
     doc = reviews.upsert(user, trail_id, body.model_dump())
-    return reviews.to_out(doc, str(user["_id"]))
+    return reviews.to_out(doc, str(user["_id"]), author_handle=user.get("handle"))
 
 
 @router.delete("/trails/{trail_id}/reviews/me", status_code=204)

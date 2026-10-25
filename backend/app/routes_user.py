@@ -5,7 +5,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from . import auth, badges, chats, checkins, hikes, preference_parser, ratelimit, recommend, reviews, store, users
+from . import auth, badges, chats, checkins, hikes, preference_parser, ratelimit, recommend, reviews, social, store, users
 from .user_models import (
     ChatSessionOut,
     ChatSessionSummary,
@@ -30,6 +30,8 @@ me_router = APIRouter(prefix="/me", tags=["me"])
 
 @me_router.get("", response_model=UserOut)
 def get_me(user: dict = Depends(auth.current_user)):
+    if user.get("registered_at"):
+        user = social.ensure_handle(user)  # accounts that signed up before usernames existed get one here
     return users.to_out(user)
 
 
@@ -42,7 +44,8 @@ def patch_me(body: MePatch, user: dict = Depends(auth.current_user)):
 @me_router.put("/registration", response_model=UserOut)
 def register(body: Registration, user: dict = Depends(auth.current_user)):
     """The sign-up form shown after a new account's first login (also used to edit it later)."""
-    return users.to_out(users.register(user, body) or user)
+    saved = users.register(user, body) or user
+    return users.to_out(social.ensure_handle(saved))
 
 
 @me_router.delete("", status_code=204)
@@ -53,6 +56,7 @@ def delete_me(user_id: str = Depends(auth.current_user_id)):
     reviews.delete_all(user_id)
     checkins.delete_all(user_id)
     badges.delete_all(user_id)
+    social.delete_all(user_id)
     users.delete(user_id)
     auth.delete_login(user_id)
     return Response(status_code=204)
