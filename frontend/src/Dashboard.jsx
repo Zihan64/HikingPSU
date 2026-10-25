@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { addHike, deleteHike, deleteMe, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
+import { addHike, deleteHike, deleteMe, getBadges, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
 import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
+import { REPEAT_TARGET, TIER_EMOJI, TIER_LABEL, nextMilestone, plural } from './checkin'
 
 const FEATURES = ['view', 'lake', 'forest', 'stream', 'flat', 'sunset', 'wildlife', 'rocks', 'steep', 'shade', 'campus']
 const AVOID = ['steep', 'rocks', 'mud', 'crowds']
@@ -67,12 +68,97 @@ function Bars({ rows, color = '#658559' }) {
   )
 }
 
-export default function Dashboard({ trails }) {
+// A thin progress bar; `done` fills it in the darker green.
+function Progress({ value, max, done = false, label }) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
+  return (
+    <div className="h-2 flex-1 rounded bg-[#eef1e9]" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={Math.min(value, max)}>
+      <div className="h-2 rounded" style={{ width: `${pct}%`, background: done ? GREEN : '#8fb07f' }} />
+    </div>
+  )
+}
+
+// Earned badges plus progress toward park, milestone and repeat badges (GET /me/badges).
+function Badges({ board, error }) {
+  if (error) return <Card title="Badges"><p className="error-message" role="alert">Couldn't load your badges: {error}</p></Card>
+  if (!board) return <Card title="Badges"><p className="text-xs text-[#73806e]">Loading badges…</p></Card>
+  const next = nextMilestone(board)
+  const earned = board.badges || []
+  const repeats = board.repeats || []
+  return (
+    <Card title="Badges" hint="Check in at a trailhead, then finish with a rating. Only hikes finished from a check-in count toward badges, not hikes you log by hand. Every trail counts toward the 10- and 30-trail badges.">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <span><b>{board.completed_trails}</b> of {board.total_trails} trails completed with a check-in</span>
+        {next ? (
+          <span className="flex min-w-[220px] flex-1 items-center gap-2 text-xs text-[#5b6a58]">
+            <span className="shrink-0">{plural(next.remaining, 'more trail')} to the {next.count}-trail badge</span>
+            <Progress value={board.completed_trails} max={next.count} label={`Progress toward ${next.count} trails`} />
+          </span>
+        ) : <span className="text-xs font-medium" style={{ color: GREEN }}>All milestones earned</span>}
+      </div>
+      <p className="mt-1 text-xs text-[#73806e]">
+        {board.today_remaining > 0 ? `You can complete ${plural(board.today_remaining, 'more trail')} today.` : "You've reached today's limit. Come back tomorrow for more."}
+      </p>
+
+      {earned.length ? (
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {earned.map(b => (
+            <li key={b.key} className="flex items-start gap-3 rounded-xl border border-[#e0e5dc] bg-[#fafbf8] p-3">
+              <span role="img" aria-label={`${TIER_LABEL[b.tier] || b.tier} badge`} className="text-2xl leading-none">{TIER_EMOJI[b.tier] || '🏅'}</span>
+              <div className="min-w-0 text-sm">
+                <div className="font-semibold">{b.title}</div>
+                <div className="text-xs text-[#5b6a58]">{b.description}</div>
+                <div className="mt-1 text-[11px] text-[#73806e]">{new Date(b.awarded_at).toLocaleDateString()}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-3 rounded-xl bg-[#f2f4ee] p-3 text-sm text-[#5b6a58]">Check in at a trailhead and finish with a rating to earn your first badge.</p>}
+
+      {board.parks?.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1 text-xs font-medium text-[#5b6a58]">Parks <span className="font-normal text-[#73806e]">· finish every trail in a park for its silver badge</span></div>
+          <ul className="space-y-1.5">
+            {board.parks.map(p => (
+              <li key={p.park_id} className="flex items-center gap-2 text-xs">
+                <span className="w-40 shrink-0 truncate text-[#5b6a58] sm:w-56" title={p.name}>{p.name}</span>
+                <Progress value={p.completed} max={p.total} done={p.earned} label={`${p.name}: ${p.completed} of ${p.total} trails`} />
+                <span className="w-12 shrink-0 text-right tabular-nums">{p.completed}/{p.total}</span>
+                <span className="w-4 shrink-0" style={{ color: GREEN }} aria-label={p.earned ? 'badge earned' : undefined}>{p.earned ? '✓' : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {repeats.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1 text-xs font-medium text-[#5b6a58]">Repeat hikes <span className="font-normal text-[#73806e]">· the same trail {REPEAT_TARGET} times earns a special badge</span></div>
+          <ul className="space-y-1.5">
+            {repeats.map(r => (
+              <li key={r.trail_id} className="flex items-center gap-2 text-xs">
+                <span className="w-40 shrink-0 truncate text-[#5b6a58] sm:w-56" title={r.trail_name}>{r.trail_name}</span>
+                <Progress value={r.count} max={REPEAT_TARGET} done={r.count >= REPEAT_TARGET} label={`${r.trail_name}: ${r.count} of ${REPEAT_TARGET} times`} />
+                <span className="w-12 shrink-0 text-right tabular-nums">{Math.min(r.count, REPEAT_TARGET)} of {REPEAT_TARGET}</span>
+                <span className="w-4 shrink-0" style={{ color: GREEN }} aria-label={r.count >= REPEAT_TARGET ? 'badge earned' : undefined}>{r.count >= REPEAT_TARGET ? '✓' : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// reloadKey: changes when something elsewhere (e.g. finishing a check-in) updated the profile.
+export default function Dashboard({ trails, reloadKey = 0 }) {
   const { isAuthenticated, isLoading, loginWithPopup } = useAuth0()
   const getToken = useOptionalToken()
   const [me, setMe] = useState(null)
   const [insights, setInsights] = useState(null)
   const [hikes, setHikes] = useState([])
+  const [badges, setBadges] = useState(null)
+  const [badgeError, setBadgeError] = useState(null)
   const [error, setError] = useState(null)
   const [saved, setSaved] = useState(false)
 
@@ -80,12 +166,15 @@ export default function Dashboard({ trails }) {
     const token = await getToken()
     if (!token) return
     try {
-      const [m, i, h] = await Promise.all([getMe(token), getInsights(token), listHikes(token)])
+      // Badges fail on their own so the rest of the profile still loads.
+      const [m, i, h, b] = await Promise.all([getMe(token), getInsights(token), listHikes(token),
+        getBadges(token).then(board => ({ board }), e => ({ error: e.message }))])
       setMe(m); setInsights(i); setHikes(h); setError(null)
+      setBadges(b.board ?? null); setBadgeError(b.error ?? null)
     } catch (e) { setError(e.message) }
   }, [getToken])
 
-  useEffect(() => { if (isAuthenticated) load() }, [isAuthenticated, load])
+  useEffect(() => { if (isAuthenticated) load() }, [isAuthenticated, load, reloadKey])
 
   if (isLoading) return <p className="p-6 text-sm text-[#73806e]">Loading…</p>
   if (!isAuthenticated) {
@@ -139,6 +228,8 @@ export default function Dashboard({ trails }) {
         <Stat label="miles hiked" value={s.total_distance_mi} />
         <Stat label="ft climbed" value={s.total_elevation_gain_ft.toLocaleString()} />
       </div>
+
+      <Badges board={badges} error={badgeError} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="About you">

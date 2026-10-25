@@ -56,6 +56,16 @@ export const getRecommendations = (token, k = 5) => request(`/me/recommendations
 // Returns suggested preference fields only; nothing is saved until patchMe().
 export const parsePreferences = (text, token) => request('/me/preferences/parse', { method: 'POST', body: { text }, token })
 
+// ---- trailhead check-ins and badges (all need a token) ----
+// The server keeps only the distance to the entrance and the accuracy, never the coordinates.
+export const startCheckin = ({ trail_id, lat, lon, accuracy_m }, token) =>
+  request('/me/checkins', { method: 'POST', body: { trail_id, lat, lon, accuracy_m }, token })
+export const getActiveCheckin = token => request('/me/checkins/active', { token })   // null when none
+// ratings: {accuracy, difficulty, enjoyment, comment}; also saves the review and a hike-log entry.
+export const finishCheckin = (id, ratings, token) => request(`/me/checkins/${encodeURIComponent(id)}/finish`, { method: 'POST', body: ratings, token })
+export const cancelCheckin = (id, token) => request(`/me/checkins/${encodeURIComponent(id)}`, { method: 'DELETE', token })
+export const getBadges = token => request('/me/badges', { token })
+
 export const getOfficialLibrary = (params = {}, signal) => request(`/official/library?${new URLSearchParams(params)}`, { signal })
 export const getOfficialTrails = (areaId, activity, signal) => request(`/official/trails?${new URLSearchParams({area_id: areaId, activity})}`, { signal })
 export const getOfficialGeometry = (areaId, routeId, activity, signal) => request(`/official/trails/${encodeURIComponent(areaId)}/${encodeURIComponent(routeId)}/geometry?${new URLSearchParams({activity})}`, { signal })

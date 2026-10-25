@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { chat, getCommentHighlights, getRecommendations, getReviewSummaries, listTrails } from './api'
+import { chat, getActiveCheckin, getCommentHighlights, getRecommendations, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
 import useDeviceLayout from './useDeviceLayout'
@@ -15,13 +15,16 @@ import Community from './Community'
 import AppHeader, { HomeLink } from './AppHeader'
 import Icon from './Icon'
 import useMapFullscreen from './useMapFullscreen'
-import { useOptionalToken } from './auth'
+import { useAuth0 } from '@auth0/auth0-react'
+import { AUTH_ENABLED, useOptionalToken } from './auth'
+import { finishesCheckin } from './checkin'
 import AppBackdrop from './theme/AppBackdrop'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import { parseBlocks, parseInline } from './markdown'
 import { distanceToTrail, sortTrails } from './trailSort'
 import TrailCatalog from './TrailCatalog'
 import ScenicDrives from './drives/ScenicDrives'
+import ActiveCheckinBanner from './ActiveCheckinBanner'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
@@ -78,13 +81,32 @@ export default function App() {
   const [loadError, setLoadError] = useState(null)
   const [summaries, setSummaries] = useState({})
   const [reviewing, setReviewing] = useState(null)
+  const [finishing, setFinishing] = useState(null)   // check-in being finished in the review modal, if any
+  const [activeCheckin, setActiveCheckin] = useState(null)   // signed-in only: the current trailhead check-in
+  const [catalogTrail, setCatalogTrail] = useState(null)   // {id}: open this trail in the Trails page
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const [highlights, setHighlights] = useState({})   // trail id -> top community comments
   const [sessionId, setSessionId] = useState(null)
   const getToken = useOptionalToken()
+  const { isAuthenticated } = useAuth0()
+  const signedIn = AUTH_ENABLED && isAuthenticated
   const [ranking, setRanking] = useState(null)   // signed-in only: trails that fit you, best first
-  const [profileVersion, setProfileVersion] = useState(0) // bumped when the sign-up form is saved
+  const [profileVersion, setProfileVersion] = useState(0) // bumped when the sign-up form is saved or a check-in is finished
   const refreshSummaries = () => getReviewSummaries().then(setSummaries).catch(() => {})
+  const checkinRequest = useRef(0)
+  // Latest active check-in, as the server reports it (the server expires check-ins, not the device clock).
+  const refreshCheckin = useCallback(async () => {
+    const version = ++checkinRequest.current
+    try {
+      const token = await getToken()
+      // No token while still signed in means the silent refresh failed, not that there's no check-in.
+      if (!token && signedIn) return
+      const current = token ? await getActiveCheckin(token) : null
+      if (version !== checkinRequest.current) return
+      setActiveCheckin(current)
+    } catch { /* keep the last known check-in; the next refresh retries */ }
+  }, [getToken, signedIn])
+  const changeCheckin = useCallback(next => { checkinRequest.current++; setActiveCheckin(next) }, [])
   const shellRef = useRef(null)
   const conversationRef = useRef(null)
   const trailListRef = useRef(null)
@@ -129,6 +151,27 @@ export default function App() {
       .catch(() => { if (!cancelled) setRanking(null) })
     return () => { cancelled = true }
   }, [getToken, profileOpen, profileVersion])
+
+  // Active check-in: loaded on login/logout and whenever the tab becomes visible again
+  // (it may have been finished elsewhere); dropped when it expires.
+  useEffect(() => {
+    refreshCheckin()
+    const onVisible = () => { if (!document.hidden) refreshCheckin() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refreshCheckin])
+
+  // Recheck just after it expires, then every minute while it's still shown (a failed refresh, or a
+  // device clock ahead of the server's).
+  useEffect(() => {
+    const expiresAt = Date.parse(activeCheckin?.expires_at)
+    if (!Number.isFinite(expiresAt)) return
+    let id
+    const schedule = ms => { id = setTimeout(() => { refreshCheckin(); schedule(60000) }, ms) }
+    const left = expiresAt - Date.now()
+    schedule(left > 0 ? Math.min(2 ** 31 - 1, left + 1000) : 60000)
+    return () => clearTimeout(id)
+  }, [activeCheckin, refreshCheckin])
 
   // Top comments for the trail cards. Refetched on login/logout (to show your hearts), after a
   // review is saved, and after leaving the Community page, where hearts may have changed.
@@ -238,7 +281,7 @@ export default function App() {
     else location.stopTracking()
     setMapExpanded(false); setOfficialRoute(null); setReverseReference(false)
     setLibraryTrailId(null); setLibraryAreaId(null); setSelectedId(null); setRecommended([]); setHasResult(false)
-    setReviewing(null); setError(null); setMobileView('plan')
+    setReviewing(null); setFinishing(null); setCatalogTrail(null); setError(null); setMobileView('plan')
     setSortMode('recommended')
     scrollToSelected.current = false; focusMapSelection.current = false
     setMapFocus(previous => ({kind:'trails', version:previous.version + 1}))
@@ -250,6 +293,27 @@ export default function App() {
     setMapExpanded(false)
     if (view === 'library' || view === 'profile' || view === 'catalog' || view === 'drives' || view === 'community' || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
+  }
+
+  // "I finished this trail" with a finishable check-in on that trail finishes it (badge + hike log).
+  function openReview(trail) {
+    if (finishesCheckin(activeCheckin, trail.id)) { openFinish(activeCheckin); return }
+    setFinishing(null); setReviewing(trail)
+  }
+
+  // Finish flow for a check-in: the review modal in finish mode for that trail.
+  function openFinish(checkin) {
+    setFinishing(checkin)
+    setReviewing(allTrails.find(t => t.id === checkin.trail_id) || { id: checkin.trail_id, name: checkin.trail_name })
+  }
+
+  function closeReview() {
+    setReviewing(null); setFinishing(null)
+  }
+
+  function openTrailPage(id) {
+    setCatalogTrail({ id })
+    changeView('catalog')
   }
 
   function openOfficialLibrary(trailId = null, areaId = null) {
@@ -327,13 +391,15 @@ export default function App() {
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
       <AppBackdrop />
       <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onDrives={() => changeView('drives')} drivesOpen={drivesOpen} onCommunity={() => changeView('community')} communityOpen={communityOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
+      {activeCheckin && <ActiveCheckinBanner checkin={activeCheckin} onFinish={() => openFinish(activeCheckin)} onView={allTrails.some(t => t.id === activeCheckin.trail_id) ? () => openTrailPage(activeCheckin.trail_id) : null} />}
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
         <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} initialAreaId={libraryAreaId} onOpenRoute={openOfficialRoute} /></div>
-        <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} trails={allTrails} summaries={summaries} onReview={setReviewing} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError} /></div>
+        <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} trails={allTrails} summaries={summaries} onReview={openReview} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError}
+          checkin={activeCheckin} onCheckinChange={changeCheckin} onCheckinRefresh={refreshCheckin} onFinishCheckin={openFinish} openTrail={catalogTrail} /></div>
         <div id="drives-panel" className="library-workspace catalog-workspace" hidden={!drivesOpen}><ScenicDrives active={drivesOpen} /></div>
-        {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} /></div>}
-        {communityOpen && <div id="community-panel" className="library-workspace"><Community trails={allTrails} onReview={setReviewing} reloadKey={reviewsVersion} /></div>}
+        {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} reloadKey={profileVersion} /></div>}
+        {communityOpen && <div id="community-panel" className="library-workspace"><Community trails={allTrails} onReview={openReview} reloadKey={reviewsVersion} /></div>}
         {officialRoute && !isCompact && <aside className="route-sidebar" hidden={fullPage}aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
         <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
           <div className="panel-heading">
@@ -421,14 +487,15 @@ export default function App() {
             </div>}
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => openReview(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}
         </section>
       </main>
       <Onboarding onSaved={() => setProfileVersion(v => v + 1)} />
-      {reviewing && <ReviewModal trail={reviewing} onClose={() => setReviewing(null)} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }} />}
+      {reviewing && <ReviewModal trail={reviewing} checkin={finishing} badgeHint={activeCheckin?.trail_id !== reviewing.id} onClose={closeReview} onSaved={() => { refreshSummaries(); setReviewsVersion(v => v + 1) }}
+        onCheckinDone={done => { if (done) { changeCheckin(null); setProfileVersion(v => v + 1) } else refreshCheckin() }} />}
 
       {isCompact && (
         <nav className="mobile-navigation" aria-label="Workspace views">
