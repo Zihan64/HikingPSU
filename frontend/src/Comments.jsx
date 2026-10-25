@@ -3,6 +3,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { setCommentLike } from './api'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
 import { StarDisplay } from './Stars'
+import { ProfileName } from './People'
 
 // Mongo hands back naive UTC timestamps; without a zone the browser would read them as local time.
 export const asUtc = iso => new Date(/(Z|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`)
@@ -45,12 +46,13 @@ export function HeartButton({ comment, size = 'sm' }) {
 }
 
 // One review or tip. `showTrail` names the trail (feeds that mix trails); `compact` is for trail cards.
+// The author's name opens their public profile when they have a handle (not for starter tips).
 export function CommentItem({ c, showTrail = false, compact = false }) {
   return (
     <li className={`rounded-lg ${compact ? 'bg-[#f5f7f2] p-2.5' : 'bg-stone-50 p-3'} text-sm`}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-stone-500">
         <span className="flex flex-wrap items-center gap-x-2">
-          <span className="font-semibold text-stone-700">{c.author}{c.mine && ' (you)'}</span>
+          <ProfileName handle={c.author_handle} plain="font-semibold text-stone-700">{c.author}{c.mine && ' (you)'}</ProfileName>
           {c.tip && <span className="rounded-full bg-[#e6f1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#2f6b47]">Trail tip</span>}
           {showTrail && c.trail_name && <span>on <span className="font-medium text-stone-700">{c.trail_name}</span></span>}
         </span>

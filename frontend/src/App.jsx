@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { chat, getActiveCheckin, getCommentHighlights, getRecommendations, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
@@ -25,6 +25,8 @@ import { distanceToTrail, sortTrails } from './trailSort'
 import TrailCatalog from './TrailCatalog'
 import ScenicDrives from './drives/ScenicDrives'
 import ActiveCheckinBanner from './ActiveCheckinBanner'
+import PublicProfile from './PublicProfile'
+import { ProfileLinkContext, normalizeHandle, readProfileParam } from './profileLink'
 
 const SUGGESTIONS = [
   ['A view without a car', 'Saturday afternoon, two of us, no car, ~3 hours, want a view'],
@@ -32,6 +34,9 @@ const SUGGESTIONS = [
   ['A little more adventure', 'I have a car, want something hard with rocks on Sunday'],
 ]
 const VIEWS = [['plan', 'Plan'], ['trails', 'Results'], ['map', 'Map'], ['catalog', 'Trails'], ['drives', 'Drives'], ['community', 'Community'], ['library', 'Library']]
+const FULL_PAGE_VIEWS = ['library', 'profile', 'catalog', 'drives', 'community', 'user']
+// A shared profile link (?u=<handle>) opens that profile on first load.
+const linkedProfile = () => { try { return readProfileParam(window.location.search).handle } catch { return null } }
 
 function Inline({ tokens }) {
   return tokens.map((tok, i) => tok.t === 'link' ? <a key={i} href={tok.v} target="_blank" rel="noopener noreferrer">{tok.v}</a>
@@ -54,7 +59,10 @@ export default function App() {
   const { isCompact, isTouch, reducedMotion } = useDeviceLayout()
   const location = useLocation()
   const [mapFocus, setMapFocus] = useState({ kind: 'trails', version: 0 })
-  const [mobileView, setMobileView] = useState('plan')
+  const [linkedHandle] = useState(linkedProfile)
+  const [mobileView, setMobileView] = useState(linkedHandle ? 'user' : 'plan')
+  // Public profiles ('user' view): the handles opened in a row, and the view and scroll position to return to.
+  const [profileNav, setProfileNav] = useState(() => ({ stack: linkedHandle ? [linkedHandle] : [], from: 'plan', scroll: 0 }))
   const [mapExpanded, setMapExpanded] = useState(false)
   const [homeVisit, setHomeVisit] = useState(0)
   const [officialRoute, setOfficialRoute] = useState(null)
@@ -67,7 +75,11 @@ export default function App() {
   const catalogOpen = mobileView === 'catalog'
   const drivesOpen = mobileView === 'drives'
   const communityOpen = mobileView === 'community'
-  const fullPage = libraryOpen || profileOpen || catalogOpen || drivesOpen || communityOpen   // views that replace the planner/map workspace
+  const userOpen = mobileView === 'user'
+  const viewedHandle = profileNav.stack[profileNav.stack.length - 1] ?? null
+  const fullPage = libraryOpen || profileOpen || catalogOpen || drivesOpen || communityOpen || userOpen   // views that replace the planner/map workspace
+  // The page a public profile was opened from stays mounted (hidden), so Back finds it as it was.
+  const keptBehindProfile = userOpen ? profileNav.from : null
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [allTrails, setAllTrails] = useState([])
@@ -117,6 +129,12 @@ export default function App() {
   const mapPanelRef = useRef(null)
   const mapExpandRef = useRef(null)
   const homeVersion = useRef(0)
+  const workspaceRef = useRef(null)
+  const workspaceScroll = useRef(null)   // scrollTop to apply once the next view has rendered
+  const workspaceFocus = useRef(null)    // element to focus once the next view has rendered
+  const profileOpener = useRef(null)     // what opened the first profile in a row (focused again on Back)
+  const viewRef = useRef(mobileView)
+  viewRef.current = mobileView
   const closeMapPreview = useCallback(() => setMapExpanded(false), [])
   useMapFullscreen(mapExpanded, closeMapPreview, mapPanelRef, mapExpandRef, shellRef)
 
@@ -174,7 +192,8 @@ export default function App() {
   }, [activeCheckin, refreshCheckin])
 
   // Top comments for the trail cards. Refetched on login/logout (to show your hearts), after a
-  // review is saved, and after leaving the Community page, where hearts may have changed.
+  // review is saved or your username changes (author links), and after leaving the Community page,
+  // where hearts may have changed.
   useEffect(() => {
     if (communityOpen) return
     let cancelled = false
@@ -291,9 +310,62 @@ export default function App() {
 
   function changeView(view) {
     setMapExpanded(false)
-    if (view === 'library' || view === 'profile' || view === 'catalog' || view === 'drives' || view === 'community' || (isCompact && view !== 'map')) location.stopTracking()
+    if (FULL_PAGE_VIEWS.includes(view) || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
   }
+
+  // Opens a hiker's public profile from anywhere (comments, search, lists, links). Opening one from
+  // another profile stacks it, so Back walks through them before returning to the page you came from.
+  const openProfile = useCallback(handle => {
+    const next = normalizeHandle(handle)
+    if (!next) return
+    const from = viewRef.current
+    if (from !== 'user') profileOpener.current = document.activeElement
+    setProfileNav(nav => from === 'user'
+      ? (nav.stack[nav.stack.length - 1] === next ? nav : { ...nav, stack: [...nav.stack, next] })
+      : { stack: [next], from, scroll: workspaceRef.current?.scrollTop ?? 0 })
+    workspaceScroll.current = 0
+    setMapExpanded(false); location.stopTracking()
+    setMobileView('user')
+  }, [location.stopTracking])
+
+  function backFromProfile() {
+    if (profileNav.stack.length > 1) {
+      workspaceScroll.current = 0
+      setProfileNav(nav => ({ ...nav, stack: nav.stack.slice(0, -1) }))
+      return
+    }
+    workspaceScroll.current = profileNav.scroll
+    // That page stayed mounted, so the name or row that opened the profile is still there.
+    workspaceFocus.current = profileOpener.current
+    profileOpener.current = null
+    changeView(profileNav.from)
+  }
+
+  useLayoutEffect(() => {
+    if (workspaceScroll.current !== null) {
+      if (workspaceRef.current) workspaceRef.current.scrollTop = workspaceScroll.current
+      workspaceScroll.current = null
+    }
+    const focusTarget = workspaceFocus.current
+    workspaceFocus.current = null
+    if (focusTarget?.isConnected && focusTarget !== document.body) focusTarget.focus({ preventScroll: true })
+  }, [mobileView, viewedHandle])
+
+  // Drop ?u= once read, keeping the rest of the URL and the history state (AuthGate keeps its view there).
+  // Also on Back/Forward: AuthGate's sign-in entry from the first load still has ?u=, and Continue there
+  // would copy it into a new app entry (and a reload would reopen that profile).
+  useEffect(() => {
+    const dropLinkParam = () => {
+      try {
+        const { search } = readProfileParam(window.location.search)
+        if (search !== window.location.search) window.history.replaceState(window.history.state, '', `${window.location.pathname}${search}${window.location.hash}`)
+      } catch { /* history unavailable (sandboxed preview) */ }
+    }
+    dropLinkParam()
+    window.addEventListener('popstate', dropLinkParam)
+    return () => window.removeEventListener('popstate', dropLinkParam)
+  }, [])
 
   // "I finished this trail" with a finishable check-in on that trail finishes it (badge + hike log).
   function openReview(trail) {
@@ -388,18 +460,20 @@ export default function App() {
   }
 
   return (
+    <ProfileLinkContext.Provider value={openProfile}>
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
       <AppBackdrop />
-      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onDrives={() => changeView('drives')} drivesOpen={drivesOpen} onCommunity={() => changeView('community')} communityOpen={communityOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
+      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onDrives={() => changeView('drives')} drivesOpen={drivesOpen} onCommunity={() => changeView('community')} communityOpen={communityOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} publicProfileOpen={userOpen} />
       {activeCheckin && <ActiveCheckinBanner checkin={activeCheckin} onFinish={() => openFinish(activeCheckin)} onView={allTrails.some(t => t.id === activeCheckin.trail_id) ? () => openTrailPage(activeCheckin.trail_id) : null} />}
 
-      <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
+      <main ref={workspaceRef} className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
         <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} initialAreaId={libraryAreaId} onOpenRoute={openOfficialRoute} /></div>
-        <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} trails={allTrails} summaries={summaries} onReview={openReview} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError}
+        <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} kept={keptBehindProfile === 'catalog'} trails={allTrails} summaries={summaries} onReview={openReview} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError}
           checkin={activeCheckin} onCheckinChange={changeCheckin} onCheckinRefresh={refreshCheckin} onFinishCheckin={openFinish} openTrail={catalogTrail} /></div>
         <div id="drives-panel" className="library-workspace catalog-workspace" hidden={!drivesOpen}><ScenicDrives active={drivesOpen} /></div>
-        {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} reloadKey={profileVersion} /></div>}
-        {communityOpen && <div id="community-panel" className="library-workspace"><Community trails={allTrails} onReview={openReview} reloadKey={reviewsVersion} /></div>}
+        {(profileOpen || keptBehindProfile === 'profile') && <div id="profile-panel" className="library-workspace" hidden={!profileOpen}><Dashboard trails={allTrails} reloadKey={profileVersion} onViewPublicProfile={openProfile} onHandleChange={() => setReviewsVersion(v => v + 1)} /></div>}
+        {(communityOpen || keptBehindProfile === 'community') && <div id="community-panel" className="library-workspace" hidden={!communityOpen}><Community trails={allTrails} onReview={openReview} reloadKey={reviewsVersion} active={communityOpen} /></div>}
+        {userOpen && viewedHandle && <div id="user-panel" className="library-workspace"><PublicProfile key={viewedHandle} handle={viewedHandle} onBack={backFromProfile} onEditProfile={() => changeView('profile')} /></div>}
         {officialRoute && !isCompact && <aside className="route-sidebar" hidden={fullPage}aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
         <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
           <div className="panel-heading">
@@ -508,5 +582,6 @@ export default function App() {
         </nav>
       )}
     </div>
+    </ProfileLinkContext.Provider>
   )
 }

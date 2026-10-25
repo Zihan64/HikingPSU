@@ -66,6 +66,22 @@ export const finishCheckin = (id, ratings, token) => request(`/me/checkins/${enc
 export const cancelCheckin = (id, token) => request(`/me/checkins/${encodeURIComponent(id)}`, { method: 'DELETE', token })
 export const getBadges = token => request('/me/badges', { token })
 
+// ---- people: public profiles, search and follows (reading works signed out; a token adds `following`/`is_me`) ----
+const userPath = handle => `/users/${encodeURIComponent(handle)}`
+export const getPublicProfile = (handle, token = null, signal) => request(userPath(handle), { token, signal })
+// q: 2-30 characters after trimming (the server answers 422 otherwise); at most 20 cards.
+export const searchUsers = (q, token = null, signal) => request(`/users?${new URLSearchParams({ q })}`, { token, signal })
+// 403 when the profile is private and it isn't yours.
+export const getFollowers = (handle, { skip = 0, limit = 50 } = {}, token = null) =>
+  request(`${userPath(handle)}/followers?${new URLSearchParams({ skip, limit })}`, { token })
+export const getFollowing = (handle, { skip = 0, limit = 50 } = {}, token = null) =>
+  request(`${userPath(handle)}/following?${new URLSearchParams({ skip, limit })}`, { token })
+// Both directions are idempotent and return {following, followers_count}.
+export const setFollowing = (handle, follow, token) => request(`/me/following/${encodeURIComponent(handle)}`, { method: follow ? 'PUT' : 'DELETE', token })
+export const getFollowingActivity = (token, limit = 30) => request(`/me/following/activity?limit=${limit}`, { token })
+// Returns the full user like getMe(); 409 when taken, 422 when invalid or reserved.
+export const setHandle = (handle, token) => request('/me/handle', { method: 'PUT', body: { handle }, token })
+
 export const getOfficialLibrary = (params = {}, signal) => request(`/official/library?${new URLSearchParams(params)}`, { signal })
 export const getOfficialTrails = (areaId, activity, signal) => request(`/official/trails?${new URLSearchParams({area_id: areaId, activity})}`, { signal })
 export const getOfficialGeometry = (areaId, routeId, activity, signal) => request(`/official/trails/${encodeURIComponent(areaId)}/${encodeURIComponent(routeId)}/geometry?${new URLSearchParams({activity})}`, { signal })

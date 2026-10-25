@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { listParks, getTrailGeometry } from './api'
 import { filterCatalog, formatTime, routeType } from './catalogFilter'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
@@ -12,10 +12,12 @@ function Level({trail}) {
   return <span className="catalog-level" style={{color:LEVEL_HEX[trail.difficulty.level]}}>L{trail.difficulty.level} · {LEVEL_LABELS[trail.difficulty.level]}</span>
 }
 
-function TrailDetail({trail, park, backLabel, summary, onBack, onReview, reviewsVersion, onOfficialArea, checkin, onCheckinChange, onCheckinRefresh, onFinishCheckin}) {
+function TrailDetail({trail, park, backLabel, summary, onBack, onReview, reviewsVersion, onOfficialArea, checkin, onCheckinChange, onCheckinRefresh, onFinishCheckin, active = true}) {
   const [data, setData] = useState(null), [state, setState] = useState('loading'), [retry, setRetry] = useState(0)
-  const heading = useRef(null)
+  const heading = useRef(null), article = useRef(null), scrollTop = useRef(0)
   useEffect(() => { heading.current?.focus({preventScroll:true}) }, [])
+  // Kept (hidden) behind a hiker's profile: back on screen, return to where the reader was.
+  useLayoutEffect(() => { if (active && article.current) article.current.scrollTop = scrollTop.current }, [active])
   useEffect(() => {
     const controller = new AbortController()
     setState('loading'); setData(null)
@@ -25,7 +27,7 @@ function TrailDetail({trail, park, backLabel, summary, onBack, onReview, reviews
   }, [trail.id, retry])
   const official = park?.official_area_id
   const access = trail.access
-  return <article className="catalog-detail">
+  return <article className="catalog-detail" ref={article} onScroll={e => { if (active) scrollTop.current = e.currentTarget.scrollTop }}>
     <button className="text-button" onClick={onBack}>← Back to {backLabel}</button>
     <header><span className="eyebrow">YOUR NEXT TRAIL</span><h1 ref={heading} tabIndex={-1}>{trail.name}</h1><p>{trail.park_name || 'Other nearby trails'} · {trail.area}</p><Level trail={trail} />
       {!trail.verified && <p className="catalog-muted">Planning estimate · not an official navigation itinerary</p>}
@@ -61,7 +63,8 @@ function TrailDetail({trail, park, backLabel, summary, onBack, onReview, reviews
 
 // checkin/onCheckin*/onFinishCheckin: the signed-in user's active trailhead check-in (owned by App).
 // openTrail {id}: a new object opens that trail's detail page (e.g. "View trail" in the check-in banner).
-export default function TrailCatalog({trails, summaries, onReview, reviewsVersion, onOfficialResources, onOfficialArea, active, loading, loadError, checkin = null, onCheckinChange, onCheckinRefresh, onFinishCheckin, openTrail = null}) {
+// kept: hidden behind a hiker's profile opened from here; stay rendered so Back finds the page as it was.
+export default function TrailCatalog({trails, summaries, onReview, reviewsVersion, onOfficialResources, onOfficialArea, active, kept = false, loading, loadError, checkin = null, onCheckinChange, onCheckinRefresh, onFinishCheckin, openTrail = null}) {
   const [parks, setParks] = useState([]), [parkError, setParkError] = useState(null), [retry, setRetry] = useState(0)
   const [parkId, setParkId] = useState('all'), [query, setQuery] = useState(''), [sort, setSort] = useState('name')
   const [selectedId, setSelectedId] = useState(null)
@@ -96,9 +99,9 @@ export default function TrailCatalog({trails, summaries, onReview, reviewsVersio
   }, [selectedId, active])
   useEffect(() => { listShown.current = active && !selectedId })
   function selectPark(id) { setParkId(id); scroll.current = 0; list.current?.scrollTo({top:0}) }
-  if (!active) return null
+  if (!active && !kept) return null
   return <section className="trail-catalog" aria-label="Trail catalog">
-    {selected ? <TrailDetail key={selected.id} trail={selected} park={parks.find(p => p.id === selected.park_id)} backLabel={park?.name || 'All trails'} summary={summaries[selected.id]} onBack={() => setSelectedId(null)} onReview={onReview} reviewsVersion={reviewsVersion} onOfficialArea={onOfficialArea}
+    {selected ? <TrailDetail key={selected.id} trail={selected} park={parks.find(p => p.id === selected.park_id)} backLabel={park?.name || 'All trails'} summary={summaries[selected.id]} onBack={() => setSelectedId(null)} onReview={onReview} reviewsVersion={reviewsVersion} onOfficialArea={onOfficialArea} active={active}
       checkin={checkin} onCheckinChange={onCheckinChange} onCheckinRefresh={onCheckinRefresh} onFinishCheckin={onFinishCheckin} /> : <>
       <header className="catalog-intro"><span className="eyebrow">FIND YOUR NEXT OUTING</span><h1>Trails</h1><p>Explore local trails, one park at a time.</p></header>
       <div className="catalog-columns">
