@@ -7,9 +7,8 @@ import 'leaflet/dist/leaflet.css'
 import '../src/index.css'
 import './badge-lab.css'
 
-if (!import.meta.env.DEV || import.meta.env.VITE_BADGE_LAB !== '1'
-    || !['localhost','127.0.0.1'].includes(location.hostname)) {
-  throw new Error('Badge Lab only runs through the separate local development launcher.')
+if (import.meta.env.VITE_DEVTOOLS !== '1') {
+  throw new Error('Developer tools only run through the authenticated gateway.')
 }
 
 const BASE = '/__badge_lab_api'
@@ -26,7 +25,8 @@ document.body.classList.add('badge-lab-active')
 
 async function bootstrap() {
   const response = await fetch(`${BASE}/__lab/session`,{cache:'no-store'})
-  if (!response.ok) throw new Error('本地测试后端尚未就绪，请确认 start-badge-lab.ps1 正在运行，再刷新页面。')
+  if (response.status === 401) {location.assign('/');throw new Error('请先完成开发者登录。')}
+  if (!response.ok) throw new Error('无法启用模拟器。请确认开发者允许名单和 simulation:use 权限。')
   return response.json()
 }
 
@@ -46,16 +46,17 @@ function Lab({session,trails}) {
       headers:{Authorization:`Bearer ${session.token}`,'Content-Type':'application/json'},
       body:body === undefined ? undefined:JSON.stringify(body)})
     const data = await response.json()
+    if (response.status === 401 || response.status === 403) location.assign('/')
     if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail:'测试请求失败')
     return data
   },[session.token])
   useEffect(() => {simulation.configure(trail,scenario)},[trail,scenario])
   useEffect(() => {
     offset = session.offset_ms
-    const refresh = () => request('/__lab/state').then(setState).catch(() => {})
+    const refresh = () => request('/__lab/state').then(next => {if (next.offset_ms !== offset) sync(next);else setState(next)}).catch(() => {})
     const timer = setInterval(refresh,3000)
     return () => clearInterval(timer)
-  },[request,session.offset_ms])
+  },[request,session.offset_ms,sync])
   async function run(path,body = {}) {
     setBusy(true);setError(null)
     try {sync(await request(path,body));return true}
@@ -70,10 +71,13 @@ function Lab({session,trails}) {
     user:{sub:session.user_id,name:'Badge Lab Tester',email:'tester@example.invalid'},
     getAccessTokenSilently:async () => session.token,
     loginWithPopup:async () => {},loginWithRedirect:async () => {},
-    logout:() => setError('当前是独立测试账号。请使用“重置测试成就”，或关闭这个页面。'),
+    logout:async () => {
+      await fetch('/devtools/logout',{method:'POST',headers:{Authorization:`Bearer ${session.token}`}})
+      location.assign('/')
+    },
   }),[session.token,session.user_id])
   return <>
-    <div className="badge-lab-banner">开发模拟环境 · 测试定位／测试账号／内存数据库 · 不会写入正式成就</div>
+    <div className="badge-lab-banner">已授权开发环境 · 开发者：{session.developer} · 模拟数据不计入正式成就</div>
     <Auth0Context.Provider value={account}><App key={version} initialView={view} initialTrailId={trail.id} /></Auth0Context.Provider>
     <details className="badge-lab-panel" open>
       <summary>🧪 徽章测试面板（可收起）</summary>
@@ -85,7 +89,7 @@ function Lab({session,trails}) {
         <p>先点击网页中的 <b>Start hike · check in</b>，再快进时间，最后点击 <b>Finish & rate</b>。</p>
         <div className="badge-lab-buttons"><button disabled={busy || !state.active} onClick={() => run('/__lab/ready')}>快进到可完成时间</button><button disabled={busy} onClick={() => run('/__lab/advance',{minutes:1})}>+1 分钟</button><button disabled={busy} onClick={() => run('/__lab/advance',{minutes:1440})}>+1 天</button><button disabled={busy} onClick={() => run('/__lab/advance',{minutes:1500})}>+25 小时（过期）</button></div>
         <dl><dt>测试时间</dt><dd>{new Date(realNow()+offset).toLocaleString()}</dd><dt>当前签到</dt><dd>{state.active?.trail_name || '无'}</dd><dt>完成 / 徽章</dt><dd>{state.completed} / {state.badges}</dd></dl>
-        <button className="badge-lab-reset" disabled={busy} onClick={reset}>重置测试成就与时间</button>
+        <button className="badge-lab-reset" disabled={busy || !session.permissions.includes('testdata:reset')} onClick={reset}>重置我的测试成就与时间</button>
         <p>每日 2 次、入口 200 m、精度 ≤100 m 等规则照常校验。精度不足场景会加速返回定位失败；不会等待 45 秒。</p>
         {error && <p role="alert" className="badge-lab-error">{error}</p>}
       </div>

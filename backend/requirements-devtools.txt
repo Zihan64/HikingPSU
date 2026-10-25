@@ -1,0 +1,4 @@
+# Separate service only. Production app.main never imports these modules.
+-r requirements.txt
+authlib>=1.6,<2
+itsdangerous>=2.2,<3
