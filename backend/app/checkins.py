@@ -4,7 +4,8 @@ Flow: start (one location fix at a trail entrance) -> hike -> finish with a rati
 Only the distance and accuracy derived from the fix are stored; the coordinates never are.
 
 checkins       one document per check-in; status active -> completed | cancelled | expired
-checkin_locks  _id = user id while a check-in is active, so two starts can't both succeed
+checkin_locks  _id = user id while a check-in is active. Written after the check-in document, so a lock
+               always points at a real check-in; only the check-in its lock points at can be finished.
 """
 from __future__ import annotations
 
@@ -28,6 +29,8 @@ RULES = {
     "min_share": 0.4,
     "expires_hours": 24,
     "daily_limit": 2,         # completions per State College calendar day
+    "clock_grace_s": 60,      # a phone clock slightly ahead of ours may finish this early
+    "join_m": 25,             # a route piece ending this close to another piece is a junction, not an end
 }
 LOCAL_TZ = ZoneInfo("America/New_York")
 
@@ -53,11 +56,6 @@ def _query_time(d: dt.datetime) -> dt.datetime:
     return d.astimezone(dt.timezone.utc).replace(tzinfo=None)  # naive UTC, as stored
 
 
-def local_clock(d: dt.datetime) -> str:
-    """'3:05 PM' in State College time, for messages."""
-    return d.astimezone(LOCAL_TZ).strftime("%I:%M %p").lstrip("0")
-
-
 def start_of_local_day(at: dt.datetime) -> dt.datetime:
     local = at.astimezone(LOCAL_TZ)
     return local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(dt.timezone.utc)
@@ -74,6 +72,31 @@ def distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
+def _distance_to_line_m(lat: float, lon: float, line: list[list[float]]) -> float:
+    """Shortest distance from a point to a [lon, lat] polyline (flat projection; fine at trail scale)."""
+    kx, ky = 111_320 * math.cos(math.radians(lat)), 110_540
+    pts = [((plon - lon) * kx, (plat - lat) * ky) for plon, plat in line]
+    if len(pts) == 1:
+        return math.hypot(*pts[0])
+    best = math.inf
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+        dx, dy = x2 - x1, y2 - y1
+        t = max(0.0, min(1.0, -(x1 * dx + y1 * dy) / (dx * dx + dy * dy))) if dx or dy else 0.0
+        best = min(best, math.hypot(x1 + t * dx, y1 + t * dy))
+    return best
+
+
+def route_ends(lines: list[list[list[float]]]) -> list[tuple[float, float]]:
+    """(lat, lon) of the route's real ends. A mapped route can come in several pieces; a piece that
+    starts or ends on another piece is a junction in the middle of the trail, not a way in."""
+    ends = []
+    for i, line in enumerate(lines):
+        for lon, lat in (line[0], line[-1]) if line else ():
+            if all(_distance_to_line_m(lat, lon, other) > RULES["join_m"] for j, other in enumerate(lines) if j != i and other):
+                ends.append((lat, lon))
+    return ends
+
+
 @lru_cache(maxsize=None)
 def entrances(trail_id: str) -> tuple[tuple[float, float], ...]:
     """(lat, lon) points that count as an entrance: the trailhead plus the ends of the mapped route,
@@ -81,13 +104,9 @@ def entrances(trail_id: str) -> tuple[tuple[float, float], ...]:
     trail = store.get(trail_id)
     if trail is None:
         return ()
-    points = [(trail.trailhead.lat, trail.trailhead.lon)]
     geometry = store.load_geometry().get(trail_id) or {}
-    lines = geometry.get("lines") or ([geometry["line"]] if geometry.get("line") else [])
-    for line in lines:  # GeoJSON order: [lon, lat]
-        if line:
-            points += [(line[0][1], line[0][0]), (line[-1][1], line[-1][0])]
-    return tuple(dict.fromkeys(points))
+    lines = geometry.get("lines") or ([geometry["line"]] if geometry.get("line") else [])  # GeoJSON [lon, lat]
+    return tuple(dict.fromkeys([(trail.trailhead.lat, trail.trailhead.lon), *route_ends(lines)]))
 
 
 def nearest_entrance_m(trail_id: str, lat: float, lon: float) -> float:
@@ -126,9 +145,15 @@ def get_active(user_id: str) -> dict | None:
     """The user's active check-in, expiring it first if its 24 hours are up."""
     lock = get_db().checkin_locks.find_one({"_id": user_id})
     if lock is None:
+        # An active check-in without a lock lost its start halfway (a crash between the two writes).
+        # It can never be finished; retire it. Recent ones may be a start that is still running.
+        get_db().checkins.update_many(
+            {"user_id": user_id, "status": "active", "started_at": {"$lt": _query_time(now() - dt.timedelta(minutes=1))}},
+            {"$set": {"status": "cancelled"}},
+        )
         return None
     doc = get_db().checkins.find_one({"_id": lock["checkin_id"], "status": "active"})
-    if doc is None:  # stale lock (e.g. a crash between steps); release it
+    if doc is None:  # finished, cancelled or expired, and its lock not yet released
         get_db().checkin_locks.delete_one({"_id": user_id, "checkin_id": lock["checkin_id"]})
         return None
     if utc(doc["expires_at"]) <= now():
@@ -154,7 +179,10 @@ def start(user_id: str, trail_id: str, lat: float, lon: float, accuracy_m: float
     active = get_active(user_id)
     if active is not None:
         raise CheckinError(409, f"You're already checked in at {active['trail_name']}. Finish or cancel that hike first.")
-    if completions_today(user_id) >= RULES["daily_limit"]:
+    started = now()
+    finish_after = started + dt.timedelta(minutes=min_minutes(trail_id))
+    # The limit applies to the day the hike can finish: a late-evening start may finish after midnight.
+    if completions_today(user_id, finish_after) >= RULES["daily_limit"]:
         raise CheckinError(429, f"You've completed {RULES['daily_limit']} trails today, the daily limit. Come back tomorrow!")
     if accuracy_m > RULES["max_accuracy_m"]:
         raise CheckinError(422, (
@@ -168,7 +196,6 @@ def start(user_id: str, trail_id: str, lat: float, lon: float, accuracy_m: float
             f"Check in within {RULES['radius_m']} m."
         ))
 
-    started = now()
     doc = {
         "_id": ObjectId(),
         "user_id": user_id,
@@ -176,17 +203,18 @@ def start(user_id: str, trail_id: str, lat: float, lon: float, accuracy_m: float
         "trail_name": trail.name,
         "status": "active",
         "started_at": started,
-        "finish_after": started + dt.timedelta(minutes=min_minutes(trail_id)),
+        "finish_after": finish_after,
         "expires_at": started + dt.timedelta(hours=RULES["expires_hours"]),
         "distance_m": round(meters),
         "accuracy_m": round(accuracy_m),
         # no lat/lon: the fix is used for this check and then discarded
     }
+    get_db().checkins.insert_one(doc)
     try:
         get_db().checkin_locks.insert_one({"_id": user_id, "checkin_id": doc["_id"], "created_at": started})
-    except DuplicateKeyError:  # a second start raced this one
+    except DuplicateKeyError:  # a second start raced this one and won
+        get_db().checkins.delete_one({"_id": doc["_id"]})
         raise CheckinError(409, "You already have an active check-in. Finish or cancel that hike first.")
-    get_db().checkins.insert_one(doc)
     return doc
 
 
@@ -203,20 +231,29 @@ def cancel(user_id: str, checkin_id: str) -> None:
     get_db().checkin_locks.delete_one({"_id": user_id, "checkin_id": doc["_id"]})
 
 
-def check_finishable(user_id: str, checkin_id: str) -> dict:
-    """Every rule for finishing, checked before anything is written. Returns the check-in."""
+def prepare_finish(user_id: str, checkin_id: str) -> tuple[dict, bool]:
+    """Every rule for finishing, checked before anything is written. Returns (check-in, resume):
+    resume=True for a completed hike whose finish was cut off before it was logged, so a retry
+    completes the remaining steps instead of being refused."""
     doc = _owned(user_id, checkin_id)
     current = now()
+    if doc["status"] == "completed" and not doc.get("hike_id"):
+        return doc, True
     if doc["status"] == "active" and utc(doc["expires_at"]) <= current:
         _expire(doc)
         raise CheckinError(409, "This check-in expired after 24 hours. Check in again at the trailhead to log a new hike.")
     if doc["status"] != "active":
         raise CheckinError(409, f"This check-in is already {doc['status']}.")
-    if current < utc(doc["finish_after"]):
-        raise CheckinError(409, f"You can finish after {local_clock(utc(doc['finish_after']))}.")
+    lock = get_db().checkin_locks.find_one({"_id": user_id})
+    if lock is None or lock["checkin_id"] != doc["_id"]:  # not the user's current check-in
+        raise CheckinError(409, "This check-in is no longer active.")
+    wait_s = (utc(doc["finish_after"]) - current).total_seconds()
+    if wait_s > RULES["clock_grace_s"]:
+        minutes = math.ceil(wait_s / 60)
+        raise CheckinError(409, f"You can finish in {minutes} min{'' if minutes == 1 else 's'}.")
     if completions_today(user_id, current) >= RULES["daily_limit"]:
         raise CheckinError(429, f"You've completed {RULES['daily_limit']} trails today, the daily limit. Finish this one tomorrow.")
-    return doc
+    return doc, False
 
 
 def mark_completed(doc: dict) -> dict:

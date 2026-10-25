@@ -10,7 +10,7 @@ const React = require('react')
 const { create, act } = require('react-test-renderer')
 const { Auth0Context, initialContext } = require('@auth0/auth0-react')
 
-let ui, tree, requests, responses, watches, saved, confirmAnswer, logins
+let ui, tree, requests, responses, watches, cleared, saved, confirmAnswer, logins
 const savedGlobals = {}
 const trail = { id: 't1', name: 'Forest Loop', difficulty: { level: 1, est_time_min: 55 } }
 const minutes = n => new Date(Date.now() + n * 60000).toISOString()
@@ -34,10 +34,10 @@ before(async () => {
 })
 
 beforeEach(() => {
-  requests = []; responses = {}; watches = []; saved = []; confirmAnswer = true; logins = 0
+  requests = []; responses = {}; watches = []; cleared = []; saved = []; confirmAnswer = true; logins = 0
   for (const key of ['fetch', 'navigator', 'window', 'document', 'confirm']) savedGlobals[key] = Object.getOwnPropertyDescriptor(globalThis, key)
   const set = (key, value) => Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
-  set('navigator', { geolocation: { watchPosition(success, error, options) { watches.push({ success, error, options }); return watches.length - 1 }, clearWatch() {} } })
+  set('navigator', { geolocation: { watchPosition(success, error, options) { watches.push({ success, error, options }); return watches.length - 1 }, clearWatch(id) { cleared.push(id) } } })
   set('window', { isSecureContext: true, addEventListener() {}, removeEventListener() {} })
   set('document', { hidden: false, addEventListener() {}, removeEventListener() {} })
   set('confirm', () => confirmAnswer)
@@ -108,6 +108,10 @@ test('start: a coarse fix is not sent; Stop ends a location request that never s
   assert.ok(!button('Start hike').props.disabled)
   assert.equal(button('Stop'), undefined)
   assert.deepEqual(alerts(), [])
+  assert.ok(cleared.includes(0))  // the location watch really ended
+  await act(async () => { watches[0].success({ coords: { latitude: 40.8, longitude: -77.8, accuracy: 18 } }) })  // a late good fix
+  await flush()
+  assert.equal(requests.length, 0)  // ...is not sent after Stop
 })
 
 test('start/cancel without a usable token: nothing is sent and the user can log in again', async () => {

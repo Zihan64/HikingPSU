@@ -17,7 +17,7 @@ import Icon from './Icon'
 import useMapFullscreen from './useMapFullscreen'
 import { useAuth0 } from '@auth0/auth0-react'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
-import { checkinTiming } from './checkin'
+import { finishesCheckin } from './checkin'
 import AppBackdrop from './theme/AppBackdrop'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
 import { parseBlocks, parseInline } from './markdown'
@@ -297,7 +297,7 @@ export default function App() {
 
   // "I finished this trail" with a finishable check-in on that trail finishes it (badge + hike log).
   function openReview(trail) {
-    if (activeCheckin?.trail_id === trail.id && checkinTiming(activeCheckin).canFinish) { openFinish(activeCheckin); return }
+    if (finishesCheckin(activeCheckin, trail.id)) { openFinish(activeCheckin); return }
     setFinishing(null); setReviewing(trail)
   }
 

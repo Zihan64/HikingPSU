@@ -63,6 +63,8 @@ def award(user_id: str) -> list[dict]:
         if b["key"] in have:
             continue
         doc = {**b, "user_id": user_id, "awarded_at": checkins.now(), "name": _snapshot_name(b)}
+        if b["kind"] == "park":  # what "all N trails" meant when it was earned, if the park grows later
+            doc["trail_count"] = next(len(p["trail_ids"]) for p in parks() if p["id"] == b["target_id"])
         try:
             get_db().badges.insert_one(doc)
         except DuplicateKeyError:  # awarded concurrently
@@ -91,7 +93,7 @@ def to_out(doc: dict) -> BadgeOut:
     elif kind == "park":
         park = next((p for p in parks() if p["id"] == target), None)
         name = park["name"] if park else doc.get("name") or target
-        total = len(park["trail_ids"]) if park else None
+        total = doc.get("trail_count") or (len(park["trail_ids"]) if park else None)
         tier, title = "silver", f"{name} Complete"
         description = (f"Completed the only trail in {name}" if total == 1
                        else f"Completed all {total} trails in {name}" if total else f"Completed every trail in {name}")
@@ -103,6 +105,7 @@ def to_out(doc: dict) -> BadgeOut:
 
 
 def board(user_id: str) -> BadgeBoard:
+    award(user_id)  # repairs badges a cut-off finish never awarded; a no-op otherwise
     docs = list(get_db().badges.find({"user_id": user_id}).sort([("awarded_at", DESCENDING), ("key", 1)]))
     keys = {d["key"] for d in docs}
     completed = checkins.completed_trail_ids(user_id)

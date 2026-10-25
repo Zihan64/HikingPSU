@@ -65,11 +65,13 @@ export default function TrailCatalog({trails, summaries, onReview, reviewsVersio
   const [parks, setParks] = useState([]), [parkError, setParkError] = useState(null), [retry, setRetry] = useState(0)
   const [parkId, setParkId] = useState('all'), [query, setQuery] = useState(''), [sort, setSort] = useState('name')
   const [selectedId, setSelectedId] = useState(null)
-  const list = useRef(null), scroll = useRef(0), lastSelected = useRef(null)
+  const list = useRef(null), scroll = useRef(0), lastSelected = useRef(null), listShown = useRef(false)
   useEffect(() => {
     if (!openTrail?.id) return
-    if (list.current) scroll.current = list.current.scrollTop
-    lastSelected.current = openTrail.id; setSelectedId(openTrail.id)
+    // Keep the position from the user's last look at the list: when the catalog was just opened by this
+    // same render, the fresh list is at the top. The row wasn't clicked, so don't focus it on Back.
+    if (listShown.current && list.current) scroll.current = list.current.scrollTop
+    lastSelected.current = null; setSelectedId(openTrail.id)
   }, [openTrail])
   useEffect(() => {
     if (!active || parks.length) return
@@ -92,6 +94,7 @@ export default function TrailCatalog({trails, summaries, onReview, reviewsVersio
     })
     return () => cancelAnimationFrame(frame)
   }, [selectedId, active])
+  useEffect(() => { listShown.current = active && !selectedId })
   function selectPark(id) { setParkId(id); scroll.current = 0; list.current?.scrollTo({top:0}) }
   if (!active) return null
   return <section className="trail-catalog" aria-label="Trail catalog">

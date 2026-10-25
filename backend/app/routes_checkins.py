@@ -35,19 +35,22 @@ def finish_checkin(checkin_id: str, body: ReviewIn, user: dict = Depends(auth.cu
     """Finish a hike with a rating: writes the review and a hike-log entry, then awards badges."""
     uid = str(user["_id"])
     try:
-        doc = checkins.check_finishable(uid, checkin_id)
+        doc, resume = checkins.prepare_finish(uid, checkin_id)
         review = reviews.upsert(user, doc["trail_id"], body.model_dump())  # before completing: an upsert is safe to repeat
-        done = checkins.mark_completed(doc)
+        done = doc if resume else checkins.mark_completed(doc)
     except checkins.CheckinError as e:
         raise _rule(e)
     except KeyError:  # the trail left the data after check-in
         raise HTTPException(404, "trail not found")
-    minutes = (checkins.utc(done["completed_at"]) - checkins.utc(done["started_at"])).total_seconds() / 60
-    hike = hikes.add(
-        uid, doc["trail_id"], completed_on=checkins.utc(done["completed_at"]).astimezone(checkins.LOCAL_TZ).date(),
-        duration_min=max(1, min(1440, round(minutes))), rating=body.enjoyment, felt_difficulty=body.difficulty,
-        notes=(body.comment or "").strip() or None, checkin_id=str(doc["_id"]),
-    )
+    # Steps after completing are repeatable: a retry after a crash here resumes them (prepare_finish).
+    hike = hikes.for_checkin(uid, str(doc["_id"]))
+    if hike is None:
+        minutes = (checkins.utc(done["completed_at"]) - checkins.utc(done["started_at"])).total_seconds() / 60
+        hike = hikes.add(
+            uid, doc["trail_id"], completed_on=checkins.utc(done["completed_at"]).astimezone(checkins.LOCAL_TZ).date(),
+            duration_min=max(1, min(1440, round(minutes))), rating=body.enjoyment, felt_difficulty=body.difficulty,
+            notes=(body.comment or "").strip() or None, checkin_id=str(doc["_id"]),
+        )
     checkins.link(done, review_id=str(review["_id"]), hike_id=str(hike["_id"]))
     new = badges.award(uid)
     return FinishResult(checkin=checkins.to_out(done), review=reviews.to_out(review, uid),

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { checkinTiming, formatClock, minHikeMinutes, nextMilestone, plural, requestOneFix } from '../src/checkin.js'
+import { checkinTiming, finishesCheckin, formatClock, minHikeMinutes, nextMilestone, plural, requestOneFix } from '../src/checkin.js'
 
 const fix = { coords: { latitude: 40.7934, longitude: -77.86, accuracy: 24 }, timestamp: 1700000000000 }
 
@@ -178,4 +178,14 @@ test('nextMilestone walks 10 then 30, then reports none', () => {
   assert.equal(nextMilestone(null), null)
   assert.equal(plural(1, 'more trail'), '1 more trail')
   assert.equal(plural(2, 'more trail'), '2 more trails')
+})
+
+test('finishesCheckin: only a finishable check-in on the same trail', () => {
+  const c = { trail_id: 't1', status: 'active', finish_after: '2026-10-25T19:05:00Z', expires_at: '2026-10-26T18:50:00Z' }
+  const ready = at('2026-10-25T19:06:00Z')
+  assert.equal(finishesCheckin(c, 't1', ready), true)
+  assert.equal(finishesCheckin(c, 't2', ready), false)                        // another trail: plain review
+  assert.equal(finishesCheckin(c, 't1', at('2026-10-25T19:00:00Z')), false)  // too early: plain review
+  assert.equal(finishesCheckin({ ...c, status: 'completed' }, 't1', ready), false)
+  assert.equal(finishesCheckin(null, 't1', ready), false)
 })

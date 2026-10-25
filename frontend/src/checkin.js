@@ -68,6 +68,11 @@ export function checkinTiming(checkin, nowMs = Date.now()) {
   return { canFinish: active && !expired && msUntilFinish === 0, msUntilFinish, expired }
 }
 
+// "I finished this trail" finishes the check-in (badge + hike log) when it's on that trail and finishable.
+export function finishesCheckin(checkin, trailId, nowMs = Date.now()) {
+  return !!checkin && checkin.trail_id === trailId && checkinTiming(checkin, nowMs).canFinish
+}
+
 // "3:05 PM" in the viewer's locale and time zone (locale/timeZone are for tests). `ceil` rounds up
 // to the next whole minute, so "finish after" never shows a time before the real one.
 export function formatClock(iso, { locale, timeZone, ceil = false } = {}) {
