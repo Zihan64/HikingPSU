@@ -266,6 +266,15 @@ def test_official_looking_usernames_are_refused(client):
     assert client.put("/me/handle", headers=a, json={"handle": "psuhiker"}).status_code == 200  # "psu" inside is fine
 
 
+def test_sign_up_never_assigns_an_official_looking_username(client):
+    for i, typed in enumerate(["HikingPSUOfficial Smith", "Admin2 Smith", "Officialhiker", "Moderator1", "Hiking-PSU-Official"]):
+        h = bearer(f"auth0|typed{i}")
+        handle = client.put("/me/registration", headers=h, json={**FORM, "full_name": typed}).json()["handle"]
+        assert handle.startswith("hiker") and not social._reserved(handle), (typed, handle)
+        with pytest.raises(social.SocialError, match="reserved"):  # and the same names are refused when picked by hand
+            social.validate("".join(ch for ch in typed.split()[0].lower() if ch.isalnum()))
+
+
 def test_accounts_that_never_signed_up_cannot_follow_or_claim_names(client):
     join(client, "bob")
     ghost = bearer("auth0|ghost")

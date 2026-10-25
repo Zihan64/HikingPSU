@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { getCommunityFeed, getFollowingActivity, searchUsers } from './api'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
@@ -8,6 +8,7 @@ import { plural } from './checkin'
 import { ProfileName, UserCardRow } from './People'
 
 const PAGE = 20
+const FEED_MAX = 50   // the server's largest page
 const SORTS = [['recent', 'Newest'], ['top', 'Most loved']]
 const selectCls = 'min-h-[40px] w-full rounded-lg border border-[#d8dfd1] bg-white px-2 py-1.5 text-sm'
 const SEARCH_DELAY_MS = 300
@@ -122,15 +123,38 @@ export default function Community({ trails, onReview, reloadKey, active = true }
 
   const fetchPage = useCallback(async skip =>
     getCommunityFeed({ sort, trailId, limit: PAGE, skip }, await getToken()), [sort, trailId, getToken])
+  // The first `count` posts, a server page at a time.
+  const fetchFirst = useCallback(async count => {
+    const token = await getToken()
+    const list = []
+    while (list.length < count) {
+      const limit = Math.min(FEED_MAX, count - list.length)
+      const page = await getCommunityFeed({ sort, trailId, limit, skip: list.length }, token)
+      list.push(...page.filter(p => !list.some(x => x.id === p.id)))
+      if (page.length < limit) break
+    }
+    return list
+  }, [sort, trailId, getToken])
 
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const shownQuery = useRef(null)
   useEffect(() => {
     let cancelled = false
-    setItems(null); setError(null)
-    fetchPage(0)
-      .then(page => { if (!cancelled) { setItems(page); setHasMore(page.length === PAGE) } })
-      .catch(() => { if (!cancelled) setError("We couldn't load community posts. Please try again.") })
+    const query = `${sort}|${trailId}|${reloadKey}`
+    // Same posts for a new viewer (signing in, e.g. from a profile opened here): refresh them in place,
+    // every page already shown, so the rows stay mounted and Back can return to the one that was opened.
+    const refresh = shownQuery.current === query && itemsRef.current !== null
+    shownQuery.current = query
+    const count = refresh ? Math.max(PAGE, itemsRef.current.length) : PAGE
+    setError(null)
+    if (!refresh) setItems(null)
+    fetchFirst(count)
+      // A refresh that comes back full can't tell whether more exist; keep what the last page said.
+      .then(list => { if (!cancelled) { setItems(list); setHasMore(more => (refresh ? more && list.length === count : list.length === count)) } })
+      .catch(() => { if (!cancelled && !refresh) setError("We couldn't load community posts. Please try again.") })
     return () => { cancelled = true }
-  }, [fetchPage, reloadKey])
+  }, [fetchFirst, sort, trailId, reloadKey])
 
   async function loadMore() {
     setLoadingMore(true)

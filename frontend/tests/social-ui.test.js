@@ -322,6 +322,33 @@ const type = value => act(async () => searchBox().props.onChange({ target: { val
 const tick = ms => act(async () => { mock.timers.tick(ms) })
 const searches = () => sent('GET').filter(u => u.startsWith('/api/users?'))
 
+test('community feed: signing in behind a profile refreshes the posts in place, keeping every page shown', async () => {
+  const posts = Array.from({ length: 20 }, (_, i) => ({ ...post, id: `r${i}`, comment: `Post ${i}` }))
+  responses[FEED] = [200, posts]
+  responses['GET /api/reviews/feed?sort=recent&limit=20&skip=20'] = [200, [{ ...post, id: 'r20', comment: 'Post 20' }]]
+  await mount(ui.Community, communityProps, { auth: signedOut() })
+  await flush()
+  await click(button('Show more posts'))
+  await flush()
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+
+  // Hidden behind a profile, the guest signs in with the pop-up; the signed-in feed is slow to arrive.
+  const slow = deferred()
+  responses['GET /api/reviews/feed?sort=recent&limit=21&skip=0'] = () => slow.promise
+  responses[ACTIVITY] = [200, []]
+  await act(async () => tree.update(element(ui.Community, { ...communityProps, active: false }, session(), true)))
+  await flush()
+  assert.doesNotMatch(page(), /Loading posts/)   // the rows (and the author button that opened the profile) stay
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+  await act(async () => slow.resolve([200, [...posts, { ...post, id: 'r20', comment: 'Post 20', liked: true }]]))
+  await flush()
+  const refreshed = requests.find(r => r.url === '/api/reviews/feed?sort=recent&limit=21&skip=0')
+  assert.equal(refreshed.auth, 'Bearer synthetic-test-token')
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+  assert.match(page(), /Post 20/)
+  assert.equal(button('Show more posts'), undefined)   // still the end of the feed
+})
+
 test('people search: waits for 2+ characters and a pause in typing', async () => {
   mock.timers.enable({ apis: ['setTimeout'] })
   responses[FEED] = [200, [post]]

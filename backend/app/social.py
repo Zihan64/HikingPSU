@@ -58,11 +58,15 @@ def normalize(handle: str) -> str:
     return (handle or "").strip().lower()
 
 
+def _reserved(h: str) -> bool:
+    return h in RESERVED or any(part in h for part in RESERVED_PARTS)
+
+
 def validate(handle: str) -> str:
     h = normalize(handle)
     if not HANDLE_RE.match(h):
         raise SocialError(422, "Usernames are 3-20 characters: lowercase letters, numbers and underscores, starting with a letter.")
-    if h in RESERVED or any(part in h for part in RESERVED_PARTS):
+    if _reserved(h):
         raise SocialError(422, "That username is reserved. Please pick another.")
     return h
 
@@ -95,7 +99,7 @@ def _base(name: str) -> str:
     """'Zoë O'Brien' -> 'zoeobrien': ASCII letters and digits only, starting with a letter."""
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
     base = re.sub(r"[^a-z0-9]", "", ascii_name).lstrip("0123456789")[:15]
-    return base if len(base) >= 3 and base not in RESERVED else "hiker"
+    return base if len(base) >= 3 and not _reserved(base) else "hiker"  # the same rule as a username picked by hand
 
 
 def ensure_handle(user: dict) -> dict:
