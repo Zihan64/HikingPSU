@@ -1,0 +1,30 @@
+/* Scenic drives (ScenicDrives.jsx). Reuses the Trails catalog layout; only the extras live here. */
+.trail-catalog.scenic-drives .catalog-intro { color: #173a40; text-shadow: 0 1px 12px rgba(255, 255, 255, 0.7); }
+.trail-catalog.scenic-drives .catalog-intro .eyebrow { color: #2f6b47; }
+.trail-catalog.scenic-drives .catalog-intro p { color: #4f6466; }
+.scenic-drives .catalog-row > p:first-of-type { color: #2f6b47; font-weight: 600; }
+.scenic-drives .drive-summary { display: flex; align-items: flex-start; gap: 12px; margin-top: 10px; font-size: 13px; line-height: 1.55; color: #173a40; }
+.scenic-drives .drive-summary > span { margin-left: auto; color: #62736c; }
+.scenic-drives .catalog-detail > header > p { max-width: 62ch; color: #4f6466; }
+.scenic-drives .catalog-stats dd { font-size: 15px; line-height: 1.35; }
+.scenic-drives .drive-maps { display: inline-flex; align-items: center; justify-content: center; margin-top: 16px; padding: 0 18px; min-height: 44px; border-radius: 10px; text-decoration: none; }
+
+/* stops as a little road: a line with a waypoint dot per stop */
+.scenic-drives .drive-stops { list-style: none; padding: 0; margin: 0; }
+.scenic-drives .drive-stops li { position: relative; padding: 0 0 14px 28px; }
+.scenic-drives .drive-stops li > span { position: absolute; left: 6px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid #2f6b47; }
+.scenic-drives .drive-stops li:not(:last-child)::before { content: ''; position: absolute; left: 10px; top: 19px; bottom: -6px; border-left: 2px dashed #b9cab4; }
+.scenic-drives .drive-stops li:first-child > span { background: #2f6b47; }
+.scenic-drives .drive-stops li:last-child > span { background: #f5b83d; border-color: #9a6a1f; }
+
+.scenic-drives .drive-sources { list-style: none !important; padding-left: 0 !important; }
+.scenic-drives .drive-sources a { color: #2c7fbf; text-decoration: underline; text-underline-offset: 3px; }
+
+.scenic-drives .drive-tips { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: #fff7e8; border: 1px solid #f1dfba; font-size: 12px; line-height: 1.6; color: #5b4523; }
+.scenic-drives .drive-tips h3 { font-size: 13px; font-weight: 650; margin-bottom: 6px; color: #7a5434; }
+.scenic-drives .drive-tips ul { list-style: disc; padding-left: 16px; }
+
+@media (width < 960px) {
+  .scenic-drives .drive-tips { display: none; }
+  .scenic-drives .catalog-intro p { display: none; }
+}

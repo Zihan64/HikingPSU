@@ -9,11 +9,11 @@ export function HomeLink({ onHome, compact = false }) {
   </a>
 }
 
-export default function AppHeader({ onHome, onLibrary, libraryOpen = false, onCatalog, catalogOpen = false, onProfile, profileOpen = false, account }) {
+export default function AppHeader({ onHome, onLibrary, libraryOpen = false, onCatalog, catalogOpen = false, onDrives, drivesOpen = false, onProfile, profileOpen = false, account }) {
   return <header className="app-header">
     <HomeLink onHome={onHome} />
     <div className="header-actions">
-      <nav className="desktop-navigation" aria-label="Workspace"><button onClick={onHome} aria-pressed={!libraryOpen && !profileOpen && !catalogOpen}>Explore</button><button onClick={onCatalog} aria-pressed={catalogOpen}>Trails</button><button onClick={onLibrary} aria-pressed={libraryOpen}>Official library</button></nav>
+      <nav className="desktop-navigation" aria-label="Workspace"><button onClick={onHome} aria-pressed={!libraryOpen && !profileOpen && !catalogOpen && !drivesOpen}>Explore</button><button onClick={onCatalog} aria-pressed={catalogOpen}>Trails</button>{onDrives && <button onClick={onDrives} aria-pressed={drivesOpen}>Scenic drives</button>}<button onClick={onLibrary} aria-pressed={libraryOpen}>Official library</button></nav>
       <span className="location-label"><span />Happy Valley, PA</span>
       <div className="auth-control">{account ?? <AuthButton onProfile={onProfile} profileActive={profileOpen} />}</div>
     </div>
