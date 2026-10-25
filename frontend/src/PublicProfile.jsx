@@ -73,9 +73,13 @@ function ProfileView({ profile: p, onEditProfile }) {
   const hidden = !p.is_public && !p.is_me
   const joined = formatJoined(p.joined)
   const toggleList = name => setList(open => (open === name ? null : name))
-  // The link or row that opened this page is gone; land keyboard and screen-reader users on the name.
+  // The link or row that opened this page is gone; land keyboard and screen-reader users on the name,
+  // unless focus is already somewhere (e.g. the sign-up dialog opened over this page).
   const heading = useRef(null)
-  useEffect(() => { heading.current?.focus({ preventScroll: true }) }, [])
+  useEffect(() => {
+    const active = document.activeElement
+    if (!active || active === document.body) heading.current?.focus({ preventScroll: true })
+  }, [])
 
   return (
     <>
@@ -148,12 +152,12 @@ function PeopleList({ handle, kind, version, onFollowChange }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)   // 'private' or a message
 
-  const fetchPage = useCallback(async skip => load(handle, { skip, limit: LIST_PAGE }, await getToken()), [load, handle, getToken])
+  const fetchPage = useCallback(async before => load(handle, { before, limit: LIST_PAGE }, await getToken()), [load, handle, getToken])
 
   useEffect(() => {
     let cancelled = false
     setError(null)
-    fetchPage(0)
+    fetchPage()
       .then(page => { if (!cancelled) { setItems(page); setHasMore(page.length === LIST_PAGE) } })
       .catch(e => { if (!cancelled) setError(e.status === 403 ? 'private' : "We couldn't load this list. Please try again.") })
     return () => { cancelled = true }
@@ -162,7 +166,8 @@ function PeopleList({ handle, kind, version, onFollowChange }) {
   async function more() {
     setLoadingMore(true)
     try {
-      const page = await fetchPage(items.length)
+      // A cursor, not an offset: someone unfollowing meanwhile doesn't make the next page skip a hiker.
+      const page = await fetchPage(items[items.length - 1].followed_at)
       setItems(prev => [...prev, ...page.filter(u => !prev.some(x => x.handle === u.handle))]); setHasMore(page.length === LIST_PAGE)
     } catch { setError("We couldn't load more hikers.") }
     finally { setLoadingMore(false) }

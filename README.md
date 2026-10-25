@@ -318,6 +318,8 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `20` | Chat limits per anonymous IP |
 | `CHAT_LIMIT_USER_PER_MIN` / `_PER_DAY` | `6` / `60` | Chat limits per signed-in user |
 | `CHAT_LIMIT_GLOBAL_PER_DAY` | `1000` | Live AI calls per day across everyone; after that, chat answers offline |
+| `SEARCH_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `15` / `200` | People searches per anonymous IP |
+| `SEARCH_LIMIT_USER_PER_MIN` / `_PER_DAY` | `30` / `600` | People searches per signed-in user |
 | `CHAT_SIGNING_KEY` | random per start | Signs assistant replies so clients can't forge them. Set it if you run several workers |
 
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
@@ -403,15 +405,15 @@ Badges are permanent and recomputed from completed check-ins (collections `check
 
 ### Public profiles and follows
 
-Each signed-up hiker gets a **username** (`handle`: 3–20 lowercase letters, digits or `_`, starting with a letter; a few names are reserved). It is assigned from their public name at sign-up (or on the next visit for older accounts), with digits added if taken, and can be changed on the profile page. Collection `handles` (`_id` = username) makes usernames unique; `follows` holds one document per follower and followee.
+Each signed-up hiker gets a **username** (`handle`: 3–20 lowercase letters, digits or `_`, starting with a letter; a few names are reserved, and names containing `hikingpsu`, `official`, `admin` or `moderator` are refused). It is assigned from their public name at sign-up (or on the next visit for older accounts), with digits added if taken, and can be changed on the profile page. Only signed-up accounts can pick a username or follow. The **public name** is the first word of the name typed at sign-up (or of the Auth0 name before that), never the full name; older accounts are trimmed on their next visit, reviews included. Collection `handles` (`_id` = username) makes usernames unique; `follows` holds one document per follower and followee.
 
-A **public profile** shows the public name, username, join date, follower and following counts, completed trails and badges. Turning off *Show my badges and stats* (`profile.public_profile = false`) leaves only the name, username, join date and counts, and hides the follower lists. Email, full name, birthday, gender, phone and address are never returned. Account deletion removes the username and every follow in both directions.
+A **public profile** shows the public name, username, join date, follower and following counts, completed trails and badges. Turning off *Show my badges and stats* (`profile.public_profile = false`) leaves only the name, username, join date and counts, and hides the follower lists. A private hiker also stays out of other people's follower lists, except to that list's owner, so their follows can't be pieced together. Email, full name, birthday, gender, phone and address are never returned. Account deletion removes the username and every follow in both directions.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/users?q=` | Up to 20 hikers whose username starts with `q`, or with a word of their name starting with `q` (2–30 characters) |
+| `GET` | `/users?q=` | Up to 20 hikers: an exact username first, then usernames starting with `q`, then names with a word starting with `q` (2–30 characters; emails and contact details are never searched). Rate-limited (429) |
 | `GET` | `/users/{handle}` | Public profile (`following` / `follows_you` for signed-in viewers) |
-| `GET` | `/users/{handle}/followers`, `/users/{handle}/following` | Follower lists, newest first (`skip`, `limit`); 403 for private profiles except to their owner |
+| `GET` | `/users/{handle}/followers`, `/users/{handle}/following` | Follower lists, newest first (`limit`; for the next page pass the last row's `followed_at` as `before`, and a short page means the end); 403 for private profiles except to their owner |
 | `PUT` `DELETE` | `/me/following/{handle}` | Follow / unfollow → `{ following, followers_count }` |
 | `GET` | `/me/following/activity` | Badges recently earned by public profiles you follow |
 | `PUT` | `/me/handle` | `{ handle }` → change your username (409 taken, 422 invalid or reserved) |

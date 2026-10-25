@@ -72,10 +72,10 @@ export const getPublicProfile = (handle, token = null, signal) => request(userPa
 // q: 2-30 characters after trimming (the server answers 422 otherwise); at most 20 cards.
 export const searchUsers = (q, token = null, signal) => request(`/users?${new URLSearchParams({ q })}`, { token, signal })
 // 403 when the profile is private and it isn't yours.
-export const getFollowers = (handle, { skip = 0, limit = 50 } = {}, token = null) =>
-  request(`${userPath(handle)}/followers?${new URLSearchParams({ skip, limit })}`, { token })
-export const getFollowing = (handle, { skip = 0, limit = 50 } = {}, token = null) =>
-  request(`${userPath(handle)}/following?${new URLSearchParams({ skip, limit })}`, { token })
+// Newest first. For the next page pass the last row's followed_at as `before`; a short page means the end.
+const listQuery = ({ before, limit = 50 }) => new URLSearchParams({ limit, ...(before ? { before } : {}) })
+export const getFollowers = (handle, page = {}, token = null) => request(`${userPath(handle)}/followers?${listQuery(page)}`, { token })
+export const getFollowing = (handle, page = {}, token = null) => request(`${userPath(handle)}/following?${listQuery(page)}`, { token })
 // Both directions are idempotent and return {following, followers_count}.
 export const setFollowing = (handle, follow, token) => request(`/me/following/${encodeURIComponent(handle)}`, { method: follow ? 'PUT' : 'DELETE', token })
 export const getFollowingActivity = (token, limit = 30) => request(`/me/following/activity?limit=${limit}`, { token })

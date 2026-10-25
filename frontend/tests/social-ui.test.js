@@ -74,8 +74,8 @@ function element(component, props, auth, withLinks, lib = ui) {
   return React.createElement(Auth0Context.Provider, { value: auth },
     withLinks ? React.createElement(lib.ProfileLinkContext.Provider, { value: openProfile }, inner) : inner)
 }
-async function mount(component, props, { auth = session(), withLinks = true, lib = ui } = {}) {
-  await act(async () => { tree = create(element(component, props, auth, withLinks, lib)) })
+async function mount(component, props, { auth = session(), withLinks = true, lib = ui, createNodeMock } = {}) {
+  await act(async () => { tree = create(element(component, props, auth, withLinks, lib), createNodeMock && { createNodeMock }) })
 }
 const text = node => typeof node === 'string' ? node : (node.children || []).map(text).join('')
 const page = () => text(tree.root)
@@ -139,12 +139,32 @@ test('public profile: name, handle, join date, counts, trails, badges and the pr
   assert.deepEqual(opened, ['back'])
 })
 
+test('public profile: lands focus on the name, but never pulls it out of an open dialog', async () => {
+  responses['GET /api/users/alex'] = [200, profile()]
+  const focused = []
+  const createNodeMock = el => (el.type === 'h1' ? { focus: () => focused.push('h1') } : null)
+  document.body = { tag: 'body' }
+  document.activeElement = document.body   // the search row that opened the profile is gone
+  await mount(ui.PublicProfile, profileProps(), { createNodeMock })
+  await flush()
+  assert.deepEqual(focused, ['h1'])
+  await act(async () => tree.unmount()); tree = null
+
+  focused.length = 0
+  document.activeElement = { tag: 'input', inDialog: true }   // e.g. the sign-up dialog over a shared ?u= link
+  await mount(ui.PublicProfile, profileProps(), { createNodeMock })
+  await flush()
+  assert.deepEqual(focused, [])
+})
+
 test('public profile: followers and following lists, a page at a time; rows open profiles', async () => {
   responses['GET /api/users/alex'] = [200, profile()]
-  const first = Array.from({ length: 50 }, (_, i) => card(`hiker${String(i).padStart(2, '0')}`))
-  responses['GET /api/users/alex/followers?skip=0&limit=50'] = [200, first]
-  responses['GET /api/users/alex/followers?skip=50&limit=50'] = [200, [card('zed')]]
-  responses['GET /api/users/alex/following?skip=0&limit=50'] = [200, []]
+  const first = Array.from({ length: 50 }, (_, i) => card(`hiker${String(i).padStart(2, '0')}`, { followed_at: `2026-10-${String(50 - i).padStart(2, '0')}T12:00:00Z` }))
+  first[49].followed_at = '2026-09-01T12:00:00Z'
+  responses['GET /api/users/alex/followers?limit=50'] = [200, first]
+  // The next page continues from the last row shown (a cursor, so unfollows meanwhile skip nobody).
+  responses['GET /api/users/alex/followers?limit=50&before=2026-09-01T12%3A00%3A00Z'] = [200, [card('zed')]]
+  responses['GET /api/users/alex/following?limit=50'] = [200, []]
   await mount(ui.PublicProfile, profileProps())
   await flush()
   await click(button('3 followers'))
@@ -167,7 +187,7 @@ test('public profile: followers and following lists, a page at a time; rows open
 
 test('private profile: name, handle, join date and counts only; lists are private', async () => {
   responses['GET /api/users/sam'] = [200, privateProfile]
-  responses['GET /api/users/sam/following?skip=0&limit=50'] = [403, { detail: 'this profile is private' }]
+  responses['GET /api/users/sam/following?limit=50'] = [403, { detail: 'this profile is private' }]
   await mount(ui.PublicProfile, profileProps({ handle: 'sam' }))
   await flush()
   const body = page()
@@ -208,7 +228,7 @@ test('follow: shown at once, the server count wins; a failed unfollow is rolled 
   responses['GET /api/users/alex'] = [200, profile()]
   const put = deferred()
   responses['PUT /api/me/following/alex'] = () => put.promise
-  responses['GET /api/users/alex/followers?skip=0&limit=50'] = [200, [card('bea')]]
+  responses['GET /api/users/alex/followers?limit=50'] = [200, [card('bea')]]
   await mount(ui.PublicProfile, profileProps())
   await flush()
   await click(button('3 followers'))   // open list reloads after the follow
@@ -268,7 +288,7 @@ test('your own profile: Edit profile instead of Follow, and a note when it is pr
 
 test('your own profile: following or unfollowing from your lists updates your following count', async () => {
   responses['GET /api/users/alex'] = [200, profile({ is_me: true, following: null, follows_you: false, following_count: 2 })]
-  responses['GET /api/users/alex/following?skip=0&limit=50'] = [200, [card('bea', { following: true }), card('cy', { following: true })]]
+  responses['GET /api/users/alex/following?limit=50'] = [200, [card('bea', { following: true }), card('cy', { following: true })]]
   responses['DELETE /api/me/following/bea'] = [200, { following: false, followers_count: 0 }]
   responses['PUT /api/me/following/bea'] = [200, { following: true, followers_count: 1 }]
   await mount(ui.PublicProfile, profileProps())
