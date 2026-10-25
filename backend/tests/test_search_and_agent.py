@@ -205,6 +205,44 @@ def test_empty_gemini_reply_falls_back_to_offline(monkeypatch):
     assert res.trails and "offline" in res.reply.lower()
 
 
+def test_gemini_client_fails_fast_instead_of_retrying(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    opts = llm.gemini_client()._api_client._http_options
+    assert opts.timeout == int(llm.GEMINI_TIMEOUT_S * 1000) and opts.retry_options.attempts == 1
+
+
+def test_a_hanging_gemini_api_times_out(monkeypatch):
+    """Real SDK against a local server that accepts the connection and never answers."""
+    import socket
+    import threading
+    import time
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen()
+    held = []
+    threading.Thread(target=lambda: held.append(srv.accept()), daemon=True).start()
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(llm, "GEMINI_TIMEOUT_S", 1.0)
+    client = llm.gemini_client()
+    client._api_client._http_options.base_url = f"http://127.0.0.1:{srv.getsockname()[1]}/"
+    start = time.monotonic()
+    with pytest.raises(Exception):
+        client.models.generate_content(model="m", contents="hi")
+    assert time.monotonic() - start < 5 and held  # it reached our silent server and gave up
+    srv.close()
+
+
+def test_slow_gemini_tool_loop_stops_at_the_deadline(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    fake = FakeGemini()
+    monkeypatch.setattr(llm, "gemini_client", lambda: fake)
+    monkeypatch.setattr(llm, "CHAT_DEADLINE_S", -1)  # already past the deadline before the first call
+    res = agent.run([agent.ChatMessage(role="user", content="easy hike, no car")])
+    assert fake.calls == [] and res.trails and "offline" in res.reply.lower()
+
+
 def test_run_falls_back_to_offline_when_the_live_agent_crashes(monkeypatch):
     monkeypatch.delenv("DEMO_MODE", raising=False)
 
