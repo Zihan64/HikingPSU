@@ -122,7 +122,7 @@ export default function Dashboard({ trails }) {
   return (
     <div className="space-y-4 pb-6">
       <div className="flex items-end justify-between gap-4">
-        <div>
+        <div className="page-intro">
           <span className="eyebrow">YOUR PROFILE</span>
           <h1 className="mt-2 text-[clamp(24px,2.3vw,34px)] font-semibold leading-tight tracking-tight">Your hiker profile</h1>
           <p className="mt-2 text-[13px] text-[#73806e]">What you tell us and what you hike shapes your recommendations.</p>

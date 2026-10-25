@@ -110,7 +110,7 @@ button:disabled { cursor: default; opacity: .5; }
 .trail-sort button { min-height: 36px; padding: 6px 9px; border-radius: 7px; font-size: 11px; color: #173a40; white-space: nowrap; }
 .trail-sort button[aria-pressed="true"] { background: #2f6b47; color: #fff; }
 .trail-sort-label { white-space: nowrap; text-align: right; }
-.trail-sort-status { margin: -6px 0 12px; color: #fff; font-size: 11px; line-height: 1.6; }
+.trail-sort-status { margin: -6px 0 12px; color: #4f6466; font-size: 11px; line-height: 1.6; }
 .trail-sort-status .location-status { color: inherit; }
 .trail-sort-status .location-error { padding: 8px; border-radius: 8px; background: #fff1ed; color: #9b3e2e; }
 .trail-show-all { display: block; margin-top: -12px; margin-bottom: 8px; }
@@ -475,8 +475,7 @@ body { background: #f3f5f0; color: #173a40; }
 /* Trail catalog: a searchable list and a separate managed-area picker. */
 .catalog-workspace { height: 100%; min-height: 0; }
 .trail-catalog { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 18px; color: #173a40; }
-.trail-catalog .catalog-intro { color: #fff; text-shadow: 0 2px 10px #04162655; flex-shrink: 0; }
-.trail-catalog .catalog-intro .eyebrow { color: #fff; }
+.trail-catalog .catalog-intro { flex-shrink: 0; }
 .trail-catalog h1 { font-size: clamp(26px, 3vw, 36px); font-weight: 650; letter-spacing: -.8px; margin: 4px 0 6px; line-height: 1.2; }
 .trail-catalog h2 { font-size: 18px; font-weight: 650; letter-spacing: -.3px; }
 .trail-catalog .catalog-columns { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, .8fr); gap: 24px; flex: 1; min-height: 0; }
@@ -547,3 +546,40 @@ body { background: #f3f5f0; color: #173a40; }
   .trail-catalog .catalog-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trail-catalog .catalog-map { height: 300px; }
 }
+
+/* ===================================================================
+   Page titles, one system for every page (Explore, Trails, Scenic drives,
+   Community, Official library, Profile). Dark ink on the light sky with a
+   soft white halo, so titles stay crisp over sun, cloud and ridges.
+   =================================================================== */
+:is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) {
+  color: #173a40;
+  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.75), 0 0 2px rgba(255, 255, 255, 0.6);
+}
+:is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) .eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #2f6b47;
+}
+:is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) h1 {
+  color: #173a40;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+:is(.library-intro, .trail-catalog .catalog-intro, .page-intro) h1 {
+  font-size: clamp(28px, 2.6vw, 36px);
+  margin: 6px 0 8px;
+}
+:is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) > p {
+  color: #4f6466;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.library-intro > p.library-coverage { color: #62736c; font-size: 12px; }
+@media (width < 960px) {
+  :is(.library-intro, .trail-catalog .catalog-intro, .page-intro) h1 { font-size: 26px; }
+  :is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) > p { font-size: 12px; }
+}
+

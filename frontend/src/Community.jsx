@@ -43,7 +43,7 @@ export default function Community({ trails, onReview, reloadKey }) {
   const shareTrail = trails.find(t => t.id === shareId)
   return (
     <div className="mx-auto max-w-3xl space-y-4 pb-6">
-      <div>
+      <div className="page-intro">
         <span className="eyebrow">COMMUNITY</span>
         <h1 className="mt-2 text-[clamp(24px,2.3vw,34px)] font-semibold leading-tight tracking-tight">Trail talk</h1>
         <p className="mt-2 text-[13px] text-[#73806e]">See how other hikers found the trails, share your own hike, and heart the comments you find helpful.</p>
