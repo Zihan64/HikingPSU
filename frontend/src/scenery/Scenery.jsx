@@ -195,7 +195,6 @@ export function HeroScenery({ className = '', children }) {
         </linearGradient>}
       >
         <path d={t.front.body} fill="url(#scFront)" />
-        <path d={t.front.crowns} fill="#6b4426" />
         <path d="M-40 588 C 450 580, 1050 592, 1500 590 C 1880 588, 2180 582, 2440 584 L2440 600 L-40 600 Z" fill="#3d2f22" />
       </LandLayer>
       {children}

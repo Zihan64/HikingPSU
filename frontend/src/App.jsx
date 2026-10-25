@@ -55,14 +55,14 @@ function MessageText({ text }) {
   })}</div>
 }
 
-export default function App() {
+export default function App({ initialView = 'plan', initialTrailId = null } = {}) {
   const { isCompact, isTouch, reducedMotion } = useDeviceLayout()
   const location = useLocation()
   const [mapFocus, setMapFocus] = useState({ kind: 'trails', version: 0 })
   const [linkedHandle] = useState(linkedProfile)
-  const [mobileView, setMobileView] = useState(linkedHandle ? 'user' : 'plan')
+  const [mobileView, setMobileView] = useState(linkedHandle ? 'user' : initialView)
   // Public profiles ('user' view): the handles opened in a row, and the view and scroll position to return to.
-  const [profileNav, setProfileNav] = useState(() => ({ stack: linkedHandle ? [linkedHandle] : [], from: 'plan', scroll: 0 }))
+  const [profileNav, setProfileNav] = useState(() => ({ stack: linkedHandle ? [linkedHandle] : [], from: initialView, scroll: 0 }))
   const [mapExpanded, setMapExpanded] = useState(false)
   const [homeVisit, setHomeVisit] = useState(0)
   const [officialRoute, setOfficialRoute] = useState(null)
@@ -95,7 +95,7 @@ export default function App() {
   const [reviewing, setReviewing] = useState(null)
   const [finishing, setFinishing] = useState(null)   // check-in being finished in the review modal, if any
   const [activeCheckin, setActiveCheckin] = useState(null)   // signed-in only: the current trailhead check-in
-  const [catalogTrail, setCatalogTrail] = useState(null)   // {id}: open this trail in the Trails page
+  const [catalogTrail, setCatalogTrail] = useState(initialTrailId ? {id:initialTrailId} : null)   // {id}: open this trail in the Trails page
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const [highlights, setHighlights] = useState({})   // trail id -> top community comments
   const [sessionId, setSessionId] = useState(null)
@@ -581,7 +581,7 @@ export default function App() {
             </div>}
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => openReview(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOpenDetails={() => openTrailPage(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => openReview(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}

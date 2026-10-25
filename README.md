@@ -8,6 +8,10 @@ Tell it *"Saturday afternoon, two of us, no car, about 3 hours, we'd like a view
 
 ---
 
+## Website
+
+**https://hikingpsu.com**
+
 ## Why we built this
 
 Central Pennsylvania has hundreds of miles of trails within half an hour of campus. Even so, many students never hike them. When we talked to members of a Penn State hiking club, three problems kept coming up:
@@ -382,6 +386,16 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 | `GET` | `/me/chats`, `/me/chats/{id}` | Saved conversations; `DELETE /me/chats/{id}` removes one |
 
 ### Check-ins and badges
+
+For testing without visiting a trailhead, use the separately deployed,
+authenticated **developer tools** service. It requires real Auth0 login, an
+explicit contributor allowlist and per-operation permissions before serving any
+private page, asset or simulator API. Configuration is fail-closed; there is no
+anonymous local fallback. See [access and deployment](docs/devtools-access.md),
+then [the Badge Lab guide](docs/badge-lab.md). Test subjects, simulated location,
+test clocks and memory records remain separate from production, and contributors
+cannot reset each other's records. Public `npm run build` excludes these tools
+and checks the release artifact; private builds use `npm run build:devtools`.
 
 A completed hike needs proof: **Start hike · check in** on a trail page sends one location fix, and the server accepts it only within **200 m** of an entrance (the trailhead, or a real end of the mapped route; where a route is mapped in pieces, the points where pieces join are mid-trail and don't count) with reported accuracy of **100 m** or better. It stores the distance and accuracy, never the coordinates. **Finish & rate** opens after `max(15 min, 40% of the estimated time)` (the server allows 60 s early, for phone clocks running slightly fast); finishing needs the three 1–5 ratings (comment optional) and writes the review and a hike-log entry. A check-in expires after **24 h**, a user has one active check-in at a time, and at most **2** hikes can be completed per State College calendar day (counted on the day the hike can finish, so a late-evening start that can only finish after midnight is allowed). If a finish is cut off by a database error after the hike was marked complete, sending it again completes the remaining steps. Manual hike-log entries never earn badges. All thresholds live in `RULES` in `backend/app/checkins.py`.
 
