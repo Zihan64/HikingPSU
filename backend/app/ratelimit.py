@@ -86,6 +86,27 @@ def check(request: Request, user_id: str | None) -> None:
         q.append(now)
 
 
+def throttle(request: Request, user_id: str | None, bucket: str, per_min: int, per_day: int) -> None:
+    """A separate per-caller limit for one endpoint (e.g. people search), keyed like check()."""
+    key = f"{bucket}:" + (f"user:{user_id}" if user_id else f"ip:{client_ip(request)}")
+    now = time.time()
+    with _lock:
+        q = _hits[key]
+        while q and now - q[0] > 86400:
+            q.popleft()
+        if len(q) >= per_day or sum(1 for t in q if now - t < 60) >= per_min:
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many searches. Please wait a minute.",
+                                headers={"Retry-After": "60"})
+        q.append(now)
+
+
+def check_search(request: Request, user_id: str | None) -> None:
+    if user_id:
+        throttle(request, user_id, "search", _limit("SEARCH_LIMIT_USER_PER_MIN", 30), _limit("SEARCH_LIMIT_USER_PER_DAY", 600))
+    else:
+        throttle(request, None, "search", _limit("SEARCH_LIMIT_ANON_PER_MIN", 15), _limit("SEARCH_LIMIT_ANON_PER_DAY", 200))
+
+
 def take_live_call() -> bool:
     """Count one live AI call against today's global budget. False once it is spent."""
     today = dt.datetime.now(dt.timezone.utc).date().isoformat()

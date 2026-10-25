@@ -359,6 +359,7 @@ class UserCard(BaseModel):
     followers_count: int
     following: Optional[bool] = Field(None, description="the viewer follows them; null when signed out")
     is_me: bool = False
+    followed_at: Optional[dt.datetime] = Field(None, description="in follower/following lists: when the follow happened (the paging cursor)")
 
 
 class PublicProfile(BaseModel):

@@ -68,6 +68,22 @@ test('park/search compose, and detail Back restores filters and scroll position'
   assert.equal(rows().length,1); assert.equal(listNode.scrollTop,145)
 })
 
+test('kept behind a hiker profile: the trail page stays as it was (no reload, same scroll)', async () => {
+  const detailNode = {scrollTop:0, focus(){}}
+  const props = active => ({trails, summaries:{}, onReview(){}, reviewsVersion:0, onOfficialArea(){}, active, kept:!active, loading:false})
+  await act(async () => {tree = create(React.createElement(Catalog,props(true)),
+    {createNodeMock:element => element.props.className === 'catalog-list' ? listNode : element.props.className === 'catalog-detail' ? detailNode : {focus(){}}})})
+  await act(async () => rows()[0].props.onClick())
+  await act(async () => tree.root.findByProps({className:'catalog-detail'}).props.onScroll({currentTarget:{scrollTop:420}}))
+  const fetched = calls.length
+  await act(async () => tree.update(React.createElement(Catalog,props(false))))
+  assert.equal(text(tree.root.findByType('h1')), 'Forest Loop')
+  detailNode.scrollTop = 0   // a hidden scroll box may lose its position
+  await act(async () => tree.update(React.createElement(Catalog,props(true))))
+  assert.equal(calls.length, fetched)
+  assert.equal(detailNode.scrollTop, 420)
+})
+
 test('geometry outage can retry; review action reuses the original trail callback', async () => {
   geometryStatus = 503
   await mount(); await act(async () => rows()[0].props.onClick())

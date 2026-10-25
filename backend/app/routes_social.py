@@ -1,9 +1,11 @@
 """HTTP routes for public profiles, usernames, people search and follows (rules in social.py)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import datetime as dt
 
-from . import auth, social, users
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from . import auth, ratelimit, social, users
 from .user_models import ActivityItem, FollowState, HandleIn, PublicProfile, UserCard, UserOut
 
 router = APIRouter(tags=["social"])
@@ -14,8 +16,9 @@ def _rule(e: social.SocialError) -> HTTPException:
 
 
 @router.get("/users", response_model=list[UserCard])
-def search_users(q: str = "", viewer_id: str | None = Depends(auth.current_user_id_optional)):
-    """Hikers whose username starts with q, or with a word of their name starting with q."""
+def search_users(request: Request, q: str = "", viewer_id: str | None = Depends(auth.current_user_id_optional)):
+    """Hikers whose username starts with q, or whose public name starts with q. Throttled per caller."""
+    ratelimit.check_search(request, viewer_id)
     try:
         return social.search(q, viewer_id)
     except social.SocialError as e:
@@ -31,17 +34,21 @@ def public_profile(handle: str, viewer_id: str | None = Depends(auth.current_use
 
 
 @router.get("/users/{handle}/followers", response_model=list[UserCard])
-def list_followers(handle: str, skip: int = 0, limit: int = 50, viewer_id: str | None = Depends(auth.current_user_id_optional)):
+def list_followers(handle: str, skip: int = 0, limit: int = 50, before: dt.datetime | None = None,
+                 viewer_id: str | None = Depends(auth.current_user_id_optional)):
+    """Newest first. Pass the last row's followed_at as `before` for the next page."""
     try:
-        return social.followers(social.require(handle), viewer_id, skip=max(skip, 0), limit=min(max(limit, 1), 100))
+        return social.followers(social.require(handle), viewer_id, skip=min(max(skip, 0), 10_000), limit=min(max(limit, 1), 100), before=before)
     except social.SocialError as e:
         raise _rule(e)
 
 
 @router.get("/users/{handle}/following", response_model=list[UserCard])
-def list_following(handle: str, skip: int = 0, limit: int = 50, viewer_id: str | None = Depends(auth.current_user_id_optional)):
+def list_following(handle: str, skip: int = 0, limit: int = 50, before: dt.datetime | None = None,
+                 viewer_id: str | None = Depends(auth.current_user_id_optional)):
+    """Newest first. Pass the last row's followed_at as `before` for the next page."""
     try:
-        return social.following(social.require(handle), viewer_id, skip=max(skip, 0), limit=min(max(limit, 1), 100))
+        return social.following(social.require(handle), viewer_id, skip=min(max(skip, 0), 10_000), limit=min(max(limit, 1), 100), before=before)
     except social.SocialError as e:
         raise _rule(e)
 
@@ -52,9 +59,10 @@ def following_activity(limit: int = 30, user_id: str = Depends(auth.current_user
 
 
 @router.put("/me/following/{handle}", response_model=FollowState)
-def follow(handle: str, user_id: str = Depends(auth.current_user_id)):
+def follow(handle: str, user: dict = Depends(auth.current_user)):
     try:
-        return social.follow(user_id, social.require(handle))
+        social.require_signed_up(user)
+        return social.follow(user["_id"], social.require(handle))
     except social.SocialError as e:
         raise _rule(e)
 
@@ -70,6 +78,7 @@ def unfollow(handle: str, user_id: str = Depends(auth.current_user_id)):
 @router.put("/me/handle", response_model=UserOut)
 def set_handle(body: HandleIn, user: dict = Depends(auth.current_user)):
     try:
+        social.require_signed_up(user)
         return users.to_out(social.change_handle(user, body.handle))
     except social.SocialError as e:
         raise _rule(e)
