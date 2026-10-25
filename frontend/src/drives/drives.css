@@ -1,7 +1,4 @@
 /* Scenic drives (ScenicDrives.jsx). Reuses the Trails catalog layout; only the extras live here. */
-.trail-catalog.scenic-drives .catalog-intro { color: #173a40; text-shadow: 0 1px 12px rgba(255, 255, 255, 0.7); }
-.trail-catalog.scenic-drives .catalog-intro .eyebrow { color: #2f6b47; }
-.trail-catalog.scenic-drives .catalog-intro p { color: #4f6466; }
 .scenic-drives .catalog-row > p:first-of-type { color: #2f6b47; font-weight: 600; }
 .scenic-drives .drive-summary { display: flex; align-items: flex-start; gap: 12px; margin-top: 10px; font-size: 13px; line-height: 1.55; color: #173a40; }
 .scenic-drives .drive-summary > span { margin-left: auto; color: #62736c; }
