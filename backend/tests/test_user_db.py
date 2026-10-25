@@ -462,9 +462,9 @@ def test_insights_requires_login(client):
 
 # ---------- sign-up form ----------
 
-FORM = {
-    "gender": "female", "full_name": "Alice Nittany", "birthday": "2004-05-06",
-    "hiking_experience": 0, "transport": "bus",
+FORM = {  # pages 1 and 2; page 3 (contact) skipped
+    "full_name": "Alice Nittany", "gender": "female", "birthday": "2004-05-06",
+    "hiking_experience": 0, "transit_modes": ["bus", "walk"],
 }
 
 
@@ -477,21 +477,27 @@ def test_new_user_is_unregistered_until_form_is_saved(client):
     assert body["registered"] is True
     p = body["profile"]
     assert p["full_name"] == "Alice Nittany" and p["gender"] == "female" and p["birthday"] == "2004-05-06"
-    assert p["hiking_experience"] == 0 and p["transport"] == "bus"
-    assert body["email"] == "a@psu.edu"  # not sent, so the Auth0 email is kept
+    assert p["hiking_experience"] == 0 and p["is_psu_student"] is None  # PSU question left unanswered
+    assert p["secondary_email"] is None and p["phone"] is None and p["address"] is None
+    assert body["email"] == "a@psu.edu"  # the login email is never touched by the form
     assert client.get("/me", headers=h).json()["profile"] == p  # persisted (birthday round-trips through BSON)
 
 
-def test_registration_fills_recommender_fields(client):
+def test_transport_is_saved_and_has_car_follows_it(client):
     h = signup(client)
     body = client.put("/me/registration", headers=h, json=FORM).json()
-    p, prefs = body["profile"], body["preferences"]
-    assert p["has_car"] is False and prefs["transit_modes"] == ["bus", "walk"]
-    assert prefs["max_level"] == 1 and p["fitness"] == 1  # never hiked
-    assert p["age"] == users.age_on(dt.date(2004, 5, 6), dt.date.today())
-    body = client.put("/me/registration", headers=h, json={**FORM, "transport": "car", "hiking_experience": 5}).json()
-    assert body["profile"]["has_car"] is True and body["preferences"]["transit_modes"] == ["car"]
+    assert body["preferences"]["transit_modes"] == ["bus", "walk"] and body["profile"]["has_car"] is False
+    body = client.put("/me/registration", headers=h, json={**FORM, "transit_modes": ["car", "bike", "car"]}).json()
+    assert body["preferences"]["transit_modes"] == ["car", "bike"] and body["profile"]["has_car"] is True
+
+
+def test_registration_fills_recommender_levels(client):
+    h = signup(client)
+    body = client.put("/me/registration", headers=h, json=FORM).json()
+    assert body["preferences"]["max_level"] == 1 and body["profile"]["fitness"] == 1  # never hiked
+    assert body["profile"]["age"] == users.age_on(dt.date(2004, 5, 6), dt.date.today())
     # levels the user already has (from the first submit, or set on the dashboard) are not overwritten
+    body = client.put("/me/registration", headers=h, json={**FORM, "hiking_experience": 5}).json()
     assert body["preferences"]["max_level"] == 1 and body["profile"]["fitness"] == 1
 
 
@@ -507,16 +513,24 @@ def test_age_on():
     assert users.age_on(dt.date(2000, 5, 6), dt.date(2026, 5, 6)) == 26
 
 
-def test_registration_optional_fields_and_editing(client):
+def test_psu_student_answer(client):
+    h = signup(client)
+    assert client.put("/me/registration", headers=h, json={**FORM, "is_psu_student": True}).json()["profile"]["is_psu_student"] is True
+    assert client.put("/me/registration", headers=h, json={**FORM, "is_psu_student": False}).json()["profile"]["is_psu_student"] is False
+
+
+def test_contact_page_is_optional_and_editable(client):
     h = signup(client)
     first = client.put("/me/registration", headers=h, json={
-        **FORM, "preferences": "  views and lakes ", "email": "Alice@Example.com", "phone": "+1 (814) 555-0100",
-    }).json()
-    assert first["profile"]["phone"] == "+1 (814) 555-0100"
-    assert first["preferences"]["notes"] == "views and lakes" and first["email"] == "alice@example.com"
+        **FORM, "secondary_email": " Alice@Example.com ", "phone": "+1 (814) 555-0100", "address": "  123 College Ave, State College ",
+    }).json()["profile"]
+    assert first["secondary_email"] == "alice@example.com" and first["phone"] == "+1 (814) 555-0100"
+    assert first["address"] == "123 College Ave, State College"
     registered_at = db.get_db().users.find_one()["registered_at"]
-    again = client.put("/me/registration", headers=h, json={**FORM, "email": "", "phone": None, "preferences": ""}).json()
-    assert again["email"] is None and again["profile"]["phone"] is None and again["preferences"]["notes"] is None
+    kept = client.put("/me/registration", headers=h, json=FORM).json()["profile"]  # skipped page 3: keep what's there
+    assert kept["phone"] == "+1 (814) 555-0100"
+    cleared = client.put("/me/registration", headers=h, json={**FORM, "secondary_email": "", "phone": None, "address": ""}).json()["profile"]
+    assert cleared["secondary_email"] is None and cleared["phone"] is None and cleared["address"] is None
     assert db.get_db().users.find_one()["registered_at"] == registered_at
 
 
@@ -525,15 +539,19 @@ def test_registration_validation(client):
     future = (dt.date.today() + dt.timedelta(days=1)).isoformat()
     for bad in [
         {k: v for k, v in FORM.items() if k != "gender"},        # required field missing
+        {k: v for k, v in FORM.items() if k != "transit_modes"},
         {**FORM, "full_name": "   "},
         {**FORM, "gender": "custom"},                              # custom needs a description
         {**FORM, "gender": "other"},
         {**FORM, "birthday": future},
         {**FORM, "hiking_experience": 6},
         {**FORM, "hiking_experience": -1},
-        {**FORM, "transport": "plane"},
-        {**FORM, "email": "not-an-email"},
+        {**FORM, "transit_modes": []},
+        {**FORM, "transit_modes": ["plane"]},
+        {**FORM, "is_psu_student": "maybe"},
+        {**FORM, "secondary_email": "not-an-email"},
         {**FORM, "phone": "call me"},
+        {**FORM, "address": "x" * 201},
     ]:
         assert client.put("/me/registration", headers=h, json=bad).status_code == 422, bad
     assert client.get("/me", headers=h).json()["registered"] is False
@@ -542,20 +560,32 @@ def test_registration_validation(client):
     assert client.put("/me/registration", json=FORM).status_code == 401
 
 
+def test_legacy_single_transport_answer_is_replaced(client):
+    h = signup(client)
+    db.get_db().users.update_one({}, {"$set": {"profile.transport": "bike_walk"}})  # saved by the first form version
+    assert client.get("/me", headers=h).status_code == 200  # old documents still load
+    client.put("/me/registration", headers=h, json=FORM)
+    assert "transport" not in db.get_db().users.find_one()["profile"]
+
+
 def test_registration_names_reviews_by_first_name_only(client, monkeypatch):
     monkeypatch.setattr("app.auth.fetch_profile", lambda identity: {"email": "c@psu.edu", "name": "c@psu.edu"})
     h = bearer("auth0|c")
     assert client.put("/me/registration", headers=h, json=FORM).json()["profile"]["display_name"] == "Alice"
 
 
-def test_agent_gets_experience_and_transport_but_not_personal_details(client):
+def test_agent_assumes_a_car_when_the_user_has_one_and_never_sees_personal_details(client):
     h = signup(client)
-    client.put("/me/registration", headers=h, json={**FORM, "phone": "814-555-0100"})
+    client.put("/me/registration", headers=h, json={
+        **FORM, "transit_modes": ["car"], "is_psu_student": True,
+        "phone": "814-555-0100", "secondary_email": "x@y.com", "address": "1 Main St",
+    })
     seen_profiles.clear()
     client.post("/chat", headers=h, json={"messages": [{"role": "user", "content": "hi"}]})
     profile = seen_profiles[-1]
-    assert profile["hiking_experience"] == 0 and profile["transport"] == "bus" and profile["has_car"] is False
-    for private in ("full_name", "gender", "birthday", "phone"):
+    assert profile["has_car"] is True and profile["preferences"]["transit_modes"] == ["car"]
+    assert profile["hiking_experience"] == 0 and profile["is_psu_student"] is True
+    for private in ("full_name", "gender", "birthday", "phone", "secondary_email", "address"):
         assert private not in profile
 
 

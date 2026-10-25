@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure
 
-from . import agent, auth, chats, hikes, ratelimit, recommend, store, users
+from . import agent, auth, chats, hikes, llm, ratelimit, recommend, store, users
 from .db import DatabaseUnavailable
 from .models import MAX_USER_MESSAGE_CHARS, ChatMessage, ChatRequest, ChatResponse, TrailWithDifficulty
 from .routes_reviews import router as reviews_router
@@ -34,7 +34,8 @@ def _db_down(request: Request, exc: Exception):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "trails": len(store.load_all())}
+    # "ai" says which LLM is configured (llm.py), so a deploy can be checked without opening the chat.
+    return {"ok": True, "trails": len(store.load_all()), "ai": {"provider": llm.provider(), "model": llm.model()}}
 
 
 @app.get("/auth/config")
@@ -133,7 +134,8 @@ def _recent(messages):
 
 
 # Personal details from the sign-up form stay in the database; the model doesn't need them.
-PRIVATE_PROFILE_FIELDS = {"bio", "full_name", "gender", "gender_custom", "birthday", "phone"}
+PRIVATE_PROFILE_FIELDS = {"bio", "full_name", "gender", "gender_custom", "birthday", "phone", "secondary_email", "address",
+                          "transport"}  # transport: legacy single answer, superseded by preferences.transit_modes
 
 
 def _stored_profile(user_id: str) -> dict:
