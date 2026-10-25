@@ -8,6 +8,10 @@ Tell it *"Saturday afternoon, two of us, no car, about 3 hours, we'd like a view
 
 ---
 
+## Website
+
+**https://hikingpsu.com**
+
 ## Why we built this
 
 Central Pennsylvania has hundreds of miles of trails within half an hour of campus. Even so, many students never hike them. When we talked to members of a Penn State hiking club, three problems kept coming up:
