@@ -322,6 +322,62 @@ const type = value => act(async () => searchBox().props.onChange({ target: { val
 const tick = ms => act(async () => { mock.timers.tick(ms) })
 const searches = () => sent('GET').filter(u => u.startsWith('/api/users?'))
 
+test('community feed: signing in behind a profile refreshes the posts in place, keeping every page shown', async () => {
+  const posts = Array.from({ length: 20 }, (_, i) => ({ ...post, id: `r${i}`, comment: `Post ${i}` }))
+  responses[FEED] = [200, posts]
+  responses['GET /api/reviews/feed?sort=recent&limit=20&skip=20'] = [200, [{ ...post, id: 'r20', comment: 'Post 20' }]]
+  await mount(ui.Community, communityProps, { auth: signedOut() })
+  await flush()
+  await click(button('Show more posts'))
+  await flush()
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+
+  // Hidden behind a profile, the guest signs in with the pop-up; the signed-in feed is slow to arrive.
+  const slow = deferred()
+  responses['GET /api/reviews/feed?sort=recent&limit=22&skip=0'] = () => slow.promise   // one more than shown: are there more?
+  responses[ACTIVITY] = [200, []]
+  await act(async () => tree.update(element(ui.Community, { ...communityProps, active: false }, session(), true)))
+  await flush()
+  assert.doesNotMatch(page(), /Loading posts/)   // the rows (and the author button that opened the profile) stay
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+  await act(async () => slow.resolve([200, [...posts, { ...post, id: 'r20', comment: 'Post 20', liked: true }]]))
+  await flush()
+  const refreshed = requests.find(r => r.url === '/api/reviews/feed?sort=recent&limit=22&skip=0')
+  assert.equal(refreshed.auth, 'Bearer synthetic-test-token')
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 21)
+  assert.match(page(), /Post 20/)
+  assert.equal(button('Show more posts'), undefined)   // still the end of the feed
+})
+
+test('community feed: a post saved during a refresh neither loops the paging nor drops the last row', async () => {
+  let feed = Array.from({ length: 60 }, (_, i) => ({ ...post, id: `r${i}`, comment: `Post ${i}` }))
+  const serve = url => {
+    const q = new URLSearchParams(url.split('?')[1])
+    return [200, feed.slice(Number(q.get('skip')), Number(q.get('skip')) + Number(q.get('limit')))]
+  }
+  for (const skip of [0, 20, 40]) responses[`GET /api/reviews/feed?sort=recent&limit=20&skip=${skip}`] = () => serve(`?limit=20&skip=${skip}`)
+  await mount(ui.Community, communityProps, { auth: signedOut() })
+  await flush()
+  await click(button('Show more posts')); await flush()
+  await click(button('Show more posts')); await flush()
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 60)
+
+  responses[ACTIVITY] = [200, []]
+  responses['GET /api/reviews/feed?sort=recent&limit=50&skip=0'] = () => {
+    const page = serve('?limit=50&skip=0')
+    feed = [{ ...post, id: 'new', comment: 'Just posted' }, ...feed]   // another hiker posts right after
+    return page
+  }
+  responses['GET /api/reviews/feed?sort=recent&limit=11&skip=50'] = () => serve('?limit=11&skip=50')
+  await act(async () => tree.update(element(ui.Community, { ...communityProps, active: false }, session(), true)))
+  for (let i = 0; i < 5; i++) await flush()
+  const refresh = sent('GET').filter(u => u.includes('/reviews/feed') && !u.includes('limit=20'))
+  assert.deepEqual(refresh, ['/api/reviews/feed?sort=recent&limit=50&skip=0', '/api/reviews/feed?sort=recent&limit=11&skip=50'])
+  // All 61 positions read (one a duplicate the shift caused): the 60 posts are all still there, last row included.
+  assert.equal(tree.root.findByProps({ 'aria-label': 'Community posts' }).findAllByType('li').length, 60)
+  assert.match(page(), /Post 59/)
+})
+
 test('people search: waits for 2+ characters and a pause in typing', async () => {
   mock.timers.enable({ apis: ['setTimeout'] })
   responses[FEED] = [200, [post]]

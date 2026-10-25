@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { getCommunityFeed, getFollowingActivity, searchUsers } from './api'
 import { AUTH_ENABLED, useOptionalToken } from './auth'
@@ -8,6 +8,7 @@ import { plural } from './checkin'
 import { ProfileName, UserCardRow } from './People'
 
 const PAGE = 20
+const FEED_MAX = 50   // the server's largest page
 const SORTS = [['recent', 'Newest'], ['top', 'Most loved']]
 const selectCls = 'min-h-[40px] w-full rounded-lg border border-[#d8dfd1] bg-white px-2 py-1.5 text-sm'
 const SEARCH_DELAY_MS = 300
@@ -68,8 +69,11 @@ export function FollowingActivity({ reloadKey = 0, active = true }) {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
 
+  const loaded = items !== null
   useEffect(() => {
-    if (!active) return
+    // Hidden behind a profile it still loads once (right after signing in there), so it doesn't grow
+    // above the posts after Back; later refreshes wait until the page is shown again.
+    if (!active && loaded) return
     let cancelled = false
     setError(null)
     getToken()
@@ -77,6 +81,7 @@ export function FollowingActivity({ reloadKey = 0, active = true }) {
       .then(list => { if (!cancelled) setItems(list) })
       .catch(() => { if (!cancelled) setError("We couldn't load recent badges from people you follow.") })
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken, reloadKey, active])
 
   const shown = showAll ? items : items?.slice(0, ACTIVITY_SHOWN)
@@ -122,15 +127,41 @@ export default function Community({ trails, onReview, reloadKey, active = true }
 
   const fetchPage = useCallback(async skip =>
     getCommunityFeed({ sort, trailId, limit: PAGE, skip }, await getToken()), [sort, trailId, getToken])
+  // The first `count` positions of the feed, a server page at a time. `skip` counts positions read, not
+  // posts kept: a post saved meanwhile shifts the feed, and the duplicate it causes is dropped.
+  const fetchFirst = useCallback(async count => {
+    const token = await getToken()
+    const list = []
+    for (let skip = 0; skip < count;) {
+      const limit = Math.min(FEED_MAX, count - skip)
+      const page = await getCommunityFeed({ sort, trailId, limit, skip }, token)
+      list.push(...page.filter(p => !list.some(x => x.id === p.id)))
+      skip += page.length
+      if (page.length < limit) break
+    }
+    return list
+  }, [sort, trailId, getToken])
 
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const shownQuery = useRef(null)
   useEffect(() => {
     let cancelled = false
-    setItems(null); setError(null)
-    fetchPage(0)
-      .then(page => { if (!cancelled) { setItems(page); setHasMore(page.length === PAGE) } })
-      .catch(() => { if (!cancelled) setError("We couldn't load community posts. Please try again.") })
+    const query = `${sort}|${trailId}|${reloadKey}`
+    // Same posts for a new viewer (signing in, e.g. from a profile opened here): refresh them in place,
+    // every page already shown, so the rows stay mounted and Back can return to the one that was opened.
+    const refresh = shownQuery.current === query && itemsRef.current !== null
+    shownQuery.current = query
+    const shown = refresh ? Math.max(PAGE, itemsRef.current.length) : PAGE
+    setError(null)
+    if (!refresh) setItems(null)
+    // A refresh asks for one post more than is shown: if it arrives, there are more to show (and a post
+    // saved meanwhile doesn't push the last row off the end).
+    fetchFirst(refresh ? shown + 1 : shown)
+      .then(list => { if (!cancelled) { setItems(list); setHasMore(refresh ? list.length > shown : list.length === shown) } })
+      .catch(() => { if (!cancelled && !refresh) setError("We couldn't load community posts. Please try again.") })
     return () => { cancelled = true }
-  }, [fetchPage, reloadKey])
+  }, [fetchFirst, sort, trailId, reloadKey])
 
   async function loadMore() {
     setLoadingMore(true)

@@ -133,6 +133,9 @@ export default function App({ initialView = 'plan', initialTrailId = null } = {}
   const workspaceScroll = useRef(null)   // scrollTop to apply once the next view has rendered
   const workspaceFocus = useRef(null)    // element to focus once the next view has rendered
   const profileOpener = useRef(null)     // what opened the first profile in a row (focused again on Back)
+  const profileOpenerTop = useRef(null)  // where it sat then, in px from the top of the workspace
+  const workspaceAnchor = useRef(null)   // ...and that offset, to put the focused element back at on screen
+  const lastPressed = useRef(null)       // Safari doesn't focus a clicked button, so remember what was pressed
   const viewRef = useRef(mobileView)
   viewRef.current = mobileView
   const closeMapPreview = useCallback(() => setMapExpanded(false), [])
@@ -320,7 +323,12 @@ export default function App({ initialView = 'plan', initialTrailId = null } = {}
     const next = normalizeHandle(handle)
     if (!next) return
     const from = viewRef.current
-    if (from !== 'user') profileOpener.current = document.activeElement
+    if (from !== 'user') {
+      const focused = document.activeElement, box = workspaceRef.current
+      const opener = focused && focused !== document.body ? focused : lastPressed.current?.isConnected ? lastPressed.current : null
+      profileOpener.current = opener
+      profileOpenerTop.current = box && opener && box.contains(opener) ? opener.getBoundingClientRect().top - box.getBoundingClientRect().top : null
+    }
     setProfileNav(nav => from === 'user'
       ? (nav.stack[nav.stack.length - 1] === next ? nav : { ...nav, stack: [...nav.stack, next] })
       : { stack: [next], from, scroll: workspaceRef.current?.scrollTop ?? 0 })
@@ -338,7 +346,8 @@ export default function App({ initialView = 'plan', initialTrailId = null } = {}
     workspaceScroll.current = profileNav.scroll
     // That page stayed mounted, so the name or row that opened the profile is still there.
     workspaceFocus.current = profileOpener.current
-    profileOpener.current = null
+    workspaceAnchor.current = profileOpenerTop.current
+    profileOpener.current = null; profileOpenerTop.current = null
     changeView(profileNav.from)
   }
 
@@ -347,10 +356,21 @@ export default function App({ initialView = 'plan', initialTrailId = null } = {}
       if (workspaceRef.current) workspaceRef.current.scrollTop = workspaceScroll.current
       workspaceScroll.current = null
     }
-    const focusTarget = workspaceFocus.current
-    workspaceFocus.current = null
-    if (focusTarget?.isConnected && focusTarget !== document.body) focusTarget.focus({ preventScroll: true })
+    const focusTarget = workspaceFocus.current, anchor = workspaceAnchor.current, box = workspaceRef.current
+    workspaceFocus.current = null; workspaceAnchor.current = null
+    if (focusTarget?.isConnected && focusTarget !== document.body) {
+      // Content above it can change while a profile is open (signing in adds "From people you follow"),
+      // so put the opener back where it was on screen rather than trusting the old scrollTop alone.
+      if (anchor !== null && box?.contains(focusTarget)) box.scrollTop += focusTarget.getBoundingClientRect().top - box.getBoundingClientRect().top - anchor
+      focusTarget.focus({ preventScroll: true })
+    }
   }, [mobileView, viewedHandle])
+
+  useEffect(() => {
+    const note = e => { lastPressed.current = e.target instanceof Element ? e.target.closest('button, a') : null }
+    document.addEventListener('pointerdown', note, true)
+    return () => document.removeEventListener('pointerdown', note, true)
+  }, [])
 
   // Drop ?u= once read, keeping the rest of the URL and the history state (AuthGate keeps its view there).
   // Also on Back/Forward: AuthGate's sign-in entry from the first load still has ?u=, and Continue there
