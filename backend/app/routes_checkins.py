@@ -53,7 +53,7 @@ def finish_checkin(checkin_id: str, body: ReviewIn, user: dict = Depends(auth.cu
         )
     checkins.link(done, review_id=str(review["_id"]), hike_id=str(hike["_id"]))
     new = badges.award(uid)
-    return FinishResult(checkin=checkins.to_out(done), review=reviews.to_out(review, uid),
+    return FinishResult(checkin=checkins.to_out(done), review=reviews.to_out(review, uid, author_handle=user.get("handle")),
                         new_badges=[badges.to_out(b) for b in new])
 
 

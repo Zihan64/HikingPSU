@@ -5,7 +5,7 @@ import datetime as dt
 
 from pymongo import DESCENDING, ReturnDocument
 
-from . import likes, store
+from . import likes, social, store
 from .db import get_db
 from .user_models import ReviewOut, ReviewSummary
 
@@ -71,7 +71,8 @@ def delete_all(user_id: str) -> int:
     return get_db().reviews.delete_many({"user_id": user_id}).deleted_count
 
 
-def to_out(doc: dict, viewer_id: str | None = None, like_count: int = 0, liked: bool = False, trail_name: str | None = None) -> ReviewOut:
+def to_out(doc: dict, viewer_id: str | None = None, like_count: int = 0, liked: bool = False, trail_name: str | None = None,
+           author_handle: str | None = None) -> ReviewOut:
     return ReviewOut(
         id=str(doc["_id"]),
         trail_id=doc["trail_id"],
@@ -86,6 +87,7 @@ def to_out(doc: dict, viewer_id: str | None = None, like_count: int = 0, liked: 
         likes=like_count,
         liked=liked,
         trail_name=trail_name,
+        author_handle=author_handle,
     )
 
 
@@ -93,8 +95,10 @@ def to_out_many(docs: list[dict], viewer_id: str | None = None, with_trail_name:
     """to_out for a page of reviews, with their heart counts fetched in two queries."""
     ids = [str(d["_id"]) for d in docs]
     counts, mine = likes.counts(ids), likes.liked_by(viewer_id, ids)
+    authors = social.handles_for([d["user_id"] for d in docs])
     return [
-        to_out(d, viewer_id, counts.get(i, 0), i in mine, trail_name(d["trail_id"]) if with_trail_name else None)
+        to_out(d, viewer_id, counts.get(i, 0), i in mine, trail_name(d["trail_id"]) if with_trail_name else None,
+               authors.get(d["user_id"]))
         for d, i in zip(docs, ids)
     ]
 

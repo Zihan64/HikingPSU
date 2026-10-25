@@ -32,6 +32,7 @@ class Profile(BaseModel):
     address: Optional[str] = Field(None, max_length=200)
     # Also from the sign-up form; the model sees these. (How they get to hikes goes to preferences.transit_modes.)
     is_psu_student: Optional[bool] = Field(None, description="null = rather not say")
+    public_profile: Optional[bool] = Field(None, description="False hides badges and stats on the public profile; null means public")
     hiking_experience: Optional[int] = Field(None, ge=0, le=5, description="0 (never hiked) … 5 (expert)")
 
 
@@ -54,6 +55,7 @@ class Preferences(BaseModel):
 class UserOut(BaseModel):
     id: str  # Auth0 user id
     email: Optional[str] = None
+    handle: Optional[str] = Field(None, description="public username; assigned after sign-up")
     profile: Profile
     preferences: Preferences
     saved_trail_ids: list[str]
@@ -232,6 +234,7 @@ class ReviewOut(BaseModel):
     likes: int = 0
     liked: bool = Field(False, description="The viewer has hearted this comment")
     tip: bool = Field(False, description="A HikingPSU starter tip rather than a hiker's review")
+    author_handle: Optional[str] = Field(None, description="the author's public username, if they have one")
 
 
 class LikeState(BaseModel):
@@ -340,3 +343,50 @@ class BadgeBoard(BaseModel):
     parks: list[ParkProgress]
     repeats: list[RepeatProgress] = Field(description="trails completed 2+ times; the repeat badge comes at 5")
     today_remaining: int = Field(description="completions still allowed today (State College time)")
+
+
+# ---------- public profiles and follows ----------
+
+class HandleIn(BaseModel):
+    handle: str = Field(max_length=40)
+
+
+class UserCard(BaseModel):
+    handle: str
+    display_name: str
+    is_public: bool
+    badge_count: int
+    followers_count: int
+    following: Optional[bool] = Field(None, description="the viewer follows them; null when signed out")
+    is_me: bool = False
+
+
+class PublicProfile(BaseModel):
+    handle: str
+    display_name: str
+    joined: dt.date
+    is_me: bool
+    is_public: bool
+    following: Optional[bool] = None
+    follows_you: bool = False
+    followers_count: int
+    following_count: int
+    completed_trails: Optional[int] = Field(None, description="null when the profile is private")
+    total_trails: int
+    badge_count: Optional[int] = Field(None, description="null when the profile is private")
+    badges: list[BadgeOut] = Field(description="newest first; empty when the profile is private")
+
+
+class FollowState(BaseModel):
+    following: bool
+    followers_count: int
+
+
+class ActivityUser(BaseModel):
+    handle: str
+    display_name: str
+
+
+class ActivityItem(BaseModel):
+    user: ActivityUser
+    badge: BadgeOut

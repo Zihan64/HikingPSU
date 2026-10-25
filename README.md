@@ -28,6 +28,7 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **Official trail library.** Search manager-published routes, overlay original GIS lines, compare your location, and open official PDF/offline maps at the publisher.
 - **⭐ Sorted for you.** For signed-in hikers, the Around Happy Valley list puts the trails that fit them first, ranked by their transport, interests, saved trails and hike log. Ranking is a deterministic score, not the AI: a trail only ranks if you can reach it and it is at most one level above your comfort level, and each ranked card says why it fits. Your comfort level and pace adjust as you log hikes.
 - **🏅 Badges for real hikes.** Check in at a trail entrance, finish with a rating, and earn badges: one per trail, one per completed park, and more at 10 and 30 trails, or for walking the same trail 5 times.
+- **👥 Hikers, not just trails.** Every hiker gets a public profile at `/?u=<username>` with their badges. Search for people, follow them, and see the badges they earn; review authors link to their profiles. A switch hides your badges and stats.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
 ## Device-aware interface
@@ -406,6 +407,21 @@ Badges are permanent and recomputed from completed check-ins (collections `check
 | `POST` | `/me/checkins/{id}/finish` | `{ accuracy, difficulty, enjoyment, comment? }` → `{ checkin, review, new_badges }` (409 too early / not active, 429 daily limit) |
 | `DELETE` | `/me/checkins/{id}` | Cancel the active check-in |
 | `GET` | `/me/badges` | Earned badges plus progress: distinct trails, milestones, parks, repeats, completions left today |
+
+### Public profiles and follows
+
+Each signed-up hiker gets a **username** (`handle`: 3–20 lowercase letters, digits or `_`, starting with a letter; a few names are reserved). It is assigned from their public name at sign-up (or on the next visit for older accounts), with digits added if taken, and can be changed on the profile page. Collection `handles` (`_id` = username) makes usernames unique; `follows` holds one document per follower and followee.
+
+A **public profile** shows the public name, username, join date, follower and following counts, completed trails and badges. Turning off *Show my badges and stats* (`profile.public_profile = false`) leaves only the name, username, join date and counts, and hides the follower lists. Email, full name, birthday, gender, phone and address are never returned. Account deletion removes the username and every follow in both directions.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/users?q=` | Up to 20 hikers whose username starts with `q`, or with a word of their name starting with `q` (2–30 characters) |
+| `GET` | `/users/{handle}` | Public profile (`following` / `follows_you` for signed-in viewers) |
+| `GET` | `/users/{handle}/followers`, `/users/{handle}/following` | Follower lists, newest first (`skip`, `limit`); 403 for private profiles except to their owner |
+| `PUT` `DELETE` | `/me/following/{handle}` | Follow / unfollow → `{ following, followers_count }` |
+| `GET` | `/me/following/activity` | Badges recently earned by public profiles you follow |
+| `PUT` | `/me/handle` | `{ handle }` → change your username (409 taken, 422 invalid or reserved) |
 
 ### Reviews and community
 

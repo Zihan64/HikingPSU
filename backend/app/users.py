@@ -126,6 +126,7 @@ def to_out(doc: dict) -> UserOut:
     return UserOut(
         id=str(doc["_id"]),
         email=doc.get("email"),
+        handle=doc.get("handle"),
         profile=doc["profile"],
         preferences=doc["preferences"],
         saved_trail_ids=doc.get("saved_trail_ids", []),
