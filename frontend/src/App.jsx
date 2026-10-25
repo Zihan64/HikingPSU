@@ -50,11 +50,11 @@ function MessageText({ text }) {
   })}</div>
 }
 
-export default function App() {
+export default function App({ initialView = 'plan', initialTrailId = null } = {}) {
   const { isCompact, isTouch, reducedMotion } = useDeviceLayout()
   const location = useLocation()
   const [mapFocus, setMapFocus] = useState({ kind: 'trails', version: 0 })
-  const [mobileView, setMobileView] = useState('plan')
+  const [mobileView, setMobileView] = useState(initialView)
   const [mapExpanded, setMapExpanded] = useState(false)
   const [homeVisit, setHomeVisit] = useState(0)
   const [officialRoute, setOfficialRoute] = useState(null)
@@ -83,7 +83,7 @@ export default function App() {
   const [reviewing, setReviewing] = useState(null)
   const [finishing, setFinishing] = useState(null)   // check-in being finished in the review modal, if any
   const [activeCheckin, setActiveCheckin] = useState(null)   // signed-in only: the current trailhead check-in
-  const [catalogTrail, setCatalogTrail] = useState(null)   // {id}: open this trail in the Trails page
+  const [catalogTrail, setCatalogTrail] = useState(initialTrailId ? {id:initialTrailId} : null)   // {id}: open this trail in the Trails page
   const [reviewsVersion, setReviewsVersion] = useState(0)
   const [highlights, setHighlights] = useState({})   // trail id -> top community comments
   const [sessionId, setSessionId] = useState(null)

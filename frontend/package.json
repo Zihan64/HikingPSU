@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:badge-lab": "vite --config vite.badge-lab.config.js",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/location.test.js tests/routeReference.test.js tests/auth.test.js tests/location-status.test.js tests/markdown.test.js tests/trailSort.test.js tests/catalogFilter.test.js tests/catalog-ui.test.js tests/checkin.test.js tests/checkin-ui.test.js"
+    "test": "node --test tests/location.test.js tests/routeReference.test.js tests/auth.test.js tests/location-status.test.js tests/markdown.test.js tests/trailSort.test.js tests/catalogFilter.test.js tests/catalog-ui.test.js tests/checkin.test.js tests/checkin-ui.test.js tests/simulatedLocation.test.js tests/badgeLabBuild.test.js"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.28.2",
