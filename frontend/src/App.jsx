@@ -135,6 +135,7 @@ export default function App() {
   const profileOpener = useRef(null)     // what opened the first profile in a row (focused again on Back)
   const profileOpenerTop = useRef(null)  // where it sat then, in px from the top of the workspace
   const workspaceAnchor = useRef(null)   // ...and that offset, to put the focused element back at on screen
+  const lastPressed = useRef(null)       // Safari doesn't focus a clicked button, so remember what was pressed
   const viewRef = useRef(mobileView)
   viewRef.current = mobileView
   const closeMapPreview = useCallback(() => setMapExpanded(false), [])
@@ -323,7 +324,8 @@ export default function App() {
     if (!next) return
     const from = viewRef.current
     if (from !== 'user') {
-      const opener = document.activeElement, box = workspaceRef.current
+      const focused = document.activeElement, box = workspaceRef.current
+      const opener = focused && focused !== document.body ? focused : lastPressed.current?.isConnected ? lastPressed.current : null
       profileOpener.current = opener
       profileOpenerTop.current = box && opener && box.contains(opener) ? opener.getBoundingClientRect().top - box.getBoundingClientRect().top : null
     }
@@ -363,6 +365,12 @@ export default function App() {
       focusTarget.focus({ preventScroll: true })
     }
   }, [mobileView, viewedHandle])
+
+  useEffect(() => {
+    const note = e => { lastPressed.current = e.target instanceof Element ? e.target.closest('button, a') : null }
+    document.addEventListener('pointerdown', note, true)
+    return () => document.removeEventListener('pointerdown', note, true)
+  }, [])
 
   // Drop ?u= once read, keeping the rest of the URL and the history state (AuthGate keeps its view there).
   // Also on Back/Forward: AuthGate's sign-in entry from the first load still has ?u=, and Continue there

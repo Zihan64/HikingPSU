@@ -69,8 +69,11 @@ export function FollowingActivity({ reloadKey = 0, active = true }) {
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
 
+  const loaded = items !== null
   useEffect(() => {
-    if (!active) return
+    // Hidden behind a profile it still loads once (right after signing in there), so it doesn't grow
+    // above the posts after Back; later refreshes wait until the page is shown again.
+    if (!active && loaded) return
     let cancelled = false
     setError(null)
     getToken()
@@ -78,6 +81,7 @@ export function FollowingActivity({ reloadKey = 0, active = true }) {
       .then(list => { if (!cancelled) setItems(list) })
       .catch(() => { if (!cancelled) setError("We couldn't load recent badges from people you follow.") })
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken, reloadKey, active])
 
   const shown = showAll ? items : items?.slice(0, ACTIVITY_SHOWN)
@@ -123,14 +127,16 @@ export default function Community({ trails, onReview, reloadKey, active = true }
 
   const fetchPage = useCallback(async skip =>
     getCommunityFeed({ sort, trailId, limit: PAGE, skip }, await getToken()), [sort, trailId, getToken])
-  // The first `count` posts, a server page at a time.
+  // The first `count` positions of the feed, a server page at a time. `skip` counts positions read, not
+  // posts kept: a post saved meanwhile shifts the feed, and the duplicate it causes is dropped.
   const fetchFirst = useCallback(async count => {
     const token = await getToken()
     const list = []
-    while (list.length < count) {
-      const limit = Math.min(FEED_MAX, count - list.length)
-      const page = await getCommunityFeed({ sort, trailId, limit, skip: list.length }, token)
+    for (let skip = 0; skip < count;) {
+      const limit = Math.min(FEED_MAX, count - skip)
+      const page = await getCommunityFeed({ sort, trailId, limit, skip }, token)
       list.push(...page.filter(p => !list.some(x => x.id === p.id)))
+      skip += page.length
       if (page.length < limit) break
     }
     return list
@@ -146,12 +152,13 @@ export default function Community({ trails, onReview, reloadKey, active = true }
     // every page already shown, so the rows stay mounted and Back can return to the one that was opened.
     const refresh = shownQuery.current === query && itemsRef.current !== null
     shownQuery.current = query
-    const count = refresh ? Math.max(PAGE, itemsRef.current.length) : PAGE
+    const shown = refresh ? Math.max(PAGE, itemsRef.current.length) : PAGE
     setError(null)
     if (!refresh) setItems(null)
-    fetchFirst(count)
-      // A refresh that comes back full can't tell whether more exist; keep what the last page said.
-      .then(list => { if (!cancelled) { setItems(list); setHasMore(more => (refresh ? more && list.length === count : list.length === count)) } })
+    // A refresh asks for one post more than is shown: if it arrives, there are more to show (and a post
+    // saved meanwhile doesn't push the last row off the end).
+    fetchFirst(refresh ? shown + 1 : shown)
+      .then(list => { if (!cancelled) { setItems(list); setHasMore(refresh ? list.length > shown : list.length === shown) } })
       .catch(() => { if (!cancelled && !refresh) setError("We couldn't load community posts. Please try again.") })
     return () => { cancelled = true }
   }, [fetchFirst, sort, trailId, reloadKey])
