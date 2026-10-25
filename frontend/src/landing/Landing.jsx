@@ -38,8 +38,11 @@ export default function Landing({
     // The outer div only scrolls; the inner one is as tall as the content and holds the scene, so on phones
     // the sky stays at the top and the land sits at the very bottom.
     <div className="lp-scroll font-landing text-trail-ink antialiased">
-    <div ref={sceneBox} className="lp-sky relative isolate min-h-full overflow-hidden">
-      <HeroScenery className="absolute inset-0" />
+    <div ref={sceneBox} className="lp-sky relative isolate min-h-full overflow-clip">
+      {/* pinned to the visible window on desktop so the land and wildlife are always on screen, however tall the content is */}
+      <div className="absolute inset-0 lg:sticky lg:bottom-auto lg:top-0 lg:-mb-[100dvh] lg:h-[100dvh]">
+        <HeroScenery />
+      </div>
       {/* a soft shade behind the white text keeps it legible against bright cloud */}
       <div className="lp-shade pointer-events-none absolute inset-0" aria-hidden="true" />
 
