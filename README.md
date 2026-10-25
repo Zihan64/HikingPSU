@@ -175,7 +175,7 @@ starting Vite to test against another backend port; production uses `VITE_API_BA
 
 ```mermaid
 flowchart LR
-    U[User message] --> A[Claude agent]
+    U[User message] --> A[AI agent<br/>Gemini or Claude]
     A -- tool call --> S[search_trails]
     A -- tool call --> W[get_weather]
     A -- tool call --> H[hunting_season_note]
@@ -189,7 +189,7 @@ Each part has one job:
 
 | Layer | Responsible for | Not responsible for |
 |---|---|---|
-| **LLM (Claude)** | Understanding the request, choosing which tools to call, explaining results | Knowing trails, judging difficulty |
+| **LLM (Gemini by default, Claude optional)** | Understanding the request, choosing which tools to call, explaining results | Knowing trails, judging difficulty |
 | **Difficulty model** | Assigning a 1–5 level from measurable trail attributes | Language |
 | **Trail data** | Facts: distance, climbing, terrain, access, coordinates | Ranking |
 | **Guardrail** | Dropping any recommendation that wasn't returned by a search | — |
@@ -262,7 +262,7 @@ preferences in follow-ups. They do not evaluate dates, time budgets, weather or 
 The map tiles still need internet access.
 
 For real AI mode, copy `backend/.env.example` to `backend/.env`, set a real
-`ANTHROPIC_API_KEY` and `DEMO_MODE=0`, then run in separate terminals:
+`GEMINI_API_KEY` (or `LLM_PROVIDER=claude` and `ANTHROPIC_API_KEY`) and `DEMO_MODE=0`, then run in separate terminals:
 
 ```powershell
 # Terminal 1
@@ -285,7 +285,7 @@ cd backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # add ANTHROPIC_API_KEY, or set DEMO_MODE=1
+cp .env.example .env          # add GEMINI_API_KEY, or set DEMO_MODE=1
 uvicorn app.main:app --reload # API docs at http://localhost:8000/docs
 pytest                        # runs without a network connection or API key
 ```
@@ -302,8 +302,11 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | — | Claude API key |
-| `HIKINGPSU_MODEL` | see `agent.py` | Which Claude model the agent uses |
+| `LLM_PROVIDER` | `gemini` | Which LLM runs the chat agent and preference parser: `gemini` or `claude`. `/health` shows the active one |
+| `GEMINI_API_KEY` | — | Gemini API key (Google AI Studio); used when `LLM_PROVIDER=gemini` |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Which Gemini model to use |
+| `ANTHROPIC_API_KEY` | — | Claude API key; used when `LLM_PROVIDER=claude` |
+| `HIKINGPSU_MODEL` | see `llm.py` | Which Claude model to use |
 | `DEMO_MODE` | `0` | `1` = no API calls, offline keyword matching |
 | `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `20` | Chat limits per anonymous IP |
 | `CHAT_LIMIT_USER_PER_MIN` / `_PER_DAY` | `6` / `60` | Chat limits per signed-in user |
@@ -333,7 +336,7 @@ The pop-up needs these settings in Auth0 → Applications → your Single Page A
 
 ## Deploy
 
-- **Backend → Render** (Web Service): root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `ANTHROPIC_API_KEY`, `MONGODB_URI`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`. Free instances sleep when idle, so open `/health` a minute before a demo.
+- **Backend → Render** (Web Service): root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `GEMINI_API_KEY` (or `LLM_PROVIDER=claude` + `ANTHROPIC_API_KEY`), `MONGODB_URI`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`. Free instances sleep when idle, so open `/health` a minute before a demo.
 - **Frontend → AWS Amplify Hosting**: connect this repo, branch `main`, and tick "monorepo" with app root `frontend` (`amplify.yml` holds the build). Environment variables: `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE`, `VITE_API_BASE=https://<your-render-service>.onrender.com`, `AMPLIFY_MONOREPO_APP_ROOT=frontend`. Vite bakes these in at build time, so redeploy after changing them. Then add the Amplify URL to the three Auth0 settings above.
 
 ## API
@@ -374,7 +377,8 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 ```
 backend/
   app/
-    agent.py        Claude tool-use loop, fallback, guardrail
+    llm.py          LLM_PROVIDER switch (Gemini default, Claude optional)
+    agent.py        tool-use loop for either provider, fallback, guardrail
     difficulty.py   Five-level difficulty model
     recommend.py    Personalized ranking: hard filters + weighted score (REC_CALIBRATION)
     preference_parser.py  Free-text preferences → suggested fields (LLM, offline fallback)
@@ -425,7 +429,7 @@ Built at Penn State by **Zihan Zhao**, **Allen Shen**, **Junbo Zhao** and **Jona
 ## Acknowledgements
 - [OpenStreetMap](https://www.openstreetmap.org/) contributors for map tiles
 - [Open-Meteo](https://open-meteo.com/) for free weather data
-- [Anthropic Claude](https://www.anthropic.com/) for the agent
+- [Google Gemini](https://ai.google.dev/) for the agent (default), with [Anthropic Claude](https://www.anthropic.com/) as an option
 
 <!-- ## License
 Choose one before making the repo public, e.g. MIT. Without a license, others cannot legally reuse the code. -->

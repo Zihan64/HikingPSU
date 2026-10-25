@@ -1,5 +1,6 @@
 """Personalized recommendations: hard constraints, determinism, comfort drift, pace, reasons. No network / API key."""
 import datetime as dt
+from types import SimpleNamespace
 
 import mongomock
 import pytest
@@ -232,6 +233,7 @@ def test_parse_preferences_suggests_without_saving(client):
 
 def test_parser_falls_back_offline_when_the_api_fails(monkeypatch):
     monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "claude")
 
     class Boom:
         def __init__(self, *a, **k):
@@ -242,6 +244,37 @@ def test_parser_falls_back_offline_when_the_api_fails(monkeypatch):
         "max_level": 2, "preferred_features": ["view"], "avoid": [], "transit_modes": [],
         "max_time_min": None, "prefers_loop": True, "source": "offline",
     }
+
+
+def test_parser_uses_gemini_json_output_by_default(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    seen = {}
+
+    class FakeGemini:
+        def __init__(self): self.models = self
+        def generate_content(self, *, model, contents, config):
+            seen.update(model=model, contents=contents, config=config)
+            return SimpleNamespace(text='{"max_level": 9, "preferred_features": [" Lake ", "lake"], "transit_modes": ["bus"], "prefers_loop": false}')
+
+    monkeypatch.setattr(preference_parser.llm, "gemini_client", FakeGemini)
+    out = preference_parser.parse("love lakes, bus only, out and back").model_dump()
+    assert out["source"] == "ai" and out["max_level"] is None  # out-of-range level dropped
+    assert out["preferred_features"] == ["lake"] and out["transit_modes"] == ["bus"] and out["prefers_loop"] is False
+    assert seen["contents"] == "love lakes, bus only, out and back" and seen["config"].response_mime_type == "application/json"
+    assert "max_level" in seen["config"].response_json_schema["properties"]
+
+
+def test_parser_falls_back_offline_when_gemini_fails(monkeypatch):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    class BadJSON:
+        def __init__(self): self.models = self
+        def generate_content(self, **kw): return SimpleNamespace(text="not json")
+
+    monkeypatch.setattr(preference_parser.llm, "gemini_client", BadJSON)
+    assert preference_parser.parse("easy loop with a view").source == "offline"
 
 
 # ---------- agent guardrail ----------

@@ -12,9 +12,10 @@ import re
 from typing import Literal, Optional
 
 import anthropic
-from pydantic import BaseModel, ValidationError
+from google.genai import types
+from pydantic import BaseModel
 
-from .agent import MODEL
+from . import llm
 from .user_models import ParsedPreferences
 
 log = logging.getLogger("hikingpsu.preferences")
@@ -62,8 +63,21 @@ def parse(text: str) -> ParsedPreferences:
     if os.getenv("DEMO_MODE") == "1":
         return parse_offline(text)
     try:
+        if llm.provider() == "gemini":
+            resp = llm.gemini_client().models.generate_content(
+                model=llm.GEMINI_MODEL,
+                contents=text,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM,
+                    response_mime_type="application/json",
+                    response_json_schema=_Extracted.model_json_schema(),
+                ),
+            )
+            if not resp.text:
+                raise ValueError("no structured output from Gemini")
+            return _finish(_Extracted.model_validate_json(resp.text), "ai")
         resp = anthropic.Anthropic().messages.parse(
-            model=MODEL,
+            model=llm.CLAUDE_MODEL,
             max_tokens=1024,
             system=SYSTEM,
             messages=[{"role": "user", "content": text}],
@@ -72,7 +86,7 @@ def parse(text: str) -> ParsedPreferences:
         if resp.stop_reason == "refusal" or resp.parsed_output is None:
             raise ValueError(f"no structured output (stop_reason={resp.stop_reason})")
         return _finish(resp.parsed_output, "ai")
-    except (anthropic.APIError, ValidationError, ValueError):
+    except Exception:  # API error, missing key, bad JSON: the offline parser still answers
         log.exception("preference parsing failed; using the offline parser")
         return parse_offline(text)
 

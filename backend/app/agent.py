@@ -1,4 +1,4 @@
-"""Claude tool-use loop. The model plans, calls tools, and explains. It cannot invent trails."""
+"""Tool-use loop (Gemini or Claude, see llm.py). The model plans, calls tools, and explains. It cannot invent trails."""
 from __future__ import annotations
 
 import datetime as dt
@@ -9,16 +9,16 @@ import re
 from typing import Callable
 
 import anthropic
+from google.genai import types
 
-from . import store
+from . import llm, store
 from .models import ChatMessage, ChatResponse
 from .official import search_resources
 from .tools import RECOMMEND_FOR_ME_TOOL, REGISTRY, TOOLS
 
 log = logging.getLogger("hikingpsu.agent")
 
-# HIKINGPSU_MODEL is preferred; TRAILHEAD_MODEL kept so existing .env files still work.
-MODEL = os.getenv("HIKINGPSU_MODEL") or os.getenv("TRAILHEAD_MODEL", "claude-sonnet-5-5")
+MODEL = llm.CLAUDE_MODEL
 MAX_TURNS = 5  # tool-use rounds per request; caps the cost of a single message
 RECOMMEND = RECOMMEND_FOR_ME_TOOL["name"]
 
@@ -92,9 +92,49 @@ def _call_tool(name: str, args: dict, recommender: Recommender | None = None) ->
 
 
 def _run_live(messages: list[ChatMessage], profile: dict | None, recommender: Recommender | None = None) -> ChatResponse:
-    client = _client()
     system = SYSTEM.format(today=dt.date.today().isoformat(), profile=json.dumps(profile or {}))
     tools = [*TOOLS, RECOMMEND_FOR_ME_TOOL] if recommender else TOOLS
+    run_provider = _run_gemini if llm.provider() == "gemini" else _run_claude
+    return run_provider(messages, system, tools, recommender)
+
+
+def _run_gemini(messages: list[ChatMessage], system: str, tools: list[dict], recommender: Recommender | None) -> ChatResponse:
+    client = llm.gemini_client()
+    config = types.GenerateContentConfig(
+        system_instruction=system,
+        tools=[types.Tool(function_declarations=[
+            types.FunctionDeclaration(name=t["name"], description=t["description"], parameters_json_schema=t["input_schema"])
+            for t in tools
+        ])],
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),  # we run tools ourselves
+        max_output_tokens=4096,  # includes the model's thinking
+    )
+    convo = [types.Content(role="user" if m.role == "user" else "model", parts=[types.Part(text=m.content)]) for m in messages]
+    tool_log: list[dict] = []
+
+    for _ in range(MAX_TURNS):
+        resp = client.models.generate_content(model=llm.GEMINI_MODEL, contents=convo, config=config)
+        calls = resp.function_calls or []
+        if not calls:
+            if not (resp.text or "").strip():  # e.g. token limit or safety block: let run() answer offline
+                raise RuntimeError(f"empty Gemini reply ({resp.candidates[0].finish_reason if resp.candidates else 'no candidates'})")
+            return _finalize(resp.text, tool_log)
+
+        convo.append(resp.candidates[0].content)  # as returned, so thought signatures go back unchanged
+        parts = []
+        for call in calls:
+            args = dict(call.args or {})
+            out, is_error = _call_tool(call.name, args, recommender)
+            tool_log.append({"tool": call.name, "input": args, "output": out})
+            parts.append(types.Part(function_response=types.FunctionResponse(
+                id=call.id, name=call.name, response={"error": out} if is_error else {"output": out})))
+        convo.append(types.Content(role="user", parts=parts))
+
+    return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log)
+
+
+def _run_claude(messages: list[ChatMessage], system: str, tools: list[dict], recommender: Recommender | None) -> ChatResponse:
+    client = _client()
     convo = [{"role": m.role, "content": m.content} for m in messages]
     tool_log: list[dict] = []
 
