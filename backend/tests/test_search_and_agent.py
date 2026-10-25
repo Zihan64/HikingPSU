@@ -171,6 +171,7 @@ def test_gemini_loop_runs_tools_and_keeps_the_guardrail(monkeypatch):
     assert [c.role for c in first["contents"]] == ["user", "model", "user"]
     assert {d.name for d in first["config"].tools[0].function_declarations} >= {"search_trails", "get_weather"}
     assert first["config"].automatic_function_calling.disable is True
+    assert first["config"].thinking_config.thinking_level == types.ThinkingLevel.LOW  # fast by default
     # the bad call went back as an error, answering the call's id, after the model turn with its signature intact
     model_turn, answer = fake.calls[1]["contents"][-2:]
     assert model_turn.parts[0].thought_signature == b"sig"
@@ -203,6 +204,13 @@ def test_empty_gemini_reply_falls_back_to_offline(monkeypatch):
     monkeypatch.setattr(llm, "gemini_client", Empty)
     res = agent.run([agent.ChatMessage(role="user", content="easy hike, no car")])
     assert res.trails and "offline" in res.reply.lower()
+
+
+def test_thinking_level_is_configurable(monkeypatch):
+    monkeypatch.setattr(llm, "GEMINI_THINKING_LEVEL", "minimal")
+    assert llm.gemini_thinking().thinking_level == types.ThinkingLevel.MINIMAL
+    monkeypatch.setattr(llm, "GEMINI_THINKING_LEVEL", "")
+    assert llm.gemini_thinking() is None  # model default
 
 
 def test_gemini_client_fails_fast_instead_of_retrying(monkeypatch):
