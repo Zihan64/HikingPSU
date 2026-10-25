@@ -12,6 +12,7 @@ from pymongo.errors import ConnectionFailure
 from . import agent, auth, chats, hikes, llm, ratelimit, recommend, store, users
 from .db import DatabaseUnavailable
 from .models import MAX_USER_MESSAGE_CHARS, ChatMessage, ChatRequest, ChatResponse, TrailWithDifficulty
+from .routes_checkins import router as checkins_router
 from .routes_reviews import router as reviews_router
 from .routes_user import me_router
 from .official import router as official_router
@@ -21,6 +22,7 @@ log = logging.getLogger("hikingpsu.main")
 app = FastAPI(title="HikingPSU API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(me_router)
+app.include_router(checkins_router)
 app.include_router(reviews_router)
 app.include_router(official_router)
 

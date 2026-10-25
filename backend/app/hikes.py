@@ -33,6 +33,11 @@ def add(user_id: str, trail_id: str, completed_on: dt.date, **fields) -> dict:
     return doc
 
 
+def for_checkin(user_id: str, checkin_id: str) -> dict | None:
+    """The entry a trailhead check-in wrote when it was finished, if any."""
+    return get_db().hike_logs.find_one({"user_id": user_id, "checkin_id": checkin_id})
+
+
 def list_for(user_id: str, limit: int = 100, skip: int = 0) -> list[dict]:
     cur = get_db().hike_logs.find({"user_id": user_id}).sort("completed_on", DESCENDING).skip(skip).limit(limit)
     return list(cur)

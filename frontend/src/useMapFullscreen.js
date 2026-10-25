@@ -6,7 +6,7 @@ export default function useMapFullscreen(expanded, onExit, panelRef, buttonRef, 
   useEffect(() => {
     if (!expanded) return
     const previousFocus = document.activeElement
-    const background = [...shellRef.current.querySelectorAll('.app-header, .planner, .trail-list, .route-sidebar, .mobile-navigation, .library-workspace')]
+    const background = [...shellRef.current.querySelectorAll('.app-header, .checkin-banner, .planner, .trail-list, .route-sidebar, .mobile-navigation, .library-workspace')]
     const previousInert = background.map(el => el.inert)
     background.forEach(el => { el.inert = true })
     buttonRef.current?.focus({preventScroll:true})

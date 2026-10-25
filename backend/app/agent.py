@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import Callable
 
 import anthropic
@@ -108,11 +109,15 @@ def _run_gemini(messages: list[ChatMessage], system: str, tools: list[dict], rec
         ])],
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),  # we run tools ourselves
         max_output_tokens=4096,  # includes the model's thinking
+        thinking_config=llm.gemini_thinking(),
     )
     convo = [types.Content(role="user" if m.role == "user" else "model", parts=[types.Part(text=m.content)]) for m in messages]
     tool_log: list[dict] = []
+    deadline = time.monotonic() + llm.CHAT_DEADLINE_S
 
-    for _ in range(MAX_TURNS):
+    for turn in range(MAX_TURNS):
+        if time.monotonic() > deadline:  # run() answers offline instead of keeping the user waiting
+            raise TimeoutError(f"Gemini tool loop passed {llm.CHAT_DEADLINE_S:.0f}s after {turn} turns")
         resp = client.models.generate_content(model=llm.GEMINI_MODEL, contents=convo, config=config)
         calls = resp.function_calls or []
         if not calls:

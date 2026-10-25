@@ -268,3 +268,75 @@ class ChatSessionSummary(BaseModel):
 
 class ChatSessionOut(ChatSessionSummary):
     messages: list[StoredMessage]
+
+
+# ---------- check-ins and badges ----------
+
+class CheckinStart(BaseModel):
+    """One location fix at a trail entrance. Only the distance and accuracy derived from it are stored."""
+
+    trail_id: str
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    accuracy_m: float = Field(ge=0, le=100_000, description="the browser's reported accuracy radius")
+
+
+class CheckinOut(BaseModel):
+    id: str
+    trail_id: str
+    trail_name: str
+    status: Literal["active", "completed", "cancelled", "expired"]
+    started_at: dt.datetime
+    finish_after: dt.datetime = Field(description="earliest time the hike can be finished")
+    expires_at: dt.datetime
+    completed_at: Optional[dt.datetime] = None
+    distance_m: int = Field(description="distance from the nearest trail entrance at check-in")
+
+
+BadgeKind = Literal["trail", "park", "milestone", "repeat"]
+BadgeTier = Literal["bronze", "silver", "gold", "platinum", "special"]
+
+
+class BadgeOut(BaseModel):
+    key: str
+    kind: BadgeKind
+    tier: BadgeTier
+    title: str
+    description: str
+    target_id: Optional[str] = Field(None, description="trail or park id; null for milestones")
+    awarded_at: dt.datetime
+
+
+class FinishResult(BaseModel):
+    checkin: CheckinOut
+    review: ReviewOut
+    new_badges: list[BadgeOut]
+
+
+class MilestoneProgress(BaseModel):
+    count: int
+    earned: bool
+
+
+class ParkProgress(BaseModel):
+    park_id: str
+    name: str
+    completed: int
+    total: int
+    earned: bool
+
+
+class RepeatProgress(BaseModel):
+    trail_id: str
+    trail_name: str
+    count: int
+
+
+class BadgeBoard(BaseModel):
+    badges: list[BadgeOut] = Field(description="newest first")
+    completed_trails: int = Field(description="distinct trails completed with a verified check-in")
+    total_trails: int
+    milestones: list[MilestoneProgress]
+    parks: list[ParkProgress]
+    repeats: list[RepeatProgress] = Field(description="trails completed 2+ times; the repeat badge comes at 5")
+    today_remaining: int = Field(description="completions still allowed today (State College time)")

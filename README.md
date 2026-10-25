@@ -27,6 +27,7 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **🗺️ Map view.** Every trail appears on the map, colored by difficulty. Recommended trails are highlighted.
 - **Official trail library.** Search manager-published routes, overlay original GIS lines, compare your location, and open official PDF/offline maps at the publisher.
 - **⭐ Sorted for you.** For signed-in hikers, the Around Happy Valley list puts the trails that fit them first, ranked by their transport, interests, saved trails and hike log. Ranking is a deterministic score, not the AI: a trail only ranks if you can reach it and it is at most one level above your comfort level, and each ranked card says why it fits. Your comfort level and pace adjust as you log hikes.
+- **🏅 Badges for real hikes.** Check in at a trail entrance, finish with a rating, and earn badges: one per trail, one per completed park, and more at 10 and 30 trails, or for walking the same trail 5 times.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
 ## Device-aware interface
@@ -100,7 +101,9 @@ particular radio or guarantee that GPS was used. See the [Geolocation API](https
   to request another fix, **Cancel** to stop a pending request, **Clear location**
   to remove it from the page, or **Show trails** to return to the trail map.
 - Coordinates stay in page memory and are not sent to our API, AI agent or
-  browser storage. Viewing the location on the map loads OpenStreetMap tiles for
+  browser storage. The one exception is **Start hike · check in** (see
+  [Check-ins and badges](#check-ins-and-badges)): that single fix is sent once, and the
+  server keeps only the distance to the entrance and the accuracy, never the coordinates. Viewing the location on the map loads OpenStreetMap tiles for
   that area. The browser/OS location provider follows its own privacy policy.
 - Production needs **HTTPS**; localhost is supported for development. Ordinary
   HTTP on a LAN IP is insufficient for phone testing. Browser and device Location
@@ -151,7 +154,8 @@ consistent with the [DCNR source metadata](https://www.gis.dcnr.state.pa.us/agsp
 **Use my location** shows a one-time fix. **Follow my position** explicitly enables
 foreground live updates; Stop, Clear, changing routes, leaving the mobile map,
 opening the library, hiding the page and unmounting stop the watch. Position is
-never sent to our API, AI or database. The map provider receives tile requests for
+never sent to our API, AI or database (a trailhead check-in sends one fix, and only
+the derived distance is stored). The map provider receives tile requests for
 the area displayed. Location permissions and device services are still required.
 
 `frontend/src/trailGeometry.js` is independent of React, Leaflet and device APIs.
@@ -305,6 +309,8 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `LLM_PROVIDER` | `gemini` | Which LLM runs the chat agent and preference parser: `gemini` or `claude`. `/health` shows the active one |
 | `GEMINI_API_KEY` | — | Gemini API key (Google AI Studio); used when `LLM_PROVIDER=gemini` |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | Which Gemini model to use |
+| `GEMINI_THINKING_LEVEL` | `low` | How long Gemini thinks before answering (`minimal`/`low`/`medium`/`high`, empty = model default). Lower is faster; 3.8 Flash doesn't accept `minimal` |
+| `GEMINI_TIMEOUT_S` / `CHAT_DEADLINE_S` | `20` / `40` | Seconds per Gemini call (no retries) and for the whole chat tool loop; past either, chat answers offline |
 | `ANTHROPIC_API_KEY` | — | Claude API key; used when `LLM_PROVIDER=claude` |
 | `HIKINGPSU_MODEL` | see `llm.py` | Which Claude model to use |
 | `DEMO_MODE` | `0` | `1` = no API calls, offline keyword matching |
@@ -371,6 +377,28 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 | `POST` | `/me/preferences/parse` | `{ text }` → suggested preference fields (AI, or a keyword parser offline). Nothing is saved; confirm with `PATCH /me` |
 | `PATCH` `DELETE` | `/me/hikes/{id}` | Edit / remove a log entry |
 | `GET` | `/me/chats`, `/me/chats/{id}` | Saved conversations; `DELETE /me/chats/{id}` removes one |
+
+### Check-ins and badges
+
+A completed hike needs proof: **Start hike · check in** on a trail page sends one location fix, and the server accepts it only within **200 m** of an entrance (the trailhead, or a real end of the mapped route; where a route is mapped in pieces, the points where pieces join are mid-trail and don't count) with reported accuracy of **100 m** or better. It stores the distance and accuracy, never the coordinates. **Finish & rate** opens after `max(15 min, 40% of the estimated time)` (the server allows 60 s early, for phone clocks running slightly fast); finishing needs the three 1–5 ratings (comment optional) and writes the review and a hike-log entry. A check-in expires after **24 h**, a user has one active check-in at a time, and at most **2** hikes can be completed per State College calendar day (counted on the day the hike can finish, so a late-evening start that can only finish after midnight is allowed). If a finish is cut off by a database error after the hike was marked complete, sending it again completes the remaining steps. Manual hike-log entries never earn badges. All thresholds live in `RULES` in `backend/app/checkins.py`.
+
+| Tier | Badge | Earned by |
+|---|---|---|
+| 🥉 bronze | `trail:<id>` | First completion of a trail (repeats don't add another) |
+| 🥈 silver | `park:<id>` | Every trail of a park (verified parks only, not "Other nearby trails") |
+| 🥇 gold | `milestone:10` Trailblazer | 10 distinct trails, any area |
+| 💎 platinum | `milestone:30` Happy Valley Legend | 30 distinct trails, any area |
+| ⭐ special | `repeat:<id>` | The same trail completed 5 times |
+
+Badges are permanent and recomputed from completed check-ins (collections `checkins`, `checkin_locks`, `badges`), so awarding is idempotent. Browser location can be spoofed, so this is good-faith verification, not proof; the daily limit and minimum time keep it honest enough for badges.
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/me/checkins` | `{ trail_id, lat, lon, accuracy_m }` → the active check-in (409 if one is active, 422 too far / too inaccurate, 429 daily limit) |
+| `GET` | `/me/checkins/active` | The active check-in, or `null` |
+| `POST` | `/me/checkins/{id}/finish` | `{ accuracy, difficulty, enjoyment, comment? }` → `{ checkin, review, new_badges }` (409 too early / not active, 429 daily limit) |
+| `DELETE` | `/me/checkins/{id}` | Cancel the active check-in |
+| `GET` | `/me/badges` | Earned badges plus progress: distinct trails, milestones, parks, repeats, completions left today |
 
 ### Reviews and community
 

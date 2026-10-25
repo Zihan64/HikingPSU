@@ -5,7 +5,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from . import auth, chats, hikes, preference_parser, ratelimit, recommend, reviews, store, users
+from . import auth, badges, chats, checkins, hikes, preference_parser, ratelimit, recommend, reviews, store, users
 from .user_models import (
     ChatSessionOut,
     ChatSessionSummary,
@@ -51,6 +51,8 @@ def delete_me(user_id: str = Depends(auth.current_user_id)):
     hikes.delete_all(user_id)
     chats.delete_all(user_id)
     reviews.delete_all(user_id)
+    checkins.delete_all(user_id)
+    badges.delete_all(user_id)
     users.delete(user_id)
     auth.delete_login(user_id)
     return Response(status_code=204)
