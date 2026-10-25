@@ -583,3 +583,14 @@ body { background: #f3f5f0; color: #173a40; }
   :is(.panel-heading, .library-intro, .trail-catalog .catalog-intro, .page-intro) > p { font-size: 12px; }
 }
 
+
+/* Active trailhead check-in: a slim strip under the header on every page. */
+.checkin-banner { position: relative; flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 0 0 12px; padding: 8px 8px 8px 16px; border: 1px solid #cfe0c6; border-radius: 14px; background: #edf5e7; color: #173a40; font-size: 13px; line-height: 1.5; }
+.checkin-banner > p { min-width: 0; overflow-wrap: anywhere; }
+.checkin-banner-actions { display: flex; align-items: center; gap: 4px 12px; margin-left: auto; }
+.checkin-banner .primary-button { min-height: 40px; padding: 8px 14px; }
+/* Check-in buttons can name a long trail: let them wrap instead of overflowing the card. */
+.checkin-control .text-button { flex-shrink: 1; min-width: 0; text-align: left; overflow-wrap: anywhere; }
+@media (width < 960px) {
+  .checkin-banner { margin: 8px max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); padding: 6px 6px 6px 12px; font-size: 12px; }
+}
