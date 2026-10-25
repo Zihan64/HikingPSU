@@ -31,7 +31,7 @@ me_router = APIRouter(prefix="/me", tags=["me"])
 @me_router.get("", response_model=UserOut)
 def get_me(user: dict = Depends(auth.current_user)):
     if user.get("registered_at"):
-        user = social.ensure_handle(user)  # accounts that signed up before usernames existed get one here
+        user = social.ensure_handle(users.first_name_only(user))  # older accounts: first name only, and a username
     return users.to_out(user)
 
 
