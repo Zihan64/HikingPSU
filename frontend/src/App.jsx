@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { chat, getRecommendations, getReviewSummaries, listTrails } from './api'
+import { chat, getCommentHighlights, getRecommendations, getReviewSummaries, listTrails } from './api'
 import TrailCard from './TrailCard'
 import MapView from './MapView'
 import useDeviceLayout from './useDeviceLayout'
@@ -11,6 +11,7 @@ import { prepareRouteReference } from './trailGeometry'
 import ReviewModal from './ReviewModal'
 import Dashboard from './Dashboard'
 import Onboarding from './Onboarding'
+import Community from './Community'
 import AppHeader, { HomeLink } from './AppHeader'
 import Icon from './Icon'
 import useMapFullscreen from './useMapFullscreen'
@@ -27,7 +28,7 @@ const SUGGESTIONS = [
   ['My first hike', 'Something easy for a first-time hiker, near campus'],
   ['A little more adventure', 'I have a car, want something hard with rocks on Sunday'],
 ]
-const VIEWS = [['plan', 'Plan'], ['trails', 'Results'], ['map', 'Map'], ['catalog', 'Trails'], ['drives', 'Drives'], ['library', 'Library']]
+const VIEWS = [['plan', 'Plan'], ['trails', 'Results'], ['map', 'Map'], ['catalog', 'Trails'], ['drives', 'Drives'], ['community', 'Community'], ['library', 'Library']]
 
 function Inline({ tokens }) {
   return tokens.map((tok, i) => tok.t === 'link' ? <a key={i} href={tok.v} target="_blank" rel="noopener noreferrer">{tok.v}</a>
@@ -62,7 +63,8 @@ export default function App() {
   const profileOpen = mobileView === 'profile'
   const catalogOpen = mobileView === 'catalog'
   const drivesOpen = mobileView === 'drives'
-  const fullPage = libraryOpen || profileOpen || catalogOpen || drivesOpen
+  const communityOpen = mobileView === 'community'
+  const fullPage = libraryOpen || profileOpen || catalogOpen || drivesOpen || communityOpen   // views that replace the planner/map workspace
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [allTrails, setAllTrails] = useState([])
@@ -77,6 +79,7 @@ export default function App() {
   const [summaries, setSummaries] = useState({})
   const [reviewing, setReviewing] = useState(null)
   const [reviewsVersion, setReviewsVersion] = useState(0)
+  const [highlights, setHighlights] = useState({})   // trail id -> top community comments
   const [sessionId, setSessionId] = useState(null)
   const getToken = useOptionalToken()
   const [ranking, setRanking] = useState(null)   // signed-in only: trails that fit you, best first
@@ -126,6 +129,18 @@ export default function App() {
       .catch(() => { if (!cancelled) setRanking(null) })
     return () => { cancelled = true }
   }, [getToken, profileOpen, profileVersion])
+
+  // Top comments for the trail cards. Refetched on login/logout (to show your hearts), after a
+  // review is saved, and after leaving the Community page, where hearts may have changed.
+  useEffect(() => {
+    if (communityOpen) return
+    let cancelled = false
+    getToken()
+      .then(token => getCommentHighlights(token))
+      .then(h => { if (!cancelled) setHighlights(h) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [getToken, reviewsVersion, communityOpen])
 
   // A phone's keyboard can shrink the visual viewport while 100dvh still
   // describes the area behind it. Keep the composer inside the visible area.
@@ -233,7 +248,7 @@ export default function App() {
 
   function changeView(view) {
     setMapExpanded(false)
-    if (view === 'library' || view === 'profile' || view === 'catalog' || view === 'drives' || (isCompact && view !== 'map')) location.stopTracking()
+    if (view === 'library' || view === 'profile' || view === 'catalog' || view === 'drives' || view === 'community' || (isCompact && view !== 'map')) location.stopTracking()
     setMobileView(view)
   }
 
@@ -311,13 +326,14 @@ export default function App() {
   return (
     <div className="app-shell" ref={shellRef} data-layout={isCompact ? 'compact' : 'desktop'} data-input={isTouch ? 'touch' : 'pointer'}>
       <AppBackdrop />
-      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onDrives={() => changeView('drives')} drivesOpen={drivesOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
+      <AppHeader onHome={goHome} onLibrary={() => openOfficialLibrary()} libraryOpen={libraryOpen} onCatalog={() => changeView('catalog')} catalogOpen={catalogOpen} onDrives={() => changeView('drives')} drivesOpen={drivesOpen} onCommunity={() => changeView('community')} communityOpen={communityOpen} onProfile={() => changeView('profile')} profileOpen={profileOpen} />
 
       <main className={`workspace ${fullPage ? 'workspace-library' : officialRoute && !isCompact ? 'workspace-route' : ''}`}>
         <div id="library-panel" className="library-workspace" hidden={!libraryOpen}><OfficialLibrary active={libraryOpen} trailId={libraryTrailId} initialAreaId={libraryAreaId} onOpenRoute={openOfficialRoute} /></div>
         <div id="catalog-panel" className="library-workspace catalog-workspace" hidden={!catalogOpen}><TrailCatalog key={homeVisit} active={catalogOpen} trails={allTrails} summaries={summaries} onReview={setReviewing} reviewsVersion={reviewsVersion} onOfficialResources={id => openOfficialLibrary(id)} onOfficialArea={id => openOfficialLibrary(null, id)} loading={trailsLoading} loadError={loadError} /></div>
         <div id="drives-panel" className="library-workspace catalog-workspace" hidden={!drivesOpen}><ScenicDrives active={drivesOpen} /></div>
         {profileOpen && <div id="profile-panel" className="library-workspace"><Dashboard trails={allTrails} /></div>}
+        {communityOpen && <div id="community-panel" className="library-workspace"><Community trails={allTrails} onReview={setReviewing} reloadKey={reviewsVersion} /></div>}
         {officialRoute && !isCompact && <aside className="route-sidebar" hidden={fullPage}aria-label="Route reference and official resources"><RouteReference data={officialRoute} reference={routeReference} location={location} onLive={followPosition} onReverse={() => setReverseReference(v => !v)} onClose={closeOfficialRoute} /><OfficialLinks resources={officialRoute.route.resources} /><button className="text-button" onClick={() => openOfficialLibrary()}>Browse other official routes</button><button className="text-button" onClick={closeOfficialRoute}>Return to the hiking planner</button></aside>}
         <section id="plan-panel" className="planner" aria-labelledby="plan-title" hidden={fullPage || (!isCompact && officialRoute) || (isCompact && mobileView !== 'plan')}>
           <div className="panel-heading">
@@ -405,7 +421,7 @@ export default function App() {
             </div>}
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => setReviewing(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}

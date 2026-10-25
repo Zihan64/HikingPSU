@@ -50,6 +50,9 @@ def ensure_indexes(db: Database) -> None:
     db.chat_sessions.create_index([("user_id", ASCENDING), ("updated_at", DESCENDING)])
     db.reviews.create_index([("user_id", ASCENDING), ("trail_id", ASCENDING)], unique=True)
     db.reviews.create_index([("trail_id", ASCENDING), ("created_at", DESCENDING)])
+    db.reviews.create_index([("created_at", DESCENDING)])
+    db.likes.create_index([("target_id", ASCENDING), ("user_id", ASCENDING)], unique=True)
+    db.likes.create_index([("user_id", ASCENDING)])
 
 
 def to_oid(value: str) -> ObjectId | None:
