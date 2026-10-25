@@ -487,7 +487,7 @@ export default function App() {
             </div>}
             {isCompact && <p className="list-hint">Tap a trail to find it on the map.</p>}
             {loadError && <p className="error-message" role="alert">{loadError}</p>}
-            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => openReview(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
+            {cards.map(t => <TrailCard key={t.id} t={t} selected={t.id === selectedId} onSelect={() => selectFromCard(t.id)} onOpenDetails={() => openTrailPage(t.id)} onOfficialResources={() => openOfficialLibrary(t.id)} summary={summaries[t.id]} onReview={() => openReview(t)} reviewsVersion={reviewsVersion} fit={hasResult ? null : fitById[t.id]} proximityMeters={sortMode === 'nearest' ? distanceToTrail(t, location.position) : null} highlights={highlights[t.id]} />)}
             {cards.length === 0 && <div className="empty-state" role="status">{trailsLoading && !hasResult ? 'Loading trails…' : hasResult ? 'No trails matched this request. Try changing your preferences or browse all trails.' : 'No trails are available right now.'}</div>}
             </>}
           </section>}
