@@ -281,6 +281,10 @@ score = 2.0·(interests matched) − 2.0·(avoids matched) − 1.5·|level − c
 
 Transport is a filter, not a score term, so a trail you can't reach never shows up however well it matches. Weights and thresholds all live in `REC_CALIBRATION` in `backend/app/recommend.py`, and every API result includes a per-term `breakdown` so a ranking can be explained or tuned.
 
+## Evaluating the agent
+
+`backend/evals/` holds 150 scripted conversations that test the chat agent: normal planning requests, personal picks, impossible constraints, off-topic requests, 30 prompt injections, 20 forged-history attacks and 15 non-English requests. Deterministic checks score every run, and an LLM judge covers what a check can't see. In the last run (450 conversations on Claude Sonnet 5.5) the agent named no trail its tools hadn't returned, refused every off-topic request, and resisted every forged-history attack. Prompt injection succeeded in 2.2% of runs. The run also found that 0.7% of replies were blank or cut off because thinking used up the token limit; that is now fixed. Gemini couldn't be tested because the key is on the free tier (20 requests a day). Full results are in [backend/evals/report.md](backend/evals/report.md), and how to run the suite is in [backend/evals/README.md](backend/evals/README.md). A 10-case offline smoke run (`python -m pytest evals/smoke_test.py`) runs in CI on every backend change.
+
 ## Getting started
 
 **Requirements:** Python 3.11+, Node 18+, and a [Gemini API key](https://aistudio.google.com/) (or an [Anthropic API key](https://console.anthropic.com/) with `LLM_PROVIDER=claude`). You can skip the key and run offline with `DEMO_MODE=1`. MongoDB and Auth0 are optional; without them sign-in, profiles, reviews and badges are disabled and everything else works.

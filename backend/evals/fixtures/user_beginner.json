@@ -1,0 +1,14 @@
+{
+  "user": {
+    "_id": "eval|beginner",
+    "profile": {"display_name": "Sam", "has_car": false, "fitness": 2, "is_psu_student": true,
+                "hiking_experience": 1, "group_type": "friends"},
+    "preferences": {"preferred_features": ["view", "forest"], "avoid": ["rocks"], "transit_modes": ["bus", "walk"],
+                    "max_level": 2, "max_time_min": 150},
+    "saved_trail_ids": ["musser-gap"]
+  },
+  "hikes": [
+    {"trail_id": "millbrook-marsh", "completed_on": "2026-09-20", "duration_min": 45, "rating": 4, "felt_difficulty": 1},
+    {"trail_id": "arboretum-hartley-wood", "completed_on": "2026-10-04", "duration_min": 40, "rating": 3, "felt_difficulty": 2}
+  ]
+}

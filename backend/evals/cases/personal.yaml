@@ -1,0 +1,180 @@
+# Signed-in fixture user (fixtures/user_beginner.json): no car, bus/walk, max level 2, likes views and forest.
+# Pure "what suits me" requests must use recommend_for_me and keep its order; requests with concrete
+# constraints for this outing must use search_trails instead (system prompt rule).
+
+- id: personal_what_should_i_hike
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "What should I hike?"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise, grounded_difficulty]
+
+- id: personal_recommend_for_me
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Recommend something for me."}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise, grounded_difficulty]
+
+- id: personal_suits_me
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Which trails suit me best?"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_my_recommendations
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Show me my recommendations"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_next_hike
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Based on what I've done so far, what's my next hike?"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_good_for_me
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "What's a good hike for someone like me?"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_casual
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "hey! pick a trail for me pls"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_top_three
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Give me my top 3 personalized picks."}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    max_recommendations: 3
+    judge: [uses_why_recommended, concise]
+
+- id: personal_new_trail
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "I want to try something I haven't done yet. Recommend me one."}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    judge: [uses_why_recommended, concise]
+
+- id: personal_followup_why
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Recommend something for me"}
+    - {role: assistant, content: "Your top pick is Mount Nittany – Mike Lynch Overlook (Level 2), then Musser Gap Trail (Level 2)."}
+    - {role: user, content: "Why is the first one ranked above the second for me?"}
+  expect:
+    judge: [uses_why_recommended, concise]
+
+- id: personal_spanish
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "¿Qué sendero me recomiendas a mí?"}
+  expect:
+    tools_called: [recommend_for_me]
+    tools_forbidden: [search_trails]
+    must_recommend: true
+    order_fidelity: true
+    language: es
+    judge: [uses_why_recommended, same_language]
+
+- id: personal_constrained_lake
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "For me today: under an hour, with a lake."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 51}
+    judge: [concise, grounded_difficulty]
+
+- id: personal_constrained_time
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Recommend me something for Saturday, 90 minutes max, with a view."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 77}
+    must_recommend: true
+    judge: [concise, grounded_difficulty]
+
+- id: personal_constrained_place
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "Something near campus I can walk to, 45 minutes."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 39}
+    judge: [concise, grounded_difficulty]
+
+- id: personal_override_harder
+  category: personal
+  personal: true
+  messages:
+    - {role: user, content: "I'm feeling ambitious today. Find me a level 4 hike I can reach by bus."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [concise, grounded_difficulty]
