@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { addHike, deleteHike, deleteMe, getBadges, getInsights, getMe, listHikes, parsePreferences, patchMe } from './api'
+import { addHike, deleteHike, deleteMe, getBadges, getInsights, getMe, listHikes, parsePreferences, patchMe, setHandle } from './api'
 import { useOptionalToken } from './auth'
 import { LEVEL_HEX, LEVEL_LABELS } from './levels'
-import { REPEAT_TARGET, TIER_EMOJI, TIER_LABEL, nextMilestone, plural } from './checkin'
+import { REPEAT_TARGET, nextMilestone, plural } from './checkin'
+import BadgeGrid from './Badges'
+import { CopyProfileLink } from './People'
+import { HANDLE_HINT, handleProblem, normalizeHandle } from './profileLink'
 
 const FEATURES = ['view', 'lake', 'forest', 'stream', 'flat', 'sunset', 'wildlife', 'rocks', 'steep', 'shade', 'campus']
 const AVOID = ['steep', 'rocks', 'mud', 'crowds']
@@ -100,20 +103,7 @@ function Badges({ board, error }) {
         {board.today_remaining > 0 ? `You can complete ${plural(board.today_remaining, 'more trail')} today.` : "You've reached today's limit. Come back tomorrow for more."}
       </p>
 
-      {earned.length ? (
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {earned.map(b => (
-            <li key={b.key} className="flex items-start gap-3 rounded-xl border border-[#e0e5dc] bg-[#fafbf8] p-3">
-              <span role="img" aria-label={`${TIER_LABEL[b.tier] || b.tier} badge`} className="text-2xl leading-none">{TIER_EMOJI[b.tier] || '🏅'}</span>
-              <div className="min-w-0 text-sm">
-                <div className="font-semibold">{b.title}</div>
-                <div className="text-xs text-[#5b6a58]">{b.description}</div>
-                <div className="mt-1 text-[11px] text-[#73806e]">{new Date(b.awarded_at).toLocaleDateString()}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : <p className="mt-3 rounded-xl bg-[#f2f4ee] p-3 text-sm text-[#5b6a58]">Check in at a trailhead and finish with a rating to earn your first badge.</p>}
+      {earned.length ? <BadgeGrid badges={earned} className="mt-3" /> : <p className="mt-3 rounded-xl bg-[#f2f4ee] p-3 text-sm text-[#5b6a58]">Check in at a trailhead and finish with a rating to earn your first badge.</p>}
 
       {board.parks?.length > 0 && (
         <div className="mt-4">
@@ -150,8 +140,73 @@ function Badges({ board, error }) {
   )
 }
 
+// Username, the public-profile switch and the profile link. The switch saves through PATCH /me like
+// the rest of the page; null or true means public.
+function PublicProfileCard({ me, getToken, onHandleSaved, onPublicChange, onViewPublicProfile }) {
+  const handle = me.handle ?? null
+  const [value, setValue] = useState(handle ?? '')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const [done, setDone] = useState(false)
+  const [pendingPublic, setPendingPublic] = useState(null)   // shown while the switch saves
+  useEffect(() => { setValue(handle ?? '') }, [handle])
+  const next = normalizeHandle(value)
+  const isPublic = pendingPublic ?? (me.profile.public_profile !== false)
+
+  async function submit(e) {
+    e.preventDefault()
+    if (busy || !next || next === handle) return
+    setDone(false)
+    const problem = handleProblem(next)
+    if (problem) { setErr(problem); return }
+    setBusy(true); setErr(null)
+    try { onHandleSaved(await setHandle(next, await getToken())); setDone(true) }
+    catch (e2) { setErr(e2.message) }
+    finally { setBusy(false) }
+  }
+
+  async function changePublic(on) {
+    setPendingPublic(on)
+    try { await onPublicChange(on) } finally { setPendingPublic(null) }
+  }
+
+  return (
+    <Card title="Public profile" hint="Other hikers can find you by your username. Your email, full name, birthday and contact details are never shown.">
+      <p className="text-sm">{handle ? <>Your username is <b>@{handle}</b></> : "You'll get a username when you finish signing up."}</p>
+      <form onSubmit={submit} noValidate className="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:items-end">
+        <label className="flex flex-1 flex-col gap-1">{handle ? 'Change username' : 'Choose a username'}
+          <span className="flex items-center gap-1">
+            <span aria-hidden="true" className="text-[#73806e]">@</span>
+            <input className={`${inputCls} w-full min-w-0`} value={value} maxLength={21} autoComplete="off" autoCapitalize="none" spellCheck={false}
+              aria-describedby="handle-hint" aria-invalid={err ? true : undefined}
+              onChange={e => { setValue(e.target.value); setErr(null); setDone(false) }} />
+          </span>
+        </label>
+        <button className="primary-button" disabled={busy || !next || next === handle}>{busy ? 'Saving…' : 'Save'}</button>
+      </form>
+      <p id="handle-hint" className="mt-1 text-xs text-[#73806e]">{HANDLE_HINT}</p>
+      {err && <p className="error-message mt-2" role="alert">{err}</p>}
+      <div role="status">{done && <p className="mt-2 text-xs" style={{ color: GREEN }}>Username saved.</p>}</div>
+      <label className="mt-3 flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-[#2f6b47]" checked={isPublic} disabled={pendingPublic !== null} onChange={e => changePublic(e.target.checked)} />
+        <span>Show my badges and stats on my public profile
+          <span className="block text-xs text-[#73806e]">When this is off, other hikers see only your name, username, join date and follower counts.</span>
+        </span>
+      </label>
+      {handle && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4">
+          {onViewPublicProfile && <button type="button" className="text-button" onClick={() => onViewPublicProfile(handle)}>View my public profile</button>}
+          <CopyProfileLink handle={handle} />
+        </div>
+      )}
+    </Card>
+  )
+}
+
 // reloadKey: changes when something elsewhere (e.g. finishing a check-in) updated the profile.
-export default function Dashboard({ trails, reloadKey = 0 }) {
+// onViewPublicProfile(handle): opens your public profile as other hikers see it.
+// onHandleChange(handle): runs after a new username is saved (comments elsewhere still carry the old one).
+export default function Dashboard({ trails, reloadKey = 0, onViewPublicProfile, onHandleChange }) {
   const { isAuthenticated, isLoading, loginWithPopup } = useAuth0()
   const getToken = useOptionalToken()
   const [me, setMe] = useState(null)
@@ -230,6 +285,7 @@ export default function Dashboard({ trails, reloadKey = 0 }) {
       </div>
 
       <Badges board={badges} error={badgeError} />
+      <PublicProfileCard me={me} getToken={getToken} onHandleSaved={u => { setMe(u); onHandleChange?.(u.handle) }} onPublicChange={v => setProfile('public_profile', v)} onViewPublicProfile={onViewPublicProfile} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="About you">

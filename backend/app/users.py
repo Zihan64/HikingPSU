@@ -37,12 +37,32 @@ def age_on(birthday: dt.date, today: dt.date) -> int:
     return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
 
 
+def first_name(name: str | None) -> str | None:
+    """The public name: first word only. A Google/Auth0 profile name is usually someone's full name."""
+    words = (name or "").split()
+    return words[0][:60] if words else None
+
+
+def set_public_name(user: dict, name: str) -> dict:
+    """Change the public name, and the author name shown on the user's existing reviews."""
+    get_db().users.update_one({"_id": user["_id"]}, {"$set": {"profile.display_name": name, "updated_at": _now()}})
+    get_db().reviews.update_many({"user_id": user["_id"]}, {"$set": {"author": name}})
+    return {**user, "profile": {**user["profile"], "display_name": name}}
+
+
+def first_name_only(user: dict) -> dict:
+    """Accounts from before this rule may show a full name publicly; trim it to the first word."""
+    current = user["profile"].get("display_name")
+    short = first_name(current)
+    return set_public_name(user, short) if current and short != current else user
+
+
 def get_or_create(user_id: str, email: str | None = None, name: str | None = None) -> dict:
     """Create the user's document on first login; return the existing one otherwise. Safe under races."""
     now = _now()
     # Auth0 sets `name` to the email for password signups; reviews show display_name publicly,
     # so only use names that don't look like an email.
-    safe_name = name.strip()[:60] if name and "@" not in name and name.strip() else None
+    safe_name = first_name(name) if name and "@" not in name else None
     profile = Profile(display_name=safe_name).model_dump()
     return get_db().users.find_one_and_update(
         {"_id": user_id},
@@ -98,9 +118,9 @@ def register(user: dict, form: Registration) -> dict | None:
         sets["preferences.max_level"] = MAX_LEVEL_FOR_EXPERIENCE[form.hiking_experience]
     if profile.get("fitness") is None:
         sets["profile.fitness"] = max(1, form.hiking_experience)
-    if not profile.get("display_name"):
-        # Reviews show display_name publicly, so use the first name only.
-        sets["profile.display_name"] = form.full_name.split()[0]
+    # The public name is the first word of the name they typed here, never the full name from their
+    # Google/Auth0 profile; it's what reviews and the public profile show.
+    public = first_name(form.full_name)
     # Contact fields change only when sent (skipping page 3 sends none); "" or null clears one.
     for field in ("secondary_email", "phone", "address"):
         if field in form.model_fields_set:
@@ -110,7 +130,8 @@ def register(user: dict, form: Registration) -> dict | None:
         sets["registered_at"] = now
     # profile.transport: single answer saved by the first version of this form; transit_modes replaces it.
     update = {"$set": sets, "$unset": {"profile.transport": ""}}
-    return get_db().users.find_one_and_update({"_id": user["_id"]}, update, return_document=ReturnDocument.AFTER)
+    doc = get_db().users.find_one_and_update({"_id": user["_id"]}, update, return_document=ReturnDocument.AFTER)
+    return set_public_name(doc, public) if doc and public and profile.get("display_name") != public else doc
 
 
 def set_saved(user_id: str, trail_id: str, saved: bool) -> dict | None:

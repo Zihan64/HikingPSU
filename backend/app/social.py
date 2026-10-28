@@ -27,6 +27,9 @@ RESERVED = {
     "moderator", "null", "official", "pennstate", "profile", "psu", "root", "settings", "signup", "staff",
     "support", "system", "team", "undefined", "user", "users",
 }
+# Nobody may look official: these may not appear anywhere in a username ("hikingpsu_official", "admin2").
+RESERVED_PARTS = ("hikingpsu", "official", "admin", "moderator")
+STALE_CLAIM = dt.timedelta(minutes=1)  # a handle doc nobody uses after this long is a leftover
 
 
 class SocialError(Exception):
@@ -55,28 +58,48 @@ def normalize(handle: str) -> str:
     return (handle or "").strip().lower()
 
 
+def _reserved(h: str) -> bool:
+    return h in RESERVED or any(part in h for part in RESERVED_PARTS)
+
+
 def validate(handle: str) -> str:
     h = normalize(handle)
     if not HANDLE_RE.match(h):
         raise SocialError(422, "Usernames are 3-20 characters: lowercase letters, numbers and underscores, starting with a letter.")
-    if h in RESERVED:
+    if _reserved(h):
         raise SocialError(422, "That username is reserved. Please pick another.")
     return h
 
 
-def _claim(user_id: str, handle: str) -> bool:
+def _claim(user_id: str, handle: str, retry: bool = True) -> bool:
+    """Reserve a handle for this user. A reservation its owner doesn't use (left by a crash or a lost
+    race) is taken over once it is a minute old, so names can't stay blocked by leftovers."""
     try:
         get_db().handles.insert_one({"_id": handle, "user_id": user_id, "created_at": _now()})
         return True
     except DuplicateKeyError:
-        return get_db().handles.find_one({"_id": handle, "user_id": user_id}) is not None  # already ours
+        doc = get_db().handles.find_one({"_id": handle})
+        if doc is None:  # released meanwhile
+            return retry and _claim(user_id, handle, retry=False)
+        if doc["user_id"] == user_id:
+            return True
+        owner = get_db().users.find_one({"_id": doc["user_id"]}, {"handle": 1})
+        created = checkins.utc(doc.get("created_at")) or _now() - 2 * STALE_CLAIM
+        if retry and (owner is None or owner.get("handle") != handle) and _now() - created > STALE_CLAIM:
+            get_db().handles.delete_one({"_id": handle, "user_id": doc["user_id"]})
+            return _claim(user_id, handle, retry=False)
+        return False
+
+
+def _release(user_id: str, handle: str) -> None:
+    get_db().handles.delete_one({"_id": handle, "user_id": user_id})
 
 
 def _base(name: str) -> str:
     """'Zoë O'Brien' -> 'zoeobrien': ASCII letters and digits only, starting with a letter."""
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
     base = re.sub(r"[^a-z0-9]", "", ascii_name).lstrip("0123456789")[:15]
-    return base if len(base) >= 3 and base not in RESERVED else "hiker"
+    return base if len(base) >= 3 and not _reserved(base) else "hiker"  # the same rule as a username picked by hand
 
 
 def ensure_handle(user: dict) -> dict:
@@ -87,8 +110,11 @@ def ensure_handle(user: dict) -> dict:
     candidates = [base] + [f"{base}{secrets.randbelow(9000) + 1000}" for _ in range(20)]
     for handle in candidates:
         if _claim(user["_id"], handle):
-            get_db().users.update_one({"_id": user["_id"]}, {"$set": {"handle": handle}})
-            return {**user, "handle": handle}
+            # Only if no handle was set meanwhile (two first visits at once, or a change racing this).
+            if get_db().users.update_one({"_id": user["_id"], "handle": {"$exists": False}}, {"$set": {"handle": handle}}).matched_count:
+                return {**user, "handle": handle}
+            _release(user["_id"], handle)
+            return get_db().users.find_one({"_id": user["_id"]}) or user
     return user  # astronomically unlikely; the next /me tries again
 
 
@@ -99,9 +125,13 @@ def change_handle(user: dict, new: str) -> dict:
         return user
     if not _claim(user["_id"], handle):
         raise SocialError(409, "That username is taken.")
-    get_db().users.update_one({"_id": user["_id"]}, {"$set": {"handle": handle}})
+    # Compare-and-set: only replace the handle this request saw, so two quick changes can't both win.
+    current = {"handle": old} if old else {"handle": {"$exists": False}}
+    if not get_db().users.update_one({"_id": user["_id"], **current}, {"$set": {"handle": handle}}).matched_count:
+        _release(user["_id"], handle)
+        raise SocialError(409, "Your username was just changed somewhere else. Reload and try again.")
     if old:
-        get_db().handles.delete_one({"_id": old, "user_id": user["_id"]})
+        _release(user["_id"], old)
     return {**user, "handle": handle}
 
 
@@ -139,6 +169,11 @@ def following_count(user_id: str) -> int:
 
 def follows(follower_id: str | None, followee_id: str) -> bool:
     return bool(follower_id) and get_db().follows.find_one({"follower_id": follower_id, "followee_id": followee_id}) is not None
+
+
+def require_signed_up(user: dict) -> None:
+    if not user.get("registered_at"):
+        raise SocialError(403, "Finish signing up first.")
 
 
 def follow(follower_id: str, target: dict) -> FollowState:
@@ -201,34 +236,60 @@ def profile(user: dict, viewer_id: str | None) -> PublicProfile:
 
 
 def search(q: str, viewer_id: str | None, limit: int = 20) -> list[UserCard]:
+    # Checked before strip(), which would quietly drop some of them (e.g. \x1f). NUL makes MongoDB reject the regex.
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in q or ""):
+        raise SocialError(422, "Search with letters, numbers and spaces.")
     text = (q or "").strip()
     if not 2 <= len(text) <= 30:
         raise SocialError(422, "Search with 2 to 30 characters.")
-    pattern = re.escape(text.lower())
-    found = list(get_db().users.find(
-        {"registered_at": {"$exists": True}, "handle": {"$exists": True},
-         "$or": [{"handle": {"$regex": f"^{pattern}"}},
-                 {"profile.display_name": {"$regex": f"(^|\\s){re.escape(text)}", "$options": "i"}}]},
-    ).sort("handle", 1).limit(limit))
-    found.sort(key=lambda u: (u["handle"] != text.lower(), not u["handle"].startswith(text.lower()), u["handle"]))
-    return cards(found, viewer_id)
+    low = text.lower()
+    signed_up = {"registered_at": {"$exists": True}, "handle": {"$exists": True}}
+    # Two bounded queries, ranked together: an exact or prefix username match is never cut off by
+    # alphabetically earlier name matches.
+    exact = get_db().users.find_one({**signed_up, "handle": low})
+    by_handle = list(get_db().users.find({**signed_up, "handle": {"$regex": f"^{re.escape(low)}"}}).sort("handle", 1).limit(limit))
+    by_name = list(get_db().users.find({**signed_up, "profile.display_name": {"$regex": f"(^|\\s){re.escape(text)}", "$options": "i"}})
+                   .sort("handle", 1).limit(limit))
+    found = {u["_id"]: u for u in [*([exact] if exact else []), *by_handle, *by_name]}.values()
+    ranked = sorted(found, key=lambda u: (u["handle"] != low, not u["handle"].startswith(low), u["handle"]))
+    return cards(ranked[:limit], viewer_id)
 
 
-def _list(user: dict, viewer_id: str | None, mine_field: str, theirs_field: str, skip: int, limit: int) -> list[UserCard]:
+LIST_SCAN_BATCHES = 10  # a page skips at most this many batches of hidden rows before returning short
+
+
+def _list(user: dict, viewer_id: str | None, mine_field: str, theirs_field: str, skip: int, limit: int,
+          before: dt.datetime | None = None) -> list[UserCard]:
+    """One page of followers/following, newest first. Pass the last row's followed_at as `before` for the
+    next page; hidden rows are skipped server-side, so a page shorter than `limit` means the list is done."""
     if not is_public(user) and user["_id"] != viewer_id:
         raise SocialError(403, "this profile is private")
-    rows = list(get_db().follows.find({mine_field: user["_id"]}).sort("created_at", DESCENDING).skip(skip).limit(limit))
-    ids = [r[theirs_field] for r in rows]
-    by_id = {u["_id"]: u for u in get_db().users.find({"_id": {"$in": ids}, "handle": {"$exists": True}, "registered_at": {"$exists": True}})}
-    return cards([by_id[i] for i in ids if i in by_id], viewer_id)
+    shown, when = [], {}
+    cursor = checkins.utc(before).astimezone(dt.timezone.utc).replace(tzinfo=None) if before is not None else None
+    for _ in range(LIST_SCAN_BATCHES):
+        query = {mine_field: user["_id"], **({"created_at": {"$lt": cursor}} if cursor is not None else {})}
+        rows = list(get_db().follows.find(query).sort("created_at", DESCENDING).skip(skip).limit(limit))
+        skip = 0  # only the first batch; later batches continue from the cursor
+        ids = [r[theirs_field] for r in rows]
+        by_id = {u["_id"]: u for u in get_db().users.find({"_id": {"$in": ids}, "handle": {"$exists": True}, "registered_at": {"$exists": True}})}
+        for r in rows:
+            u = by_id.get(r[theirs_field])
+            # A private hiker's follows stay private: they appear in others' lists only to the list's owner and themselves.
+            if u and (is_public(u) or viewer_id in (u["_id"], user["_id"])) and len(shown) < limit:
+                shown.append(u)
+                when[u["_id"]] = checkins.utc(r["created_at"])
+        if len(shown) >= limit or len(rows) < limit:
+            break
+        cursor = rows[-1]["created_at"]
+    return [c.model_copy(update={"followed_at": when[u["_id"]]}) for c, u in zip(cards(shown, viewer_id), shown)]
 
 
-def followers(user: dict, viewer_id: str | None, skip: int = 0, limit: int = 50) -> list[UserCard]:
-    return _list(user, viewer_id, "followee_id", "follower_id", skip, limit)
+def followers(user: dict, viewer_id: str | None, skip: int = 0, limit: int = 50, before: dt.datetime | None = None) -> list[UserCard]:
+    return _list(user, viewer_id, "followee_id", "follower_id", skip, limit, before)
 
 
-def following(user: dict, viewer_id: str | None, skip: int = 0, limit: int = 50) -> list[UserCard]:
-    return _list(user, viewer_id, "follower_id", "followee_id", skip, limit)
+def following(user: dict, viewer_id: str | None, skip: int = 0, limit: int = 50, before: dt.datetime | None = None) -> list[UserCard]:
+    return _list(user, viewer_id, "follower_id", "followee_id", skip, limit, before)
 
 
 def activity(viewer_id: str, limit: int = 30) -> list[ActivityItem]:

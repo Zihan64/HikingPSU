@@ -4,9 +4,15 @@
 
 Tell it *"Saturday afternoon, two of us, no car, about 3 hours, we'd like a view"* and it suggests real trails around Happy Valley. Each suggestion comes with a five-level difficulty rating, the reasons behind that rating, a time estimate, and how to get there without a car.
 
+The catalog currently holds **52 trails** (12 hand-curated, 40 imported from OpenStreetMap) across Rothrock and Bald Eagle State Forests, Mount Nittany, Whipple Dam, Black Moshannon and nearby town parks.
+
 <!-- Add a screenshot or GIF of the app here: ![HikingPSU demo](docs/demo.gif) -->
 
 ---
+
+## Website
+
+**https://hikingpsu.com**
 
 ## Why we built this
 
@@ -28,7 +34,9 @@ HikingPSU addresses all three, and it is scoped to one region so the information
 - **Official trail library.** Search manager-published routes, overlay original GIS lines, compare your location, and open official PDF/offline maps at the publisher.
 - **⭐ Sorted for you.** For signed-in hikers, the Around Happy Valley list puts the trails that fit them first, ranked by their transport, interests, saved trails and hike log. Ranking is a deterministic score, not the AI: a trail only ranks if you can reach it and it is at most one level above your comfort level, and each ranked card says why it fits. Your comfort level and pace adjust as you log hikes.
 - **🏅 Badges for real hikes.** Check in at a trail entrance, finish with a rating, and earn badges: one per trail, one per completed park, and more at 10 and 30 trails, or for walking the same trail 5 times.
-- **👥 Hikers, not just trails.** Every hiker gets a public profile at `/?u=<username>` with their badges. Search for people, follow them, and see the badges they earn; review authors link to their profiles. A switch hides your badges and stats.
+- **💬 Community.** Rate trails and leave comments, heart other hikers' comments, and browse everything on the Community page. Trail cards show the top comments, and a **View trail details** button opens the full trail page.
+- **🚗 Scenic drives.** A Drives page lists curated scenic drives from campus (mountain roads, valley byways, forest gravel and PA Wilds), filtered by length, with links to their sources.
+- **👥 Hikers, not just trails** *(backend done, UI in progress)*. Every hiker gets a username and a public profile with their badges. The API supports searching for people, following them and seeing the badges they earn, with a switch that hides your badges and stats. The profile, search and follow screens are not built yet.
 - **🛡️ No made-up trails.** The AI can recommend only trails that come back from the database search. Anything else is removed before it reaches you.
 
 ## Device-aware interface
@@ -40,6 +48,8 @@ including changes while resizing a window or rotating a device:
   list scrolls only inside the area below the map and is clipped at that area's
   boundary. Official route details and resources appear once in the left sidebar;
   the right pane contains the map. Card selection also works with Enter or Space.
+- **Header pages:** Trails (catalog), Drives, Community, Official library and your
+  profile open from the header on every layout.
 - **Below 960px:** bottom navigation switches between Plan, Trails, Map and Library.
   Recommendations have a shortcut to the results. Selecting a trail opens the
   map, and Trail details returns to the selected card.
@@ -53,6 +63,23 @@ including changes while resizing a window or rotating a device:
 Layout uses CSS media queries and `matchMedia`, rather than browser-name or
 user-agent checks. Hidden map panels retain their map instance and refresh its
 size with `ResizeObserver` when shown again.
+
+The Logo and Explore button return to the planner from the library, profile,
+official routes and expanded map. Chats and drafts are preserved; late search
+responses cannot reopen the previous map selection. The compact header reserves
+the same avatar/name/action space for Guest, signed-in, loading and error states;
+long names are truncated and the guest avatar uses the supplied default image.
+The shared header preserves the sky theme, decorative trees and walking hiker,
+with 20px padding above and below its content instead of a fixed height. The
+sign-in page and app share a layered SVG scenery (ridges, forest, wildlife) that
+is pinned to the viewport so the ground stays visible at any window size.
+
+Map information is placed beside the map on desktops/tablets, with a compact
+toolbar above the map on narrow phones. Expand in the map's top-right corner
+opens a viewport-filling preview of the same map instance. Back or Escape exits;
+keyboard focus stays inside the preview and background controls are inactive.
+The development-only `/tests/profile-layout.html` fixture checks synthetic
+Guest/short/long/loading/error profiles without an actual sign-in.
 
 ## Trail catalog
 
@@ -73,21 +100,6 @@ manager documents still stay at their original publishers.
 See [catalog data, regeneration commands and review table](docs/trails-catalog.md).
 
 ## Device location
-
-The Logo and Explore button return to the planner from the library, profile,
-official routes and expanded map. Chats and drafts are preserved; late search
-responses cannot reopen the previous map selection. The compact header reserves
-the same avatar/name/action space for Guest, signed-in, loading and error states;
-long names are truncated and the guest avatar uses the supplied default image.
-The shared header preserves the sky theme, decorative trees and walking hiker,
-with 20px padding above and below its content instead of a fixed height.
-
-Map information is placed beside the map on desktops/tablets, with a compact
-toolbar above the map on narrow phones. Expand in the map's top-right corner
-opens a viewport-filling preview of the same map instance. Back or Escape exits;
-keyboard focus stays inside the preview and background controls are inactive.
-The development-only `/tests/profile-layout.html` fixture checks synthetic
-Guest/short/long/loading/error profiles without an actual sign-in.
 
 Choose **Use my location** in the map controls to request browser permission. The app
 asks for a fresh, high-accuracy fix first, then retries once at standard accuracy
@@ -220,23 +232,58 @@ L5 Very Hard  effort ≥ 14
 
 Central PA trails are known for rocky footing, and that is why terrain can push a trail up a level. All thresholds live in one `CALIBRATION` dict in `backend/app/difficulty.py`. `backend/scripts/calibrate.py` compares the model's levels with ratings from experienced local hikers and reports how often they agree.
 
-Current ratings for the seed trails:
+Current ratings for the hand-curated trails (imported OSM trails are rated by the same model; out-and-back routes are rated on the round trip):
 
 | Trail | mi | ft gain | Level | Why |
 |---|---|---|---|---|
 | Arboretum & Hartley Wood Loop | 1.2 | 60 | L1 Starter | 1.2 mi loop; 60 ft of climbing |
 | Millbrook Marsh Boardwalk | 1.5 | 30 | L1 Starter | 1.5 mi loop; 30 ft of climbing |
+| Whipple Dam State Park Lake Loop | 1.8 | 80 | L1 Starter | 1.8 mi loop; 80 ft of climbing |
 | Walnut Springs & Thompson Woods | 2.5 | 200 | L1 Starter | 2.5 mi loop; 200 ft of climbing |
+| Hobie's Trail – Colyer Lake Loop | 2.6 | 120 | L1 Starter | 2.6 mi loop; 120 ft of climbing |
 | Mount Nittany – Mike Lynch Overlook | 2.3 | 650 | L2 Easy | rocky in places; short but steep |
 | Musser Gap Trail | 3.6 | 700 | L2 Easy | 3.6 mi out-and-back; 700 ft of climbing |
+| Jo Hays Vista – Mid State Trail Ridge Walk | 3.0 | 350 | L3 Moderate | bumped for rocky footing |
 | Shingletown Gap – Lower Trail | 4.0 | 600 | L3 Moderate | bumped for rocky footing, stream crossings |
 | Indian Steps – Tussey Mountain | 2.4 | 900 | L3 Moderate | bumped for rocky footing, hands-on sections |
 | Mount Nittany – Full Loop | 5.5 | 1100 | L4 Hard | bumped for rocky footing, easy to lose the trail |
 | Shingletown Gap – Ridge Loop | 7.5 | 1500 | L5 Very Hard | rocky, hands-on, navigation, stream crossings |
 
+## The recommendation model
+
+"Recommended for you" (`GET /me/recommendations`, and the agent's ranking for signed-in hikers) is deterministic: hard filters remove trails that don't fit, then a weighted score orders the rest. Each score term also produces the "why it fits" line on the card. No LLM decides which trails are shown.
+
+```mermaid
+flowchart LR
+    U[Your profile<br/>+ hike log] --> A[Comfort level<br/>& pace]
+    A --> F{Hard filters<br/>reachable · level ≤ comfort+1<br/>fits your time}
+    T[(Trails)] --> F
+    F --> S[Weighted score]
+    S --> R[Top 5<br/>with reasons]
+```
+
+Your **comfort level** starts at your chosen max level (L2 if unset) and moves up or down one step based on how hard your last 5 hikes felt compared with their rating. Your **pace** is the median of your logged time ÷ estimated time (after 2+ hikes, clamped to 0.6–1.8×).
+
+```
+score = 2.0·(interests matched) − 2.0·(avoids matched) − 1.5·|level − comfort|
+      + 1.0·saved + (0.8 if new else −0.5) + 0.5·rated ≥ 4 + 0.5·verified
+```
+
+| Term | Weight | Why it's weighted this way |
+|---|---:|---|
+| `feature` | +2.0 each | What the hiker asked for should dominate the order |
+| `avoid` | −2.0 each | Mirrors interests: one dislike cancels one like |
+| `level` | −1.5 per level | Prefers trails at the comfort level; a level off costs less than a missed interest |
+| `saved` | +1.0 | An explicit "I want this" signal |
+| `novel` / `repeat` | +0.8 / −0.5 | Nudges toward new trails without hiding favorites |
+| `rated` | +0.5 | Logged a rating of 4 or 5 |
+| `verified` | +0.5 | Tie-breaker toward field-checked data |
+
+Transport is a filter, not a score term, so a trail you can't reach never shows up however well it matches. Weights and thresholds all live in `REC_CALIBRATION` in `backend/app/recommend.py`, and every API result includes a per-term `breakdown` so a ranking can be explained or tuned.
+
 ## Getting started
 
-**Requirements:** Python 3.11+, Node 18+, and an [Anthropic API key](https://console.anthropic.com/). You can skip the key and run offline with `DEMO_MODE=1`.
+**Requirements:** Python 3.11+, Node 18+, and a [Gemini API key](https://aistudio.google.com/) (or an [Anthropic API key](https://console.anthropic.com/) with `LLM_PROVIDER=claude`). You can skip the key and run offline with `DEMO_MODE=1`. MongoDB and Auth0 are optional; without them sign-in, profiles, reviews and badges are disabled and everything else works.
 
 ```bash
 git clone https://github.com/Zihan64/HikingPSU.git
@@ -313,11 +360,16 @@ npm run dev                   # http://localhost:5173, proxies /api to :8000
 | `GEMINI_THINKING_LEVEL` | `low` | How long Gemini thinks before answering (`minimal`/`low`/`medium`/`high`, empty = model default). Lower is faster; 3.8 Flash doesn't accept `minimal` |
 | `GEMINI_TIMEOUT_S` / `CHAT_DEADLINE_S` | `20` / `40` | Seconds per Gemini call (no retries) and for the whole chat tool loop; past either, chat answers offline |
 | `ANTHROPIC_API_KEY` | — | Claude API key; used when `LLM_PROVIDER=claude` |
-| `HIKINGPSU_MODEL` | see `llm.py` | Which Claude model to use |
+| `HIKINGPSU_MODEL` | `claude-sonnet-5-5` | Which Claude model to use |
+| `MONGODB_URI` / `MONGODB_DB` | — / `hikingpsu` | User database; optional (see [User database](#user-database-mongodb)) |
+| `AUTH0_DOMAIN` / `AUTH0_AUDIENCE` | see `.env.example` | Auth0 tenant used to verify login tokens |
+| `AUTH0_MGMT_CLIENT_ID` / `_SECRET` | — | Optional; lets "Delete account" also remove the Auth0 login |
 | `DEMO_MODE` | `0` | `1` = no API calls, offline keyword matching |
-| `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `20` | Chat limits per anonymous IP |
+| `CHAT_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `3` / `5` | Chat limits per anonymous IP (keyed by the Cloudflare client IP); guests who run out are prompted to log in |
 | `CHAT_LIMIT_USER_PER_MIN` / `_PER_DAY` | `6` / `60` | Chat limits per signed-in user |
 | `CHAT_LIMIT_GLOBAL_PER_DAY` | `1000` | Live AI calls per day across everyone; after that, chat answers offline |
+| `SEARCH_LIMIT_ANON_PER_MIN` / `_PER_DAY` | `15` / `200` | People searches per anonymous IP |
+| `SEARCH_LIMIT_USER_PER_MIN` / `_PER_DAY` | `30` / `600` | People searches per signed-in user |
 | `CHAT_SIGNING_KEY` | random per start | Signs assistant replies so clients can't forge them. Set it if you run several workers |
 
 `backend/.env` is loaded automatically. Variables already set in the environment take priority.
@@ -353,6 +405,8 @@ The pop-up needs these settings in Auth0 → Applications → your Single Page A
 | `GET` | `/health` | Liveness check and trail count |
 | `GET` | `/trails?max_level=&car_free=&max_time_min=` | Filtered list of trails with difficulty |
 | `GET` | `/trails/{id}` | One trail |
+| `GET` | `/parks` | Managed areas with manager, kind, center and trail count (unverified areas last) |
+| `GET` | `/trails/{id}/geometry` | Stored OSM line and elevation profile for one trail (404 when no line is stored) |
 | `GET` | `/official/library?q=&activity=&kind=` | Search curated manager pages and PDF/offline map links |
 | `GET` | `/official/trails?area_id=&activity=&q=` | Live manager-listed route names with complete-segment activity checks |
 | `GET` | `/official/trails/{area_id}/{route_id}/geometry?activity=` | Validated original manager line geometry, provenance and planning notice; not persisted |
@@ -381,6 +435,16 @@ All `/me` routes need a bearer token and only ever see the caller's own data.
 
 ### Check-ins and badges
 
+For testing without visiting a trailhead, use the separately deployed,
+authenticated **developer tools** service. It requires real Auth0 login, an
+explicit contributor allowlist and per-operation permissions before serving any
+private page, asset or simulator API. Configuration is fail-closed; there is no
+anonymous local fallback. See [access and deployment](docs/devtools-access.md),
+then [the Badge Lab guide](docs/badge-lab.md). Test subjects, simulated location,
+test clocks and memory records remain separate from production, and contributors
+cannot reset each other's records. Public `npm run build` excludes these tools
+and checks the release artifact; private builds use `npm run build:devtools`.
+
 A completed hike needs proof: **Start hike · check in** on a trail page sends one location fix, and the server accepts it only within **200 m** of an entrance (the trailhead, or a real end of the mapped route; where a route is mapped in pieces, the points where pieces join are mid-trail and don't count) with reported accuracy of **100 m** or better. It stores the distance and accuracy, never the coordinates. **Finish & rate** opens after `max(15 min, 40% of the estimated time)` (the server allows 60 s early, for phone clocks running slightly fast); finishing needs the three 1–5 ratings (comment optional) and writes the review and a hike-log entry. A check-in expires after **24 h**, a user has one active check-in at a time, and at most **2** hikes can be completed per State College calendar day (counted on the day the hike can finish, so a late-evening start that can only finish after midnight is allowed). If a finish is cut off by a database error after the hike was marked complete, sending it again completes the remaining steps. Manual hike-log entries never earn badges. All thresholds live in `RULES` in `backend/app/checkins.py`.
 
 | Tier | Badge | Earned by |
@@ -403,15 +467,15 @@ Badges are permanent and recomputed from completed check-ins (collections `check
 
 ### Public profiles and follows
 
-Each signed-up hiker gets a **username** (`handle`: 3–20 lowercase letters, digits or `_`, starting with a letter; a few names are reserved). It is assigned from their public name at sign-up (or on the next visit for older accounts), with digits added if taken, and can be changed on the profile page. Collection `handles` (`_id` = username) makes usernames unique; `follows` holds one document per follower and followee.
+Each signed-up hiker gets a **username** (`handle`: 3–20 lowercase letters, digits or `_`, starting with a letter; a few names are reserved, and names containing `hikingpsu`, `official`, `admin` or `moderator` are refused). It is assigned from their public name at sign-up (or on the next visit for older accounts), with digits added if taken, and can be changed on the profile page. Only signed-up accounts can pick a username or follow. The **public name** is the first word of the name typed at sign-up (or of the Auth0 name before that), never the full name; older accounts are trimmed on their next visit, reviews included. Collection `handles` (`_id` = username) makes usernames unique; `follows` holds one document per follower and followee.
 
-A **public profile** shows the public name, username, join date, follower and following counts, completed trails and badges. Turning off *Show my badges and stats* (`profile.public_profile = false`) leaves only the name, username, join date and counts, and hides the follower lists. Email, full name, birthday, gender, phone and address are never returned. Account deletion removes the username and every follow in both directions.
+A **public profile** shows the public name, username, join date, follower and following counts, completed trails and badges. Turning off *Show my badges and stats* (`profile.public_profile = false`) leaves only the name, username, join date and counts, and hides the follower lists. A private hiker also stays out of other people's follower lists, except to that list's owner, so their follows can't be pieced together. Email, full name, birthday, gender, phone and address are never returned. Account deletion removes the username and every follow in both directions.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/users?q=` | Up to 20 hikers whose username starts with `q`, or with a word of their name starting with `q` (2–30 characters) |
+| `GET` | `/users?q=` | Up to 20 hikers: an exact username first, then usernames starting with `q`, then names with a word starting with `q` (2–30 characters; emails and contact details are never searched). Rate-limited (429) |
 | `GET` | `/users/{handle}` | Public profile (`following` / `follows_you` for signed-in viewers) |
-| `GET` | `/users/{handle}/followers`, `/users/{handle}/following` | Follower lists, newest first (`skip`, `limit`); 403 for private profiles except to their owner |
+| `GET` | `/users/{handle}/followers`, `/users/{handle}/following` | Follower lists, newest first (`limit`; for the next page pass the last row's `followed_at` as `before`, and a short page means the end); 403 for private profiles except to their owner |
 | `PUT` `DELETE` | `/me/following/{handle}` | Follow / unfollow → `{ following, followers_count }` |
 | `GET` | `/me/following/activity` | Badges recently earned by public profiles you follow |
 | `PUT` | `/me/handle` | `{ handle }` → change your username (409 taken, 422 invalid or reserved) |
@@ -434,29 +498,45 @@ Hikers rate a trail and leave an optional comment (collection `reviews`, one per
 ```
 backend/
   app/
+    main.py         FastAPI app: health, trails, parks, geometry, chat; mounts the routers below
     llm.py          LLM_PROVIDER switch (Gemini default, Claude optional)
-    agent.py        tool-use loop for either provider, fallback, guardrail
+    agent.py        Tool-use loop for either provider, deadlines, offline fallback, guardrail
+    ratelimit.py    Per-IP / per-user / global chat limits
     difficulty.py   Five-level difficulty model
     recommend.py    Personalized ranking: hard filters + weighted score (REC_CALIBRATION)
     preference_parser.py  Free-text preferences → suggested fields (LLM, offline fallback)
-    store.py        Trail data and search (with feature synonyms)
+    store.py        Trail data, parks, geometry and search (with feature synonyms)
     tools.py        search_trails · get_weather · hunting_season_note
-    models.py       Pydantic schemas
-    main.py         FastAPI routes
     official.py     Official link index and bounded, non-persistent GIS adapter
+    models.py · user_models.py   Pydantic schemas
     db.py           MongoDB connection and indexes
-    community.py    Community feed, top comments per trail, starter tips
-    likes.py        Hearts on reviews and tips
     auth.py         Auth0 token verification, auth dependencies
     users.py · hikes.py · chats.py   Per-collection data access
-    user_models.py  Schemas for profile, preferences, hikes, chats
-    routes_user.py  /me routes
-  data/trails.json  Trail database
-  data/official_sources.json  Official manager metadata and external links only
-  scripts/          Calibration against hiker ratings
-  tests/            Model, search, guardrail and agent tests (no network needed)
+    reviews.py · likes.py · community.py   Reviews, hearts, community feed and starter tips
+    checkins.py · badges.py   Trailhead check-ins (RULES) and badge awarding
+    social.py       Usernames, public profiles, follows
+    routes_user.py · routes_reviews.py · routes_checkins.py · routes_social.py   API routers
+  data/
+    trails.json             Hand-curated trails
+    trails_osm.json         Trails imported from OpenStreetMap
+    parks.json              Park assignments with evidence
+    trail_geometry.json     OSM line snapshots and elevation profiles
+    official_sources.json   Official manager metadata and external links only
+    community_seed.json     Starter trail tips
+  scripts/          OSM import, park assignment, difficulty calibration, demo queries
+  tests/            pytest suite (no network or API key needed; MongoDB is mocked)
 frontend/
-  src/              React + Vite + Tailwind + Leaflet
+  src/
+    App.jsx         Planner, map, results and page switching
+    landing/        Sign-in page, logo, trail ticker
+    scenery/ · theme/   Layered SVG backdrop, wildlife, header trail
+    drives/         Scenic drives page and data
+    TrailCatalog.jsx · Community.jsx · OfficialLibrary.jsx · Dashboard.jsx   Main pages
+    CheckinControl.jsx · ActiveCheckinBanner.jsx · ReviewModal.jsx   Check-in and rating flow
+    location.js · trailGeometry.js · checkin.js · catalogFilter.js · trailSort.js   Logic without React
+  tests/            node:test suites plus dev-only location and profile fixtures
+docs/trails-catalog.md   Catalog data, regeneration commands and review table
+scripts/start-demo.ps1   Windows one-command offline demo
 ```
 
 ## Contributing trail data
@@ -471,9 +551,23 @@ Add a trail to `backend/data/trails.json`. Each entry needs distance, elevation 
 
 HikingPSU is a **planning aid, not a navigation tool**. Trail data was compiled by hand from public sources and may be inaccurate or out of date. Entries marked `verified: false` have not been checked in the field. The hunting-season flag is a rough approximation of the Pennsylvania calendar. Always check official sources such as [PA DCNR](https://www.dcnr.pa.gov/) and the [PA Game Commission](https://www.pgc.pa.gov/), carry a map, tell someone your plans, and turn back if conditions are worse than expected.
 
+## Project status
+
+Built over a two-day sprint (24–25 Oct 2026): about 100 commits and 30+ merged pull requests. In rough order:
+
+1. **Core:** FastAPI backend, five-level difficulty model, tool-using AI agent with a no-invented-trails guardrail, React + Leaflet frontend, offline demo mode.
+2. **Accounts:** MongoDB user database with Auth0 login, three-page sign-up form, profile page with hike log and saved trails, account deletion.
+3. **Data:** OpenStreetMap importer (40 trails), park assignments, source geometry and elevation profiles, searchable trail catalog, official trail library with live DCNR GIS overlays.
+4. **Planner:** device location and route reference, personalized "Recommended for you" ranking, nearest/recommended sorting, chat Markdown, chat abuse limits, switchable LLM (Gemini by default) with fail-fast timeouts.
+5. **Community:** reviews and ratings, hearts, Community page, scenic drives page.
+6. **Look and feel:** PSU blue-and-white theme, sign-in page, layered SVG outdoor scenery.
+7. **Badges and social:** trailhead check-ins, verified completions and badges (backend and frontend); usernames, public profiles and follows (backend only so far).
+
 ## Roadmap
 
-- [ ] Grow to 30+ trails, with every entry verified
+- [ ] Build the public profile, people search and follow screens on the existing social API
+- [x] Grow to 30+ trails (52 now)
+- [ ] Field-verify every trail entry (none are `verified: true` yet)
 - [ ] Calibrate difficulty thresholds against local hikers' ratings and publish the agreement rate
 - [x] Personalized difficulty that adapts to each hiker's pace (`recommend.py`: comfort level drifts with how hard logged hikes felt; time estimates scale with logged durations)
 - [ ] Tune `REC_CALIBRATION` weights against sample profiles reviewed by club hikers

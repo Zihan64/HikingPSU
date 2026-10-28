@@ -1,0 +1,15 @@
+.badge-lab-active {padding-top:36px;box-sizing:border-box}
+.badge-lab-active .app-shell {height:calc(100dvh - 36px);overflow:clip}
+.badge-lab-banner {position:fixed;inset:0 0 auto;z-index:6000;min-height:36px;display:flex;align-items:center;justify-content:center;background:#fff0c2;color:#553b12;font:600 12px/1.4 system-ui;padding:6px 12px;text-align:center}
+.badge-lab-panel {position:fixed;right:12px;bottom:12px;z-index:6500;width:350px;max-height:75dvh;overflow:auto;border:2px solid #ad751b;border-radius:12px;background:#fffdf6;color:#253c30;box-shadow:0 8px 30px #0003;font:12px/1.6 system-ui}
+.badge-lab-panel summary {position:sticky;top:0;z-index:1;cursor:pointer;font-weight:700;padding:12px;background:#fff0c2}
+.badge-lab-controls {display:grid;gap:10px;padding:12px}
+.badge-lab-controls label {display:grid;gap:4px;font-weight:600}
+.badge-lab-controls select {width:100%;min-width:0;padding:8px;border:1px solid #c7d4c1;border-radius:6px;background:#fff;font-size:16px}
+.badge-lab-buttons {display:flex;gap:6px;flex-wrap:wrap}
+.badge-lab-controls button {border:1px solid #b4c8ac;background:#edf5e8;border-radius:6px;padding:8px;min-height:40px;font:inherit;cursor:pointer}
+.badge-lab-controls button:disabled {opacity:.45;cursor:default}
+.badge-lab-controls dl {display:grid;grid-template-columns:80px minmax(0,1fr);gap:4px}
+.badge-lab-controls .badge-lab-reset {background:#fff0e9;border-color:#dca27d}
+.badge-lab-error {background:#fff0e9;color:#933d27;padding:8px;border-radius:6px}
+@media(width < 600px) {.badge-lab-panel {left:8px;right:8px;bottom:8px;width:auto;max-height:55dvh}.badge-lab-banner {font-size:10px}}

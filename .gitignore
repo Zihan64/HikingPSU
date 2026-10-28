@@ -8,3 +8,5 @@ dist/
 .pytest_cache/
 .env.local
 *.local
+backend/.devtools/
+frontend/.devtools-dist/
