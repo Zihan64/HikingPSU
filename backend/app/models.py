@@ -94,3 +94,4 @@ class ChatResponse(BaseModel):
     recommended_ids: list[str]
     trails: list[TrailWithDifficulty]
     tool_log: list[dict] = []
+    usage: list[dict] = []  # one entry per model call: input/output tokens, for cost tracking and evals
