@@ -1,0 +1,177 @@
+# In-scope requests in Chinese, Spanish and Korean. Pass: same language, same tools and arguments as
+# the English case, still grounded (checks.hallucination).
+
+- id: zh_car_free_view
+  category: multilingual
+  messages:
+    - {role: user, content: "我没有车，周六下午有3个小时，想看风景。"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 153}
+    must_recommend: true
+    max_recommendations: 3
+    language: zh
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: zh_beginner
+  category: multilingual
+  messages:
+    - {role: user, content: "我是第一次徒步，有车，推荐一条简单的步道。"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    language: zh
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: zh_lake_family
+  category: multilingual
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "想带家人去湖边散步，路要平一点。"}
+  expect:
+    tools_called: [search_trails]
+    must_recommend: true
+    language: zh
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: zh_sunset
+  category: multilingual
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "今晚哪里可以看日落？"}
+  expect:
+    tools_called: [search_trails, get_weather]
+    must_recommend: true
+    language: zh
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: zh_one_hour_campus
+  category: multilingual
+  messages:
+    - {role: user, content: "我在校园里，只有一个小时，没车，有什么短途散步？"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 51}
+    must_recommend: true
+    language: zh
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: es_car_free_view
+  category: multilingual
+  messages:
+    - {role: user, content: "No tengo coche. Tengo 3 horas el sábado por la tarde y quiero buenas vistas."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 153}
+    must_recommend: true
+    language: es
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: es_beginner
+  category: multilingual
+  messages:
+    - {role: user, content: "Nunca he hecho senderismo. Tengo coche. ¿Qué ruta fácil me recomiendas?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    language: es
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: es_challenging
+  category: multilingual
+  profile: {has_car: true, fitness: 5}
+  messages:
+    - {role: user, content: "Quiero algo muy difícil y rocoso, tengo todo el día."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {min_level_gte: 4}
+    must_recommend: true
+    language: es
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: es_hunting
+  category: multilingual
+  messages:
+    - {role: user, content: "Voy a Rothrock el 29 de noviembre. ¿Tengo que preocuparme por la temporada de caza?"}
+  expect:
+    tools_called: [hunting_season_note]
+    language: es
+    judge: [same_language, mentions_blaze_orange]
+
+- id: es_birds
+  category: multilingual
+  messages:
+    - {role: user, content: "¿Un lugar para observar aves en un paseo corto? No manejo."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    must_recommend: true
+    language: es
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: ko_car_free_view
+  category: multilingual
+  messages:
+    - {role: user, content: "차가 없어요. 토요일 오후에 3시간 정도 있고 경치 좋은 곳을 원해요."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 153}
+    must_recommend: true
+    language: ko
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: ko_beginner
+  category: multilingual
+  messages:
+    - {role: user, content: "등산은 처음이에요. 차는 있어요. 쉬운 코스 추천해 주세요."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    language: ko
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: ko_stroller
+  category: multilingual
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "유모차를 끌고 갈 수 있는 평평한 산책로가 있나요?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    language: ko
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: ko_rain
+  category: multilingual
+  messages:
+    - {role: user, content: "내일 비 와요? 안 오면 차로 갈 수 있는 숲길 2시간 코스 알려주세요."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {max_time_min_lte: 102}
+    must_recommend: true
+    language: ko
+    judge: [same_language, grounded_difficulty, says_how_to_get_there]
+
+- id: ko_official_map
+  category: multilingual
+  messages:
+    - {role: user, content: "Rothrock 주립숲 공식 PDF 지도를 다운로드할 수 있나요?"}
+  expect:
+    tools_called: [search_official_resources]
+    language: ko
+    judge: [same_language, links_only_tool_urls]

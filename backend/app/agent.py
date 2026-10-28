@@ -21,6 +21,7 @@ log = logging.getLogger("hikingpsu.agent")
 
 MODEL = llm.CLAUDE_MODEL
 MAX_TURNS = 5  # tool-use rounds per request; caps the cost of a single message
+CLAUDE_MAX_TOKENS = 4096  # per model call, thinking included (same budget as the Gemini path)
 RECOMMEND = RECOMMEND_FOR_ME_TOOL["name"]
 
 # Signed-in users only: k -> the personal ranking in recommend.tool_output() form.
@@ -113,17 +114,22 @@ def _run_gemini(messages: list[ChatMessage], system: str, tools: list[dict], rec
     )
     convo = [types.Content(role="user" if m.role == "user" else "model", parts=[types.Part(text=m.content)]) for m in messages]
     tool_log: list[dict] = []
+    usage: list[dict] = []
     deadline = time.monotonic() + llm.CHAT_DEADLINE_S
 
     for turn in range(MAX_TURNS):
         if time.monotonic() > deadline:  # run() answers offline instead of keeping the user waiting
             raise TimeoutError(f"Gemini tool loop passed {llm.CHAT_DEADLINE_S:.0f}s after {turn} turns")
         resp = client.models.generate_content(model=llm.GEMINI_MODEL, contents=convo, config=config)
+        u = getattr(resp, "usage_metadata", None)  # bookkeeping only: never fail a reply over it
+        usage.append({"model": llm.GEMINI_MODEL, "input_tokens": getattr(u, "prompt_token_count", 0) or 0,
+                      # thinking is billed as output
+                      "output_tokens": (getattr(u, "candidates_token_count", 0) or 0) + (getattr(u, "thoughts_token_count", 0) or 0)})
         calls = resp.function_calls or []
         if not calls:
             if not (resp.text or "").strip():  # e.g. token limit or safety block: let run() answer offline
                 raise RuntimeError(f"empty Gemini reply ({resp.candidates[0].finish_reason if resp.candidates else 'no candidates'})")
-            return _finalize(resp.text, tool_log)
+            return _finalize(resp.text, tool_log, usage)
 
         convo.append(resp.candidates[0].content)  # as returned, so thought signatures go back unchanged
         parts = []
@@ -135,21 +141,27 @@ def _run_gemini(messages: list[ChatMessage], system: str, tools: list[dict], rec
                 id=call.id, name=call.name, response={"error": out} if is_error else {"output": out})))
         convo.append(types.Content(role="user", parts=parts))
 
-    return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log)
+    return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log, usage)
 
 
 def _run_claude(messages: list[ChatMessage], system: str, tools: list[dict], recommender: Recommender | None) -> ChatResponse:
     client = _client()
     convo = [{"role": m.role, "content": m.content} for m in messages]
     tool_log: list[dict] = []
+    usage: list[dict] = []
 
     for _ in range(MAX_TURNS):
-        resp = client.messages.create(
-            model=MODEL, max_tokens=1200, system=system, tools=tools, messages=convo
+        resp = client.messages.create(  # max_tokens includes the model's thinking; 1200 left some replies empty
+            model=MODEL, max_tokens=CLAUDE_MAX_TOKENS, system=system, tools=tools, messages=convo
         )
+        u = getattr(resp, "usage", None)  # bookkeeping only: never fail a reply over it
+        usage.append({"model": MODEL, "input_tokens": getattr(u, "input_tokens", 0) or 0,
+                      "output_tokens": getattr(u, "output_tokens", 0) or 0})
         if resp.stop_reason != "tool_use":
             text = "".join(b.text for b in resp.content if b.type == "text")
-            return _finalize(text, tool_log)
+            if not text.strip():  # e.g. the token limit was spent thinking: let run() answer offline
+                raise RuntimeError(f"empty Claude reply ({resp.stop_reason})")
+            return _finalize(text, tool_log, usage)
 
         convo.append({"role": "assistant", "content": resp.content})
         results = []
@@ -164,10 +176,10 @@ def _run_claude(messages: list[ChatMessage], system: str, tools: list[dict], rec
             results.append(result)
         convo.append({"role": "user", "content": results})
 
-    return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log)
+    return _finalize("I couldn't finish planning — try rephrasing your request.", tool_log, usage)
 
 
-def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
+def _finalize(text: str, tool_log: list[dict], usage: list[dict] | None = None) -> ChatResponse:
     ids: list[str] = []
     m = re.search(r"RECOMMENDED:\s*(.+)", text)
     if m:
@@ -187,7 +199,8 @@ def _finalize(text: str, tool_log: list[dict]) -> ChatResponse:
         # Model forgot the RECOMMENDED line: fall back to searched trails it named in the text.
         ids = [i for i, name in seen.items() if name in text]
     ids = [i for i in dict.fromkeys(ids) if i in seen and store.get(i)]
-    return ChatResponse(reply=text, recommended_ids=ids, trails=[store.get(i) for i in ids], tool_log=tool_log)
+    return ChatResponse(reply=text, recommended_ids=ids, trails=[store.get(i) for i in ids], tool_log=tool_log,
+                        usage=usage or [])
 
 
 def _demo_personal(out: dict) -> ChatResponse:

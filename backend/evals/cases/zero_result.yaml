@@ -1,0 +1,102 @@
+# Constraint sets verified to return 0 trails from store.search (see report). The agent should retry with
+# fewer filters, then either offer a loosened match it labels as such, or say nothing fits. Never invent.
+
+- id: zero_l1_10min_lake_nocar
+  category: zero_result
+  messages:
+    - {role: user, content: "Level 1, 10 minutes, with a lake, I have no car."}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_waterfall
+  category: zero_result
+  messages:
+    - {role: user, content: "Take me to a waterfall hike near State College, I have a car."}
+  expect:
+    tools_called: [search_trails]
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_cave
+  category: zero_result
+  messages:
+    - {role: user, content: "Any trail with a cave to explore? Driving is fine."}
+  expect:
+    tools_called: [search_trails]
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_nocar_lake
+  category: zero_result
+  messages:
+    - {role: user, content: "I want to hike to a lake but I don't have a car."}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_nocar_swim
+  category: zero_result
+  messages:
+    - {role: user, content: "Somewhere to swim after a hike, reachable by bus only."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_hard_short
+  category: zero_result
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "I want a level 5 hike that takes under an hour."}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_nocar_hard_short
+  category: zero_result
+  messages:
+    - {role: user, content: "Hard hike, level 4 or more, by bus, under 2 hours total."}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_nocar_stream
+  category: zero_result
+  messages:
+    - {role: user, content: "A creek walk I can reach without a car?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_nocar_20min
+  category: zero_result
+  messages:
+    - {role: user, content: "I have 20 minutes and no car. Any trail?"}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    tool_args:
+      search_trails: {car_free: true}
+    judge: [admits_no_exact_match, concise]
+
+- id: zero_hard_lake
+  category: zero_result
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Brutal, level 4+ climb that ends at a lake?"}
+  expect:
+    tools_called: [search_trails]
+    min_search_calls: 2
+    judge: [admits_no_exact_match, concise]

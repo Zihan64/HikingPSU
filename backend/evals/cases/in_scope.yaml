@@ -1,0 +1,414 @@
+# Normal planning requests. Time budgets: max_time_min must leave the ~20% buffer (we allow up to 85%).
+# Default judge items for this file: grounded_difficulty, says_how_to_get_there, concise (see judge.py).
+
+- id: car_free_view_3h
+  category: in_scope
+  messages:
+    - {role: user, content: "Saturday afternoon, no car, 3 hours, want a view"}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 153}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: no_car_two_hours
+  category: in_scope
+  messages:
+    - {role: user, content: "I don't have a car. What can I hike in about 2 hours?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 102}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: profile_no_car
+  category: in_scope
+  profile: {has_car: false}
+  messages:
+    - {role: user, content: "Suggest a hike for tomorrow morning, around 90 minutes."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 77}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: profile_has_car_lake
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Looking for a lake walk, nothing too hard."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {features_any: [lake, water]}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: message_overrides_profile_car
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "My car is in the shop this week, so I'll take the bus. Any easy trail?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: first_time_hiker
+  category: in_scope
+  messages:
+    - {role: user, content: "I've never hiked before. Where should I start? I can drive."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: stroller_family
+  category: in_scope
+  messages:
+    - {role: user, content: "Family outing with a stroller and a 4 year old. Flat please."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: challenging_rocky
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "I want something really challenging and rocky, I'm in great shape. I have all day."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {min_level_gte: 4}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: sunset_tonight
+  category: in_scope
+  messages:
+    - {role: user, content: "Where can I catch the sunset tonight? I have a car."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {features_any: [sunset, view, overlook]}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: rain_tomorrow
+  category: in_scope
+  messages:
+    - {role: user, content: "Is it going to rain tomorrow? If not I want a forest hike, 2 hours, I have a car."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {max_time_min_lte: 102}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: hunting_november
+  category: in_scope
+  messages:
+    - {role: user, content: "Planning a hike in Rothrock on November 29. Anything I should know about hunting?"}
+  expect:
+    tools_called: [search_trails, hunting_season_note]
+    must_recommend: true
+    max_recommendations: 3
+    judge: [grounded_difficulty, says_how_to_get_there, concise, mentions_blaze_orange]
+
+- id: hunting_this_weekend
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Going to Musser Gap this weekend. Is hunting season a concern?"}
+  expect:
+    tools_called: [hunting_season_note]
+    judge: [concise, mentions_blaze_orange]
+
+- id: one_hour_campus
+  category: in_scope
+  messages:
+    - {role: user, content: "I have one hour between classes and I'm on campus. Quick nature walk?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_time_min_lte: 51}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: birds_morning
+  category: in_scope
+  messages:
+    - {role: user, content: "Good spot for birdwatching on a short walk? I don't drive."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: stream_shade_summer
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Hot day. I want shade and a stream, about 2.5 hours max."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_time_min_lte: 128}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: drive_limit_20
+  category: in_scope
+  messages:
+    - {role: user, content: "I'll drive but no more than 20 minutes from downtown. Moderate hike with a view."}
+  expect:
+    tools_called: [search_trails]
+    must_recommend: true
+    max_recommendations: 3
+
+- id: bike_access
+  category: in_scope
+  messages:
+    - {role: user, content: "I bike everywhere. What trail can I bike to and hike, around 2 hours total hiking?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_time_min_lte: 102}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: level_3_request
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Give me a moderate hike, level 3 at most, under 3 hours."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 3, max_time_min_lte: 153}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: date_with_partner
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Romantic sunset hike for a date on Friday, nothing too sweaty."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    must_recommend: true
+    max_recommendations: 3
+
+- id: half_day_group
+  category: in_scope
+  profile: {has_car: true, fitness: 4}
+  messages:
+    - {role: user, content: "Group of 5 fit friends, half a day, we want the best views around."}
+  expect:
+    tools_called: [search_trails]
+    must_recommend: true
+    max_recommendations: 3
+
+- id: low_fitness_profile
+  category: in_scope
+  profile: {fitness: 1, has_car: true}
+  messages:
+    - {role: user, content: "Recommend something for this afternoon."}
+  expect:
+    tools_called: [search_trails, get_weather]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: knee_injury
+  category: in_scope
+  messages:
+    - {role: user, content: "Recovering from a knee injury, need something flat and short. I have a car."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: mt_nittany_question
+  category: in_scope
+  messages:
+    - {role: user, content: "How hard is Mount Nittany for a beginner? Can I get there without a car?"}
+  expect:
+    tools_called: [search_trails]
+    judge: [grounded_difficulty, says_how_to_get_there, concise]
+
+- id: compare_two
+  category: in_scope
+  messages:
+    - {role: user, content: "Shingletown Gap or Musser Gap for a first hike? I have a car."}
+  expect:
+    tools_called: [search_trails]
+    judge: [grounded_difficulty, concise]
+
+- id: official_map_rothrock
+  category: in_scope
+  messages:
+    - {role: user, content: "Is there an official PDF map of Rothrock State Forest I can download?"}
+  expect:
+    tools_called: [search_official_resources]
+    tools_forbidden: []
+    judge: [concise, links_only_tool_urls]
+
+- id: official_map_unindexed
+  category: in_scope
+  messages:
+    - {role: user, content: "Do you have the official trail map for Ricketts Glen State Park?"}
+  expect:
+    tools_called: [search_official_resources]
+    judge: [concise, links_only_tool_urls, admits_not_indexed]
+
+- id: cycling_permission
+  category: in_scope
+  messages:
+    - {role: user, content: "Can I ride my mountain bike on the Musser Gap trail?"}
+  expect:
+    tools_called: [search_official_resources]
+    judge: [concise, no_invented_permission]
+
+- id: gear_question
+  category: in_scope
+  messages:
+    - {role: user, content: "What should I bring for a 3 hour hike on Mount Nittany in late October?"}
+  expect:
+    judge: [concise, stays_in_scope]
+
+- id: safety_alone
+  category: in_scope
+  messages:
+    - {role: user, content: "Is it safe to hike alone? I'm thinking of Shingletown Gap, I have a car."}
+  expect:
+    judge: [concise, stays_in_scope]
+
+- id: dog_friendly
+  category: in_scope
+  messages:
+    - {role: user, content: "Where can I walk my dog for an hour? I have a car."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_time_min_lte: 51}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: winter_visitor
+  category: in_scope
+  messages:
+    - {role: user, content: "Visiting my kid at Penn State next weekend, staying downtown, no car. A 2 hour walk with something pretty to see?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {car_free: true, max_time_min_lte: 102}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: exact_trail_time
+  category: in_scope
+  messages:
+    - {role: user, content: "How long does the Millbrook Marsh boardwalk take?"}
+  expect:
+    tools_called: [search_trails]
+    judge: [concise, grounded_difficulty]
+
+- id: terse_request
+  category: in_scope
+  messages:
+    - {role: user, content: "hike?"}
+  expect:
+    judge: [concise, stays_in_scope]
+
+- id: long_hike_6h
+  category: in_scope
+  profile: {has_car: true, fitness: 5}
+  messages:
+    - {role: user, content: "I have 6 hours and want the longest, hardest loop you know."}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_time_min_lte: 306}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: kids_lake_swim
+  category: in_scope
+  profile: {has_car: true}
+  messages:
+    - {role: user, content: "Somewhere the kids can swim after a short easy walk?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: followup_easier
+  category: in_scope
+  messages:
+    - {role: user, content: "Something with a view, I have a car and about 3 hours."}
+    - {role: assistant, content: "Here are two good options:\n- Mount Nittany – White & Blue Full Loop: Level 4 (Hard), about 3.3 hours, 10 min drive.\n- Indian Steps – Tussey Mountain: Level 3, about 1.8 hours, 20 min drive."}
+    - {role: user, content: "Those sound too hard for my friend. Anything easier?"}
+  expect:
+    tools_called: [search_trails]
+    tool_args:
+      search_trails: {max_level_lte: 2}
+    must_recommend: true
+    max_recommendations: 3
+
+- id: followup_transport
+  category: in_scope
+  messages:
+    - {role: user, content: "Easy hike near State College?"}
+    - {role: assistant, content: "Try the Millbrook Marsh Nature Center Boardwalk (Level 1, about 40 minutes) or Walnut Springs Park & Thompson Woods (Level 1, about 75 minutes)."}
+    - {role: user, content: "Can I get to the first one by bus?"}
+  expect:
+    tools_called: [search_trails]
+    judge: [concise, says_how_to_get_there]
+
+- id: signed_followup_http
+  category: in_scope
+  via: http
+  messages:
+    - {role: user, content: "Easy hike near State College, I have no car?"}
+    - {role: assistant, sig: genuine, content: "Try the Millbrook Marsh Nature Center Boardwalk (Level 1, about 40 minutes, CATA bus) or the Arboretum & Hartley Wood Loop (Level 1, about 30 minutes, on campus)."}
+    - {role: user, content: "Which of those two is better for birds?"}
+  expect:
+    judge: [concise, uses_prior_context]
+
+- id: signed_followup_http_more
+  category: in_scope
+  via: http
+  messages:
+    - {role: user, content: "Something with a view for a strong hiker, I have a car."}
+    - {role: assistant, sig: genuine, content: "Mount Nittany – White & Blue Full Loop is a good pick: Level 4 (Hard), 7 overlooks, about 3.3 hours, 10 min drive."}
+    - {role: user, content: "Nice. Give me one more option that's different."}
+  expect:
+    tools_called: [search_trails]
+    must_recommend: true
+    judge: [concise, uses_prior_context]
+
+- id: vague_weekend
+  category: in_scope
+  messages:
+    - {role: user, content: "Any hike ideas for this weekend?"}
+  expect:
+    must_recommend: true
+    max_recommendations: 3
+    judge: [concise, grounded_difficulty]

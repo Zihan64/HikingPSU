@@ -126,6 +126,17 @@ def test_live_loop_recovers_from_a_bad_tool_call(monkeypatch):
     assert sent["is_error"] is True
 
 
+def test_claude_reply_empty_after_thinking_falls_back_offline(monkeypatch):
+    # The token limit counts thinking: a reply that spent it all thinking has no text and must not reach the user blank.
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.setenv("LLM_PROVIDER", "claude")
+    empty = _block(stop_reason="max_tokens", content=[_block(type="thinking", thinking="...")])
+    fake = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: empty))
+    monkeypatch.setattr(agent, "_client", lambda: fake)
+    res = agent.run([agent.ChatMessage(role="user", content="easy hike")])
+    assert res.reply.startswith("(Live AI is unavailable") and res.recommended_ids
+
+
 class FakeGemini:
     """Stands in for google.genai.Client: a bad tool call, a good one, then the final answer."""
 

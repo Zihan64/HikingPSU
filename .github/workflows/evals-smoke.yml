@@ -1,0 +1,29 @@
+name: Agent eval smoke
+
+on:
+  pull_request:
+    paths: ["backend/**", ".github/workflows/evals-smoke.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/**"]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DEMO_MODE: "1"  # offline agent: no API keys, no cost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/evals/requirements.txt
+      - run: pip install -r evals/requirements.txt
+      - name: Eval harness smoke (10 cases, forged-history and guardrail invariants)
+        run: python -m pytest -q evals/smoke_test.py
