@@ -343,7 +343,8 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env          # add GEMINI_API_KEY, or set DEMO_MODE=1
 uvicorn app.main:app --reload # API docs at http://localhost:8000/docs
-pytest                        # runs without a network connection or API key
+pytest                        # runs without a network connection or API key (includes the eval smoke test)
+python -m evals.runner --providers claude --k 3   # live agent evals: uses API keys and costs money, see backend/evals/README.md
 ```
 
 **Frontend** (in a second terminal)
@@ -414,7 +415,7 @@ The pop-up needs these settings in Auth0 → Applications → your Single Page A
 | `GET` | `/official/library?q=&activity=&kind=` | Search curated manager pages and PDF/offline map links |
 | `GET` | `/official/trails?area_id=&activity=&q=` | Live manager-listed route names with complete-segment activity checks |
 | `GET` | `/official/trails/{area_id}/{route_id}/geometry?activity=` | Validated original manager line geometry, provenance and planning notice; not persisted |
-| `POST` | `/chat` | `{ messages: [{role, content}], profile: {has_car} }` → reply, recommended trails, tool log. Send `Authorization: Bearer <token>` to use your saved profile and save the chat (optional `session_id` continues one) |
+| `POST` | `/chat` | `{ messages: [{role, content}], profile: {has_car} }` → reply, recommended trails, tool log, and `usage` (input/output tokens per model call). Send `Authorization: Bearer <token>` to use your saved profile and save the chat (optional `session_id` continues one) |
 
 ### User database (MongoDB)
 
@@ -529,6 +530,7 @@ backend/
     community_seed.json     Starter trail tips
   scripts/          OSM import, park assignment, difficulty calibration, demo queries
   tests/            pytest suite (no network or API key needed; MongoDB is mocked)
+  evals/            Agent eval and red-team suite: 150 cases, runner, checks, LLM judge, report.md with results
 frontend/
   src/
     App.jsx         Planner, map, results and page switching
@@ -539,6 +541,7 @@ frontend/
     CheckinControl.jsx · ActiveCheckinBanner.jsx · ReviewModal.jsx   Check-in and rating flow
     location.js · trailGeometry.js · checkin.js · catalogFilter.js · trailSort.js   Logic without React
   tests/            node:test suites plus dev-only location and profile fixtures
+.github/workflows/evals-smoke.yml   CI: offline eval smoke run on every backend change
 docs/trails-catalog.md   Catalog data, regeneration commands and review table
 scripts/start-demo.ps1   Windows one-command offline demo
 ```
@@ -566,6 +569,7 @@ Built over a two-day sprint (24–25 Oct 2026): about 100 commits and 30+ merged
 5. **Community:** reviews and ratings, hearts, Community page, scenic drives page.
 6. **Look and feel:** PSU blue-and-white theme, sign-in page, layered SVG outdoor scenery.
 7. **Badges and social:** trailhead check-ins, verified completions and badges (backend and frontend); usernames, public profiles and follows (backend only so far).
+8. **Agent evals (28 Oct):** 150-case eval and red-team suite with token-usage logging and a CI smoke job. The first run found blank or cut-off Claude replies (thinking used up the 1200-token limit); the limit is now 4096, and an empty reply falls back to the offline answer. See [Evaluating the agent](#evaluating-the-agent).
 
 ## Roadmap
 
@@ -573,6 +577,9 @@ Built over a two-day sprint (24–25 Oct 2026): about 100 commits and 30+ merged
 - [x] Grow to 30+ trails (52 now)
 - [ ] Field-verify every trail entry (none are `verified: true` yet)
 - [ ] Calibrate difficulty thresholds against local hikers' ratings and publish the agreement rate
+- [ ] Run the agent evals on Gemini (needs a paid key; the free tier allows 20 requests a day) and check the production key's tier
+- [ ] Replace the stand-in judge calibration labels in `backend/evals/calibration/labels.jsonl` with human labels
+- [ ] Shorten agent replies: 74% of in-scope answers run over 200 words although the prompt asks for concise ones
 - [x] Personalized difficulty that adapts to each hiker's pace (`recommend.py`: comfort level drifts with how hard logged hikes felt; time estimates scale with logged durations)
 - [ ] Tune `REC_CALIBRATION` weights against sample profiles reviewed by club hikers
 - [ ] Community trail-condition reports (downed trees, mud, closures)
