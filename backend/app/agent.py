@@ -21,6 +21,7 @@ log = logging.getLogger("hikingpsu.agent")
 
 MODEL = llm.CLAUDE_MODEL
 MAX_TURNS = 5  # tool-use rounds per request; caps the cost of a single message
+CLAUDE_MAX_TOKENS = 4096  # per model call, thinking included (same budget as the Gemini path)
 RECOMMEND = RECOMMEND_FOR_ME_TOOL["name"]
 
 # Signed-in users only: k -> the personal ranking in recommend.tool_output() form.
@@ -150,14 +151,16 @@ def _run_claude(messages: list[ChatMessage], system: str, tools: list[dict], rec
     usage: list[dict] = []
 
     for _ in range(MAX_TURNS):
-        resp = client.messages.create(
-            model=MODEL, max_tokens=1200, system=system, tools=tools, messages=convo
+        resp = client.messages.create(  # max_tokens includes the model's thinking; 1200 left some replies empty
+            model=MODEL, max_tokens=CLAUDE_MAX_TOKENS, system=system, tools=tools, messages=convo
         )
         u = getattr(resp, "usage", None)  # bookkeeping only: never fail a reply over it
         usage.append({"model": MODEL, "input_tokens": getattr(u, "input_tokens", 0) or 0,
                       "output_tokens": getattr(u, "output_tokens", 0) or 0})
         if resp.stop_reason != "tool_use":
             text = "".join(b.text for b in resp.content if b.type == "text")
+            if not text.strip():  # e.g. the token limit was spent thinking: let run() answer offline
+                raise RuntimeError(f"empty Claude reply ({resp.stop_reason})")
             return _finalize(text, tool_log, usage)
 
         convo.append({"role": "assistant", "content": resp.content})
